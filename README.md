@@ -2,7 +2,7 @@
 
 ![CI](https://github.com/AlmanInDaHouse/Agentic-Rag/actions/workflows/ci.yml/badge.svg)
 
-Monorepo MVP para experimentar con coordinación de agentes IA, debate estructurado y dashboard de monitorización.
+Monorepo MVP para experimentar con coordinación de agentes IA, debate estructurado, runtime agentico mockeado y dashboard de monitorización.
 
 ## Stack
 
@@ -119,6 +119,12 @@ See:
 - `POST /api/goals/:goalId/debate-rounds`
 - `GET /api/goals/:goalId/debate-rounds/latest`
 - `GET /api/goals/:goalId/timeline`
+- `POST /api/goals/:goalId/runs`
+- `GET /api/goals/:goalId/runs`
+- `GET /api/runs/:runId`
+- `POST /api/runs/:runId/start`
+- `POST /api/runs/:runId/advance`
+- `POST /api/runs/:runId/cancel`
 
 Ejemplo:
 
@@ -127,6 +133,59 @@ curl -X POST http://127.0.0.1:3001/api/goals \
   -H "content-type: application/json" \
   -d '{"title":"Design memory MVP","description":"Define the first persistence strategy for agent memory."}'
 ```
+
+## Agent Runtime
+
+El runtime actual es una state machine mockeada y trazable. No ejecuta modelos reales ni procesos externos.
+
+Crear un run sobre un goal:
+
+```bash
+curl -X POST http://127.0.0.1:3001/api/goals/<goal-id>/runs \
+  -H "content-type: application/json" \
+  -d '{"objective":"Advance this goal with the mock runtime.","definitionOfDone":["Run reaches completed."],"budget":{"maxSteps":12,"maxFailures":3}}'
+```
+
+Arrancar y avanzar un run:
+
+```bash
+curl -X POST http://127.0.0.1:3001/api/runs/<run-id>/start \
+  -H "content-type: application/json" \
+  -d '{}'
+
+curl -X POST http://127.0.0.1:3001/api/runs/<run-id>/advance \
+  -H "content-type: application/json" \
+  -d '{}'
+```
+
+Cancelar un run:
+
+```bash
+curl -X POST http://127.0.0.1:3001/api/runs/<run-id>/cancel \
+  -H "content-type: application/json" \
+  -d '{}'
+```
+
+Estados de run:
+
+```text
+created
+queued
+running
+waiting_for_approval
+completed
+failed
+cancelled
+stopped
+```
+
+Steps mock iniciales:
+
+```text
+load_context -> plan -> debate -> judge -> validate -> summarize
+```
+
+Todavía no está implementado: RAG, GraphRAG, Code Graph, adapters reales de Codex/Claude/Gemini/Ollama, colas de workers, approval workflow completo ni ejecución autónoma multi-ciclo.
 
 ## Variables de entorno
 
