@@ -40,6 +40,7 @@ Fixtures must remain valid JSON. Scenario assertions must validate API responses
 ## Acceptance Criteria
 
 - `pnpm test:harness` runs the MVP scenario.
+- GitHub Actions runs `pnpm test:harness` and `pnpm harness:mvp`.
 - Harness verifies three mock agents, proposal contracts, judge decision and persistence.
 - Harness verifies invalid agent output is recorded and does not break remaining valid proposals.
 - Harness verifies a round cannot complete with no decision.

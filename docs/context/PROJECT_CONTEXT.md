@@ -11,6 +11,7 @@ TriForge Agentic Lab is an experimental platform for coordinating AI agents thro
 - `packages/shared`: Zod contracts and shared TypeScript types.
 - `infra/docker`: local PostgreSQL compose setup.
 - `docs`: ADRs, specs, security policy and living project context.
+- `.github/workflows`: GitHub Actions CI.
 - `tooling/harness`: black-box development harness that creates temporary PostgreSQL schemas and drives the API over HTTP.
 - `tests`: fixtures used by harness scenarios.
 
@@ -76,6 +77,10 @@ pnpm audit
 pnpm lint:deps
 ```
 
+## CI
+
+GitHub Actions runs `pnpm lint:deps`, `pnpm typecheck`, `pnpm test`, `pnpm test:harness`, `pnpm harness:mvp`, `pnpm build` and `pnpm audit` on pushes and pull requests targeting `main`.
+
 ## Folder Map
 
 ```text
@@ -110,3 +115,4 @@ tooling/harness
 - Migrations are versioned.
 - Critical logic has unit tests or harness coverage.
 - `pnpm typecheck`, `pnpm test`, `pnpm test:harness`, `pnpm build`, `pnpm audit` pass.
+- CI passes for pull requests.
