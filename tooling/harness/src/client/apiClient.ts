@@ -8,7 +8,6 @@ import {
   type Goal,
   type TimelineEvent
 } from "@triforge/shared";
-import { z } from "zod";
 
 export class HarnessApiClient {
   constructor(private readonly baseUrl: string) {}
@@ -50,7 +49,7 @@ export class HarnessApiClient {
 
   async timeline(goalId: string): Promise<TimelineEvent[]> {
     const body = await this.request(`/api/goals/${goalId}/timeline`);
-    return z.array(timelineEventSchema).parse(body);
+    return timelineEventSchema.array().parse(body);
   }
 
   private async request(path: string, init?: RequestInit): Promise<unknown> {

@@ -1,5 +1,7 @@
 # TriForge Agentic Lab
 
+![CI](https://github.com/AlmanInDaHouse/Agentic-Rag/actions/workflows/ci.yml/badge.svg)
+
 Monorepo MVP para experimentar con coordinación de agentes IA, debate estructurado y dashboard de monitorización.
 
 ## Stack
@@ -85,6 +87,10 @@ pnpm audit
 pnpm lint:deps
 pnpm deps:outdated
 ```
+
+## CI
+
+GitHub Actions runs on pushes and pull requests targeting `main`. The workflow uses Node.js 22, pnpm via Corepack, PostgreSQL 16 as a service container, and executes dependency checks, typecheck, unit tests, harness tests, build and audit.
 
 ## Endpoints MVP
 
