@@ -1,0 +1,33 @@
+{
+  "name": "triforge-agentic-lab",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.5.0",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "corepack pnpm -r build",
+    "test": "corepack pnpm -r --if-present test",
+    "test:harness": "corepack pnpm --filter @triforge/shared build && vitest --config tooling/harness/vitest.config.ts",
+    "harness:mvp": "corepack pnpm --filter @triforge/shared build && vitest --config tooling/harness/vitest.config.ts tooling/harness/src/scenarios/mvpDebate.scenario.ts",
+    "typecheck": "corepack pnpm --filter @triforge/shared build && corepack pnpm -r --if-present typecheck",
+    "dev": "corepack pnpm -r --parallel --filter @triforge/api --filter @triforge/web dev",
+    "dev:api": "corepack pnpm --filter @triforge/api dev",
+    "dev:web": "corepack pnpm --filter @triforge/web dev",
+    "db:migrate": "corepack pnpm --filter @triforge/api db:migrate",
+    "lint:deps": "node scripts/check-dependencies.mjs",
+    "deps:audit": "corepack pnpm audit",
+    "deps:outdated": "corepack pnpm outdated -r"
+  },
+  "engines": {
+    "node": ">=20.11"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.11.10",
+    "pg": "^8.13.1",
+    "vitest": "^4.1.8"
+  }
+}

@@ -1,0 +1,112 @@
+# TriForge Agentic Lab Project Context
+
+## Vision
+
+TriForge Agentic Lab is an experimental platform for coordinating AI agents through structured debate, traceable decisions, future memory/RAG/GraphRAG, code graph analysis, task execution and monitoring.
+
+## Current Architecture
+
+- `apps/api`: Fastify ESM API, PostgreSQL repositories, migrations, mock debate runtime and tests.
+- `apps/web`: React + Vite dashboard.
+- `packages/shared`: Zod contracts and shared TypeScript types.
+- `infra/docker`: local PostgreSQL compose setup.
+- `docs`: ADRs, specs, security policy and living project context.
+- `tooling/harness`: black-box development harness that creates temporary PostgreSQL schemas and drives the API over HTTP.
+- `tests`: fixtures used by harness scenarios.
+
+## Stack
+
+- TypeScript ESM.
+- Fastify.
+- React + Vite.
+- PostgreSQL with `pg`.
+- No ORM.
+- SQL parametrizado.
+- Zod contracts.
+- pnpm workspaces.
+- Vitest.
+
+## Technical Restrictions
+
+- Do not add features without a spec.
+- Do not use ORM.
+- Do not interpolate user values into SQL.
+- Keep architecture modular and small.
+- Mock agents come before real adapters.
+- pnpm is the only supported package manager.
+
+## Current State
+
+The MVP supports goal creation/listing, debate round creation, latest round retrieval, mock agents, mock judge, persisted proposals and basic dashboard.
+
+## Decisions Taken
+
+- Vite over Next.js for MVP simplicity.
+- pnpm workspaces over npm workspaces.
+- Harness lives outside product runtime in `tooling/harness`.
+- Timeline events are stored in PostgreSQL as JSONB payloads.
+
+## Next Steps
+
+- Consider database-per-run harness isolation only if schema isolation becomes insufficient.
+- Add adapter specs before implementing real agent bridges.
+- Define memory/RAG storage after context spec is expanded.
+
+## Development Rules
+
+- Read this file before each Codex session.
+- Read `docs/specs/PROJECT_SPEC.md`, the relevant feature spec, ADRs and harness tests.
+- Update specs before implementing new behavior.
+- Add or update tests for critical services and harness flows.
+- Run validation commands before handing off.
+
+## Main Commands
+
+```bash
+corepack enable
+corepack prepare pnpm@11.5.0 --activate
+pnpm install
+pnpm db:migrate
+pnpm dev
+pnpm typecheck
+pnpm test
+pnpm test:harness
+pnpm build
+pnpm audit
+pnpm lint:deps
+```
+
+## Folder Map
+
+```text
+apps/api
+apps/web
+packages/shared
+infra/docker
+docs/adr
+docs/specs
+docs/security
+docs/context
+tests/fixtures
+tooling/harness
+```
+
+## Current Risks
+
+- Harness uses temporary schemas inside the configured PostgreSQL database.
+- Real agent adapters will introduce untrusted output and subprocess risks.
+- Timeline event retention is undefined.
+
+## Technical Debt
+
+- Debate orchestration is not wrapped in a single transaction.
+- Dashboard has no live updates.
+- API route schemas are manually wired instead of using Fastify schema integration.
+
+## Definition of Done
+
+- Relevant spec exists and is current.
+- Contracts are updated in `packages/shared` when API shape changes.
+- Migrations are versioned.
+- Critical logic has unit tests or harness coverage.
+- `pnpm typecheck`, `pnpm test`, `pnpm test:harness`, `pnpm build`, `pnpm audit` pass.

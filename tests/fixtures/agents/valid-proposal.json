@@ -1,0 +1,5 @@
+{
+  "agentId": "codex_architect",
+  "proposal": "Use explicit contracts, small modules and persisted events to keep the MVP observable.",
+  "confidence": 0.87
+}
