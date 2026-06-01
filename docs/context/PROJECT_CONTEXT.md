@@ -12,6 +12,8 @@ TriForge Agentic Lab is an experimental platform for coordinating AI agents thro
 - `infra/docker`: local PostgreSQL compose setup.
 - `docs`: ADRs, specs, security policy and living project context.
 - `.github/workflows`: GitHub Actions CI.
+- `.github/pull_request_template.md`: pull request checklist.
+- `.github/CODEOWNERS`: basic ownership rule.
 - `tooling/harness`: black-box development harness that creates temporary PostgreSQL schemas and drives the API over HTTP.
 - `tests`: fixtures used by harness scenarios.
 
@@ -81,6 +83,16 @@ pnpm lint:deps
 
 GitHub Actions runs `pnpm lint:deps`, `pnpm typecheck`, `pnpm test`, `pnpm test:harness`, `pnpm harness:mvp`, `pnpm build` and `pnpm audit` on pushes and pull requests targeting `main`.
 
+## Repository Governance
+
+- All changes should enter through pull requests.
+- Direct commits to `main` are not part of the normal workflow.
+- The required status check is `Validate`.
+- Prefer squash merge.
+- Update specs for behavior changes.
+- Update ADRs for architecture changes.
+- Update dependency review docs when dependencies change.
+
 ## Folder Map
 
 ```text
@@ -92,6 +104,7 @@ docs/adr
 docs/specs
 docs/security
 docs/context
+docs/repo
 tests/fixtures
 tooling/harness
 ```
