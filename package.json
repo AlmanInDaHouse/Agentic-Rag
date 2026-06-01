@@ -26,6 +26,7 @@
     "node": ">=20.11"
   },
   "devDependencies": {
+    "@triforge/shared": "workspace:*",
     "@types/pg": "^8.11.10",
     "pg": "^8.13.1",
     "vitest": "^4.1.8"

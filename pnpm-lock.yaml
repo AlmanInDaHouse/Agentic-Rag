@@ -8,6 +8,9 @@ importers:
 
   .:
     devDependencies:
+      '@triforge/shared':
+        specifier: workspace:*
+        version: link:packages/shared
       '@types/pg':
         specifier: ^8.11.10
         version: 8.20.0
