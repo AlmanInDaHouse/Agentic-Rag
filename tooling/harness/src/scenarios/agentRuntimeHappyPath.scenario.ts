@@ -38,6 +38,7 @@ describe("harness: agent runtime happy path", () => {
 
     const listedRuns = await runtime.api.listRuns(goal.id);
     expect(listedRuns.map((run) => run.id)).toContain(created.id);
+    expect(await runtime.api.startRunStatus(created.id, { unexpected: true })).toBe(400);
 
     let run = await runtime.api.startRun(created.id);
     expect(run.status).toBe("running");

@@ -26,6 +26,8 @@ const runParamsSchema = z.object({
   runId: z.string().uuid()
 });
 
+const emptyBodySchema = z.union([z.undefined(), z.object({}).strict()]);
+
 function sendZodError(reply: FastifyReply, error: z.ZodError): void {
   reply.status(400).send({
     error: "bad_request",
@@ -203,6 +205,11 @@ export async function registerRoutes(
       sendZodError(reply, parsedParams.error);
       return;
     }
+    const parsedBody = emptyBodySchema.safeParse(request.body);
+    if (!parsedBody.success) {
+      sendZodError(reply, parsedBody.error);
+      return;
+    }
 
     try {
       const run = await agentRuntimeService.startRun(parsedParams.data.runId);
@@ -226,6 +233,11 @@ export async function registerRoutes(
       sendZodError(reply, parsedParams.error);
       return;
     }
+    const parsedBody = emptyBodySchema.safeParse(request.body);
+    if (!parsedBody.success) {
+      sendZodError(reply, parsedBody.error);
+      return;
+    }
 
     try {
       const run = await agentRuntimeService.advanceRunOneStep(parsedParams.data.runId);
@@ -247,6 +259,11 @@ export async function registerRoutes(
     const parsedParams = runParamsSchema.safeParse(request.params);
     if (!parsedParams.success) {
       sendZodError(reply, parsedParams.error);
+      return;
+    }
+    const parsedBody = emptyBodySchema.safeParse(request.body);
+    if (!parsedBody.success) {
+      sendZodError(reply, parsedBody.error);
       return;
     }
 

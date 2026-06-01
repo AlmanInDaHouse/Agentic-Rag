@@ -71,13 +71,13 @@ export const StopConditionSchema = z.enum([
 export const RunBudgetSchema = z.object({
   maxSteps: z.number().int().positive().max(100).default(12),
   maxFailures: z.number().int().nonnegative().max(25).default(3)
-});
+}).strict();
 
 export const CreateAgentRunSchema = z.object({
   objective: z.string().trim().min(3).max(5000),
   definitionOfDone: z.array(z.string().trim().min(1).max(500)).default([]),
   budget: RunBudgetSchema.partial().default({})
-});
+}).strict();
 
 export const createGoalRequestSchema = z.object({
   title: z.string().trim().min(3).max(160),

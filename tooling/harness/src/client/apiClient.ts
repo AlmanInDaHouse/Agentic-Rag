@@ -85,6 +85,15 @@ export class HarnessApiClient {
     return AgentRunWithDetailsSchema.parse(body);
   }
 
+  async startRunStatus(runId: string, body: unknown = {}): Promise<number> {
+    const response = await this.rawRequest(`/api/runs/${runId}/start`, {
+      method: "POST",
+      body: JSON.stringify(body)
+    });
+    await response.text();
+    return response.status;
+  }
+
   async advanceRun(runId: string): Promise<AgentRunWithDetails> {
     const body = await this.request(`/api/runs/${runId}/advance`, {
       method: "POST",

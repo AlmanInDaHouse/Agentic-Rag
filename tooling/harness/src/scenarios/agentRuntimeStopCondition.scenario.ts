@@ -27,17 +27,16 @@ describe("harness: agent runtime stop condition", () => {
     const goalFixture = await readFixture<CreateGoalRequest>("tests/fixtures/goals/basic-goal.json");
     const goal = await runtime.api.createGoal(goalFixture);
     const created = await runtime.api.createRun(goal.id, {
-      objective: "Stop after two deterministic runtime steps.",
+      objective: "Stop after one deterministic runtime step.",
       definitionOfDone: ["Runtime should stop before summarize."],
-      budget: { maxSteps: 2, maxFailures: 3 }
+      budget: { maxSteps: 1, maxFailures: 3 }
     });
 
     let run = await runtime.api.startRun(created.id);
     run = await runtime.api.advanceRun(run.id);
-    run = await runtime.api.advanceRun(run.id);
 
     expect(run.status).toBe("stopped");
-    expect(run.steps.map((step) => step.type)).toEqual(["load_context", "plan"]);
+    expect(run.steps.map((step) => step.type)).toEqual(["load_context"]);
 
     const advanceStatus = await runtime.api.advanceRunStatus(run.id);
     expect(advanceStatus).toBe(409);

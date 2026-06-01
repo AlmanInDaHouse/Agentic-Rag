@@ -37,6 +37,8 @@ const goal: Goal = {
 
 let idCounter = 0;
 
+type TestStepExecutor = (run: AgentRun, step: AgentStep) => Promise<Record<string, unknown>>;
+
 function nextId(): string {
   idCounter += 1;
   return `00000000-0000-4000-8000-${String(idCounter).padStart(12, "0")}`;
@@ -144,6 +146,14 @@ class MemoryAgentStepRepository implements AgentStepRepository {
   public steps: AgentStep[] = [];
 
   async create(input: CreateStepInput): Promise<AgentStep> {
+    if (
+      this.steps.some(
+        (step) => step.runId === input.runId && step.stepIndex === input.stepIndex
+      )
+    ) {
+      throw new ConflictError(`Run ${input.runId} already has a step at index ${input.stepIndex}`);
+    }
+
     const step: AgentStep = {
       id: nextId(),
       runId: input.runId,
@@ -232,7 +242,7 @@ class MemoryTimelineEventsRepository implements TimelineEventsRepository {
   }
 }
 
-function createService() {
+function createService(executeStep?: TestStepExecutor) {
   idCounter = 0;
   const runRepository = new MemoryAgentRunRepository();
   const stepRepository = new MemoryAgentStepRepository();
@@ -242,7 +252,8 @@ function createService() {
     runRepository,
     stepRepository,
     new MemoryApprovalGateRepository(),
-    timelineRepository
+    timelineRepository,
+    executeStep
   );
   return { service, runRepository, stepRepository, timelineRepository };
 }
@@ -328,6 +339,40 @@ describe("AgentRuntimeService", () => {
     expect(run.status).toBe("stopped");
     expect(run.currentStepIndex).toBe(2);
     expect(run.steps.map((step) => step.type)).toEqual(["load_context", "plan"]);
+  });
+
+  it("treats max_steps as the maximum number of executed steps", async () => {
+    const { service } = createService();
+    let run = await createStartedRun(service, { maxSteps: 1 });
+
+    run = await service.advanceRunOneStep(run.id);
+
+    expect(run.status).toBe("stopped");
+    expect(run.currentStepIndex).toBe(1);
+    expect(run.steps.map((step) => step.type)).toEqual(["load_context"]);
+  });
+
+  it("fails a run when the failure budget is reached", async () => {
+    const { service, timelineRepository } = createService(async () => {
+      throw new Error("mock step failure");
+    });
+    const run = await createStartedRun(service, { maxFailures: 1 });
+
+    const failed = await service.advanceRunOneStep(run.id);
+
+    expect(failed.status).toBe("failed");
+    expect(failed.failureCount).toBe(1);
+    expect(failed.steps).toHaveLength(1);
+    expect(failed.steps[0].status).toBe("failed");
+    expect(failed.steps[0].error).toEqual({ message: "mock step failure" });
+    expect(failed.steps.some((step) => step.status === "running")).toBe(false);
+    expect(timelineRepository.events.map((event) => event.type)).toEqual([
+      "agent_run_created",
+      "agent_run_started",
+      "agent_step_started",
+      "agent_step_failed",
+      "agent_run_failed"
+    ]);
   });
 
   it("rejects advancing a terminal run", async () => {

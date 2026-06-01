@@ -71,6 +71,8 @@ load_context -> plan -> debate -> judge -> validate -> summarize
 - `approval_rejected`
 - `definition_of_done_met`
 
+`max_steps` means the maximum number of steps that may be executed. For example, `max_steps = 1` allows `load_context` to run and then stops the run with `agent_run_stopped`.
+
 ## Runtime Flow
 
 1. Create a run for an existing goal.
@@ -82,6 +84,7 @@ load_context -> plan -> debate -> judge -> validate -> summarize
 7. Persist `agent_step_started` and `agent_step_succeeded`.
 8. Complete after the milestone step sequence or stop when the step budget is consumed.
 9. Reject advancing terminal runs with HTTP 409.
+10. Reject cancelling terminal runs with HTTP 409. Cancellation is not idempotent in this milestone.
 
 ## Events
 
@@ -128,6 +131,8 @@ Shared Zod contracts live in `packages/shared/src/index.ts`:
 - `404` when a goal or run does not exist.
 - `409` when starting from an invalid state.
 - `409` when advancing terminal or non-running runs.
+- `409` when cancelling terminal runs.
+- `400` when run action endpoints receive unexpected payload fields.
 
 ## Acceptance Criteria
 
@@ -139,7 +144,10 @@ Shared Zod contracts live in `packages/shared/src/index.ts`:
 - Advancing a run records step start/success events.
 - A happy path run reaches `completed` after the initial step sequence.
 - A run with a low `max_steps` reaches `stopped`.
+- `max_steps = 1` executes exactly one step and then reaches `stopped`.
 - A cancelled run cannot advance.
+- Terminal runs cannot be cancelled again.
+- Failed step execution increments `failure_count`, marks the step `failed` and marks the run `failed` when `failure_count >= max_failures`.
 - Unit tests cover critical service transitions.
 - Harness validates runtime behavior through public HTTP endpoints only.
 - Dashboard can create, start, advance, cancel and inspect runs.

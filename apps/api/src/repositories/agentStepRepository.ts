@@ -1,5 +1,6 @@
 import type { AgentStep, AgentStepStatus } from "@triforge/shared";
 import type { DbPool } from "../db/pool.js";
+import { ConflictError } from "../domain/errors.js";
 import type {
   AgentStepRepository,
   CompleteStepInput,
@@ -12,20 +13,29 @@ export class PgAgentStepRepository implements AgentStepRepository {
   constructor(private readonly db: DbPool) {}
 
   async create(input: CreateStepInput): Promise<AgentStep> {
-    const result = await this.db.query(
-      `
-        INSERT INTO agent_steps (run_id, step_index, type, input)
-        VALUES ($1, $2, $3, $4)
-        RETURNING *
-      `,
-      [
-        input.runId,
-        input.stepIndex,
-        input.type,
-        JSON.stringify(input.input ?? {})
-      ]
-    );
-    return mapAgentStep(result.rows[0]);
+    try {
+      const result = await this.db.query(
+        `
+          INSERT INTO agent_steps (run_id, step_index, type, input)
+          VALUES ($1, $2, $3, $4)
+          RETURNING *
+        `,
+        [
+          input.runId,
+          input.stepIndex,
+          input.type,
+          JSON.stringify(input.input ?? {})
+        ]
+      );
+      return mapAgentStep(result.rows[0]);
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        throw new ConflictError(
+          `Run ${input.runId} already has a step at index ${input.stepIndex}`
+        );
+      }
+      throw error;
+    }
   }
 
   async updateStatus(id: string, status: AgentStepStatus): Promise<AgentStep> {
@@ -87,4 +97,13 @@ export class PgAgentStepRepository implements AgentStepRepository {
     );
     return result.rows.map(mapAgentStep);
   }
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "23505"
+  );
 }
