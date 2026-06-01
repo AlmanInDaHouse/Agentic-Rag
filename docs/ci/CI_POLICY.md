@@ -63,3 +63,7 @@ pnpm audit
 ## No-Skip Policy
 
 Do not skip, remove or downgrade CI checks to merge faster. If a check is flaky or blocked by external infrastructure, document the issue and fix the workflow or test design.
+
+## Branch Protection
+
+The `Validate` check should be configured as required for `main`. See `docs/repo/BRANCH_PROTECTION.md` for the GitHub settings.

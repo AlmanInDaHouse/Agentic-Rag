@@ -92,6 +92,25 @@ pnpm deps:outdated
 
 GitHub Actions runs on pushes and pull requests targeting `main`. The workflow uses Node.js 22, pnpm via Corepack, PostgreSQL 16 as a service container, and executes dependency checks, typecheck, unit tests, harness tests, build and audit.
 
+## Repository Governance
+
+Changes should enter through pull requests targeting `main`; direct commits to `main` are not part of the normal workflow. The required CI check is `Validate`.
+
+Recommended GitHub branch protection for `main`:
+
+- require pull requests before merging,
+- require the `Validate` status check,
+- require branches to be up to date,
+- require conversation resolution,
+- restrict force pushes and deletions.
+
+Behavior changes should update the relevant spec in `docs/specs/`. Architecture changes should add or update an ADR. Dependency changes should update security/dependency review docs.
+
+See:
+
+- `docs/repo/BRANCH_PROTECTION.md`
+- `docs/repo/PULL_REQUEST_POLICY.md`
+
 ## Endpoints MVP
 
 - `GET /health`
