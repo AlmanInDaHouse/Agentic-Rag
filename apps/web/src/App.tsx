@@ -1,9 +1,30 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import type { DebateRoundWithProposals, Goal, TimelineEvent } from "@triforge/shared";
-import { createGoal, getLatestDebate, getTimeline, listGoals, runDebate } from "./api.js";
+import type {
+  AgentRun,
+  AgentRunStatus,
+  AgentRunWithDetails,
+  DebateRoundWithProposals,
+  Goal,
+  TimelineEvent
+} from "@triforge/shared";
+import {
+  advanceRun,
+  cancelRun,
+  createGoal,
+  createRun,
+  getLatestDebate,
+  getRun,
+  getTimeline,
+  listGoals,
+  listRuns,
+  runDebate,
+  startRun
+} from "./api.js";
 
 type DebateByGoal = Record<string, DebateRoundWithProposals>;
 type TimelineByGoal = Record<string, TimelineEvent[]>;
+type RunsByGoal = Record<string, AgentRun[]>;
+type RunDetailsById = Record<string, AgentRunWithDetails>;
 
 const agentLabels: Record<string, string> = {
   codex_architect: "Codex Architect",
@@ -11,11 +32,21 @@ const agentLabels: Record<string, string> = {
   gemini_researcher: "Gemini Researcher"
 };
 
+const terminalRunStatuses = new Set<AgentRunStatus>([
+  "completed",
+  "failed",
+  "cancelled",
+  "stopped"
+]);
+
 export function App() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [debates, setDebates] = useState<DebateByGoal>({});
   const [timelines, setTimelines] = useState<TimelineByGoal>({});
+  const [runsByGoal, setRunsByGoal] = useState<RunsByGoal>({});
+  const [runDetails, setRunDetails] = useState<RunDetailsById>({});
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -27,11 +58,37 @@ export function App() {
   );
   const selectedDebate = selectedGoal ? debates[selectedGoal.id] : null;
   const selectedTimeline = selectedGoal ? timelines[selectedGoal.id] ?? [] : [];
+  const selectedRuns = selectedGoal ? runsByGoal[selectedGoal.id] ?? [] : [];
+  const selectedRun = selectedRunId ? runDetails[selectedRunId] : null;
 
   async function refreshGoals() {
     const nextGoals = await listGoals();
     setGoals(nextGoals);
     setSelectedGoalId((current) => current ?? nextGoals[0]?.id ?? null);
+  }
+
+  async function refreshGoalRuntime(goalId: string) {
+    const [events, runs] = await Promise.all([getTimeline(goalId), listRuns(goalId)]);
+    setTimelines((current) => ({ ...current, [goalId]: events }));
+    setRunsByGoal((current) => ({ ...current, [goalId]: runs }));
+    setSelectedRunId((current) => {
+      if (current && runs.some((run) => run.id === current)) {
+        return current;
+      }
+      return runs[0]?.id ?? null;
+    });
+  }
+
+  function storeRun(run: AgentRunWithDetails) {
+    setRunDetails((current) => ({ ...current, [run.id]: run }));
+    setRunsByGoal((current) => {
+      const existing = current[run.goalId] ?? [];
+      const next = existing.some((item) => item.id === run.id)
+        ? existing.map((item) => (item.id === run.id ? run : item))
+        : [run, ...existing];
+      return { ...current, [run.goalId]: next };
+    });
+    setSelectedRunId(run.id);
   }
 
   useEffect(() => {
@@ -61,14 +118,22 @@ export function App() {
       return;
     }
 
-    getTimeline(selectedGoal.id)
-      .then((events) => {
-        setTimelines((current) => ({ ...current, [selectedGoal.id]: events }));
-      })
-      .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : "Failed to load timeline");
-      });
+    refreshGoalRuntime(selectedGoal.id).catch((err: unknown) => {
+      setError(err instanceof Error ? err.message : "Failed to load runtime state");
+    });
   }, [selectedGoal]);
+
+  useEffect(() => {
+    if (!selectedRunId || runDetails[selectedRunId]) {
+      return;
+    }
+
+    getRun(selectedRunId)
+      .then(storeRun)
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : "Failed to load run");
+      });
+  }, [runDetails, selectedRunId]);
 
   async function handleCreateGoal(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -80,6 +145,7 @@ export function App() {
       setSelectedGoalId(goal.id);
       setTitle("");
       setDescription("");
+      await refreshGoalRuntime(goal.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create goal");
     } finally {
@@ -93,12 +159,46 @@ export function App() {
     try {
       const debate = await runDebate(goalId);
       setDebates((current) => ({ ...current, [goalId]: debate }));
-      const events = await getTimeline(goalId);
-      setTimelines((current) => ({ ...current, [goalId]: events }));
+      await refreshGoalRuntime(goalId);
       await refreshGoals();
       setSelectedGoalId(goalId);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to run debate");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleCreateRun(goal: Goal) {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const run = await createRun(goal.id, {
+        objective: `Advance goal: ${goal.title}`,
+        definitionOfDone: ["Mock runtime reaches summarize step."],
+        budget: { maxSteps: 12, maxFailures: 3 }
+      });
+      storeRun(run);
+      await refreshGoalRuntime(goal.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create run");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleRunAction(action: (runId: string) => Promise<AgentRunWithDetails>) {
+    if (!selectedRun) {
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      const run = await action(selectedRun.id);
+      storeRun(run);
+      await refreshGoalRuntime(run.goalId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to update run");
     } finally {
       setIsLoading(false);
     }
@@ -164,9 +264,76 @@ export function App() {
                   <h2>{selectedGoal.title}</h2>
                   <p>{selectedGoal.description}</p>
                 </div>
-                <button onClick={() => handleRunDebate(selectedGoal.id)} disabled={isLoading}>
-                  Launch debate
-                </button>
+                <div className="button-row">
+                  <button onClick={() => handleCreateRun(selectedGoal)} disabled={isLoading}>
+                    Create run
+                  </button>
+                  <button onClick={() => handleRunDebate(selectedGoal.id)} disabled={isLoading}>
+                    Launch debate
+                  </button>
+                </div>
+              </div>
+
+              <div className="runtime">
+                <div className="section-heading">
+                  <p className="eyebrow">Runtime</p>
+                  <h3>Agent runs</h3>
+                </div>
+                {selectedRuns.length === 0 ? <p className="muted">No runs for this goal.</p> : null}
+                <div className="run-list">
+                  {selectedRuns.map((run) => (
+                    <button
+                      key={run.id}
+                      className={run.id === selectedRunId ? "run-item active" : "run-item"}
+                      onClick={() => setSelectedRunId(run.id)}
+                    >
+                      <span>{run.objective}</span>
+                      <small>
+                        {run.status} · step {run.currentStepIndex}
+                      </small>
+                    </button>
+                  ))}
+                </div>
+
+                {selectedRun ? (
+                  <div className="run-detail">
+                    <div className="run-actions">
+                      <strong>{selectedRun.status}</strong>
+                      <button
+                        className="secondary"
+                        onClick={() => handleRunAction(startRun)}
+                        disabled={
+                          isLoading ||
+                          (selectedRun.status !== "created" && selectedRun.status !== "queued")
+                        }
+                      >
+                        Start run
+                      </button>
+                      <button
+                        className="secondary"
+                        onClick={() => handleRunAction(advanceRun)}
+                        disabled={isLoading || selectedRun.status !== "running"}
+                      >
+                        Advance one step
+                      </button>
+                      <button
+                        className="secondary"
+                        onClick={() => handleRunAction(cancelRun)}
+                        disabled={isLoading || terminalRunStatuses.has(selectedRun.status)}
+                      >
+                        Cancel run
+                      </button>
+                    </div>
+                    <ol className="step-list">
+                      {selectedRun.steps.map((step) => (
+                        <li key={step.id}>
+                          <span>{step.type}</span>
+                          <small>{step.status}</small>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                ) : null}
               </div>
 
               {selectedDebate ? (

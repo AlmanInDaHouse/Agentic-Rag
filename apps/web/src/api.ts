@@ -1,8 +1,14 @@
 import {
+  AgentRunSchema,
+  AgentRunWithDetailsSchema,
+  CreateAgentRunSchema,
   createGoalRequestSchema,
   debateRoundWithProposalsSchema,
   goalSchema,
   timelineEventSchema,
+  type AgentRun,
+  type AgentRunWithDetails,
+  type CreateAgentRun,
   type CreateGoalRequest,
   type DebateRoundWithProposals,
   type Goal,
@@ -66,4 +72,50 @@ export async function getLatestDebate(goalId: string): Promise<DebateRoundWithPr
 export async function getTimeline(goalId: string): Promise<TimelineEvent[]> {
   const body = await request<unknown>(`/api/goals/${goalId}/timeline`);
   return z.array(timelineEventSchema).parse(body);
+}
+
+export async function createRun(
+  goalId: string,
+  input: CreateAgentRun
+): Promise<AgentRunWithDetails> {
+  const parsed = CreateAgentRunSchema.parse(input);
+  const body = await request<unknown>(`/api/goals/${goalId}/runs`, {
+    method: "POST",
+    body: JSON.stringify(parsed)
+  });
+  return AgentRunWithDetailsSchema.parse(body);
+}
+
+export async function listRuns(goalId: string): Promise<AgentRun[]> {
+  const body = await request<unknown>(`/api/goals/${goalId}/runs`);
+  return z.array(AgentRunSchema).parse(body);
+}
+
+export async function getRun(runId: string): Promise<AgentRunWithDetails> {
+  const body = await request<unknown>(`/api/runs/${runId}`);
+  return AgentRunWithDetailsSchema.parse(body);
+}
+
+export async function startRun(runId: string): Promise<AgentRunWithDetails> {
+  const body = await request<unknown>(`/api/runs/${runId}/start`, {
+    method: "POST",
+    body: JSON.stringify({})
+  });
+  return AgentRunWithDetailsSchema.parse(body);
+}
+
+export async function advanceRun(runId: string): Promise<AgentRunWithDetails> {
+  const body = await request<unknown>(`/api/runs/${runId}/advance`, {
+    method: "POST",
+    body: JSON.stringify({})
+  });
+  return AgentRunWithDetailsSchema.parse(body);
+}
+
+export async function cancelRun(runId: string): Promise<AgentRunWithDetails> {
+  const body = await request<unknown>(`/api/runs/${runId}/cancel`, {
+    method: "POST",
+    body: JSON.stringify({})
+  });
+  return AgentRunWithDetailsSchema.parse(body);
 }

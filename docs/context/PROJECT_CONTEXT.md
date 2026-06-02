@@ -6,7 +6,7 @@ TriForge Agentic Lab is an experimental platform for coordinating AI agents thro
 
 ## Current Architecture
 
-- `apps/api`: Fastify ESM API, PostgreSQL repositories, migrations, mock debate runtime and tests.
+- `apps/api`: Fastify ESM API, PostgreSQL repositories, migrations, mock debate runtime, mock agent runtime state machine and tests.
 - `apps/web`: React + Vite dashboard.
 - `packages/shared`: Zod contracts and shared TypeScript types.
 - `infra/docker`: local PostgreSQL compose setup.
@@ -40,7 +40,7 @@ TriForge Agentic Lab is an experimental platform for coordinating AI agents thro
 
 ## Current State
 
-The MVP supports goal creation/listing, debate round creation, latest round retrieval, mock agents, mock judge, persisted proposals and basic dashboard.
+The MVP supports goal creation/listing, debate round creation, latest round retrieval, mock agents, mock judge, persisted proposals, timeline events and basic dashboard. Milestone 1.2 adds a persisted mock agent runtime state machine with runs, steps, approval gate storage, start/advance/cancel endpoints and deterministic step execution.
 
 ## Decisions Taken
 
@@ -48,11 +48,13 @@ The MVP supports goal creation/listing, debate round creation, latest round retr
 - pnpm workspaces over npm workspaces.
 - Harness lives outside product runtime in `tooling/harness`.
 - Timeline events are stored in PostgreSQL as JSONB payloads.
+- Agent runtime state uses a minimal PostgreSQL-backed state machine before adopting any external workflow engine.
 
 ## Next Steps
 
 - Consider database-per-run harness isolation only if schema isolation becomes insufficient.
 - Add adapter specs before implementing real agent bridges.
+- Keep the runtime mock-only until adapter sandboxing, subprocess and approval specs exist.
 - Define memory/RAG storage after context spec is expanded.
 
 ## Development Rules
@@ -114,12 +116,14 @@ tooling/harness
 - Harness uses temporary schemas inside the configured PostgreSQL database.
 - Real agent adapters will introduce untrusted output and subprocess risks.
 - Timeline event retention is undefined.
+- Agent runtime is synchronous and mock-only; it is not yet a durable worker queue.
 
 ## Technical Debt
 
 - Debate orchestration is not wrapped in a single transaction.
 - Dashboard has no live updates.
 - API route schemas are manually wired instead of using Fastify schema integration.
+- Approval gates are persisted but not yet exposed as a full approval workflow.
 
 ## Definition of Done
 

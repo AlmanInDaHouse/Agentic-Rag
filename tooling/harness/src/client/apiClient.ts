@@ -1,8 +1,14 @@
 import {
+  AgentRunSchema,
+  AgentRunWithDetailsSchema,
+  CreateAgentRunSchema,
   createGoalRequestSchema,
   debateRoundWithProposalsSchema,
   goalSchema,
   timelineEventSchema,
+  type AgentRun,
+  type AgentRunWithDetails,
+  type CreateAgentRun,
   type CreateGoalRequest,
   type DebateRoundWithProposals,
   type Goal,
@@ -52,14 +58,69 @@ export class HarnessApiClient {
     return timelineEventSchema.array().parse(body);
   }
 
-  private async request(path: string, init?: RequestInit): Promise<unknown> {
-    const response = await fetch(`${this.baseUrl}${path}`, {
-      ...init,
-      headers: {
-        "content-type": "application/json",
-        ...init?.headers
-      }
+  async createRun(goalId: string, input: CreateAgentRun): Promise<AgentRunWithDetails> {
+    const parsed = CreateAgentRunSchema.parse(input);
+    const body = await this.request(`/api/goals/${goalId}/runs`, {
+      method: "POST",
+      body: JSON.stringify(parsed)
     });
+    return AgentRunWithDetailsSchema.parse(body);
+  }
+
+  async listRuns(goalId: string): Promise<AgentRun[]> {
+    const body = await this.request(`/api/goals/${goalId}/runs`);
+    return AgentRunSchema.array().parse(body);
+  }
+
+  async getRun(runId: string): Promise<AgentRunWithDetails> {
+    const body = await this.request(`/api/runs/${runId}`);
+    return AgentRunWithDetailsSchema.parse(body);
+  }
+
+  async startRun(runId: string): Promise<AgentRunWithDetails> {
+    const body = await this.request(`/api/runs/${runId}/start`, {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+    return AgentRunWithDetailsSchema.parse(body);
+  }
+
+  async startRunStatus(runId: string, body: unknown = {}): Promise<number> {
+    const response = await this.rawRequest(`/api/runs/${runId}/start`, {
+      method: "POST",
+      body: JSON.stringify(body)
+    });
+    await response.text();
+    return response.status;
+  }
+
+  async advanceRun(runId: string): Promise<AgentRunWithDetails> {
+    const body = await this.request(`/api/runs/${runId}/advance`, {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+    return AgentRunWithDetailsSchema.parse(body);
+  }
+
+  async cancelRun(runId: string): Promise<AgentRunWithDetails> {
+    const body = await this.request(`/api/runs/${runId}/cancel`, {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+    return AgentRunWithDetailsSchema.parse(body);
+  }
+
+  async advanceRunStatus(runId: string): Promise<number> {
+    const response = await this.rawRequest(`/api/runs/${runId}/advance`, {
+      method: "POST",
+      body: JSON.stringify({})
+    });
+    await response.text();
+    return response.status;
+  }
+
+  private async request(path: string, init?: RequestInit): Promise<unknown> {
+    const response = await this.rawRequest(path, init);
 
     if (!response.ok) {
       const text = await response.text();
@@ -67,5 +128,15 @@ export class HarnessApiClient {
     }
 
     return response.json();
+  }
+
+  private async rawRequest(path: string, init?: RequestInit): Promise<Response> {
+    return fetch(`${this.baseUrl}${path}`, {
+      ...init,
+      headers: {
+        "content-type": "application/json",
+        ...init?.headers
+      }
+    });
   }
 }
