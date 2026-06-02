@@ -6,9 +6,11 @@ import type {
   AgentStepStatus,
   AgentStepType,
   ApprovalGate,
+  CreateApprovalGate,
   CreateGoalRequest,
   Goal,
-  GoalStatus
+  GoalStatus,
+  ResolveApprovalGate
 } from "@triforge/shared";
 import { ConflictError } from "../domain/errors.js";
 import type {
@@ -70,6 +72,7 @@ class MemoryAgentRunRepository implements AgentRunRepository {
       status: "created",
       objective: input.objective,
       definitionOfDone: input.definitionOfDone,
+      requestedActions: input.requestedActions,
       currentStepIndex: 0,
       maxSteps: input.maxSteps,
       maxFailures: input.maxFailures,
@@ -217,8 +220,54 @@ class MemoryAgentStepRepository implements AgentStepRepository {
 }
 
 class MemoryApprovalGateRepository implements ApprovalGateRepository {
-  async listByRun(): Promise<ApprovalGate[]> {
-    return [];
+  public gates: ApprovalGate[] = [];
+
+  async create(input: CreateApprovalGate): Promise<ApprovalGate> {
+    const gate: ApprovalGate = {
+      id: nextId(),
+      runId: input.runId,
+      stepId: input.stepId,
+      status: "pending",
+      riskLevel: input.riskLevel,
+      actionType: input.actionType,
+      actionPayload: input.actionPayload,
+      reason: input.reason,
+      requestedAt: now,
+      resolvedAt: null,
+      resolvedBy: null,
+      decision: null,
+      expiresAt: input.expiresAt
+    };
+    this.gates.push(gate);
+    return gate;
+  }
+
+  async findById(id: string): Promise<ApprovalGate | null> {
+    return this.gates.find((gate) => gate.id === id) ?? null;
+  }
+
+  async listByRun(runId: string): Promise<ApprovalGate[]> {
+    return this.gates.filter((gate) => gate.runId === runId);
+  }
+
+  async resolve(
+    id: string,
+    input: ResolveApprovalGate & { decision: "approved" | "rejected" }
+  ): Promise<ApprovalGate> {
+    const index = this.gates.findIndex((gate) => gate.id === id);
+    if (index === -1) {
+      throw new Error(`Missing gate ${id}`);
+    }
+    const next: ApprovalGate = {
+      ...this.gates[index],
+      status: input.decision,
+      decision: input.decision,
+      reason: input.reason,
+      resolvedBy: input.resolvedBy,
+      resolvedAt: now
+    };
+    this.gates[index] = next;
+    return next;
   }
 }
 
@@ -246,23 +295,24 @@ function createService(executeStep?: TestStepExecutor) {
   idCounter = 0;
   const runRepository = new MemoryAgentRunRepository();
   const stepRepository = new MemoryAgentStepRepository();
+  const approvalGateRepository = new MemoryApprovalGateRepository();
   const timelineRepository = new MemoryTimelineEventsRepository();
   const service = new AgentRuntimeService(
     new MemoryGoalsRepository(),
     runRepository,
     stepRepository,
-    new MemoryApprovalGateRepository(),
+    approvalGateRepository,
     timelineRepository,
     executeStep
   );
-  return { service, runRepository, stepRepository, timelineRepository };
+  return { service, runRepository, stepRepository, approvalGateRepository, timelineRepository };
 }
 
 async function createStartedRun(
   service: AgentRuntimeService,
   budget: { maxSteps?: number; maxFailures?: number } = {}
 ) {
-  const run = await service.createRun(goal.id, "Create a traceable mock runtime.", [], budget);
+  const run = await service.createRun(goal.id, "Create a traceable mock runtime.", [], [], budget);
   return service.startRun(run.id);
 }
 
@@ -304,7 +354,7 @@ describe("AgentRuntimeService", () => {
     const { service } = createService();
     let run = await createStartedRun(service);
 
-    for (let index = 0; index < 6; index += 1) {
+    for (let index = 0; index < 7; index += 1) {
       run = await service.advanceRunOneStep(run.id);
     }
 
@@ -314,9 +364,125 @@ describe("AgentRuntimeService", () => {
       "plan",
       "debate",
       "judge",
+      "execute_mock_task",
       "validate",
       "summarize"
     ]);
+  });
+
+  it("creates an approval gate for high risk mock actions", async () => {
+    const { service, timelineRepository } = createService();
+    let run = await service.createRun(
+      goal.id,
+      "Create a traceable mock runtime.",
+      [],
+      [{ actionType: "run_command", payload: { command: "pnpm test" } }]
+    );
+    run = await service.startRun(run.id);
+
+    while (run.status === "running") {
+      run = await service.advanceRunOneStep(run.id);
+    }
+
+    expect(run.status).toBe("waiting_for_approval");
+    expect(run.approvalGates).toHaveLength(1);
+    expect(run.approvalGates[0]).toMatchObject({
+      status: "pending",
+      riskLevel: "high",
+      actionType: "run_command"
+    });
+    expect(run.steps.at(-1)).toMatchObject({
+      type: "execute_mock_task",
+      status: "waiting_for_approval"
+    });
+    expect(timelineRepository.events.map((event) => event.type)).toContain(
+      "agent_run_waiting_for_approval"
+    );
+  });
+
+  it("rejects advance while a run is waiting for approval", async () => {
+    const { service } = createService();
+    let run = await service.createRun(
+      goal.id,
+      "Create a traceable mock runtime.",
+      [],
+      [{ actionType: "modify_code", payload: { path: "src/index.ts" } }]
+    );
+    run = await service.startRun(run.id);
+
+    while (run.status === "running") {
+      run = await service.advanceRunOneStep(run.id);
+    }
+
+    await expect(service.advanceRunOneStep(run.id)).rejects.toBeInstanceOf(ConflictError);
+  });
+
+  it("approves a gate and continues the run", async () => {
+    const { service } = createService();
+    let run = await service.createRun(
+      goal.id,
+      "Create a traceable mock runtime.",
+      [],
+      [{ actionType: "run_command", payload: { command: "pnpm test" } }]
+    );
+    run = await service.startRun(run.id);
+    while (run.status === "running") {
+      run = await service.advanceRunOneStep(run.id);
+    }
+
+    run = await service.approveGate(run.approvalGates[0].id, {
+      resolvedBy: "human",
+      reason: "Approved for mock execution"
+    });
+
+    expect(run.status).toBe("running");
+    expect(run.currentStepIndex).toBe(5);
+    expect(run.approvalGates[0].status).toBe("approved");
+    expect(run.steps.find((step) => step.type === "execute_mock_task")?.status).toBe("succeeded");
+  });
+
+  it("rejects a gate and stops the run", async () => {
+    const { service, timelineRepository } = createService();
+    let run = await service.createRun(
+      goal.id,
+      "Create a traceable mock runtime.",
+      [],
+      [{ actionType: "run_command", payload: { command: "pnpm test" } }]
+    );
+    run = await service.startRun(run.id);
+    while (run.status === "running") {
+      run = await service.advanceRunOneStep(run.id);
+    }
+
+    run = await service.rejectGate(run.approvalGates[0].id, {
+      resolvedBy: "human",
+      reason: "Rejected for test"
+    });
+
+    expect(run.status).toBe("stopped");
+    expect(run.approvalGates[0].status).toBe("rejected");
+    expect(timelineRepository.events.map((event) => event.type)).toContain("agent_run_stopped");
+  });
+
+  it("fails blocked actions without creating a gate", async () => {
+    const { service } = createService();
+    let run = await service.createRun(
+      goal.id,
+      "Create a traceable mock runtime.",
+      [],
+      [{ actionType: "delete_file", payload: { path: "important.ts" } }]
+    );
+    run = await service.startRun(run.id);
+
+    while (run.status === "running") {
+      run = await service.advanceRunOneStep(run.id);
+    }
+
+    expect(run.status).toBe("failed");
+    expect(run.approvalGates).toEqual([]);
+    expect(run.steps.find((step) => step.type === "execute_mock_task")?.error).toMatchObject({
+      code: "ACTION_BLOCKED"
+    });
   });
 
   it("cancels a non-terminal run", async () => {

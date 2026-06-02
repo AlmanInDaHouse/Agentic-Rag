@@ -53,6 +53,7 @@ type AgentRunRow = {
   status: AgentRun["status"];
   objective: string;
   definition_of_done: string[] | unknown;
+  requested_actions: AgentRun["requestedActions"] | unknown;
   current_step_index: number;
   max_steps: number;
   max_failures: number;
@@ -83,11 +84,15 @@ type ApprovalGateRow = {
   run_id: string;
   step_id: string | null;
   status: ApprovalGate["status"];
+  risk_level: ApprovalGate["riskLevel"];
+  action_type: ApprovalGate["actionType"];
+  action_payload: Record<string, unknown>;
   reason: string | null;
   requested_at: Date;
   resolved_at: Date | null;
   resolved_by: string | null;
-  decision: string | null;
+  decision: ApprovalGate["decision"];
+  expires_at: Date | null;
 };
 
 const iso = (date: Date): string => date.toISOString();
@@ -137,6 +142,18 @@ export const mapAgentRun = (row: AgentRunRow): AgentRun => ({
   status: row.status,
   objective: row.objective,
   definitionOfDone: Array.isArray(row.definition_of_done) ? row.definition_of_done.map(String) : [],
+  requestedActions: Array.isArray(row.requested_actions)
+    ? row.requested_actions.map((action) => {
+        const candidate = action as { actionType?: unknown; payload?: unknown };
+        return {
+          actionType: String(candidate.actionType),
+          payload:
+            typeof candidate.payload === "object" && candidate.payload !== null
+              ? (candidate.payload as Record<string, unknown>)
+              : {}
+        };
+      }) as AgentRun["requestedActions"]
+    : [],
   currentStepIndex: row.current_step_index,
   maxSteps: row.max_steps,
   maxFailures: row.max_failures,
@@ -167,9 +184,13 @@ export const mapApprovalGate = (row: ApprovalGateRow): ApprovalGate => ({
   runId: row.run_id,
   stepId: row.step_id,
   status: row.status,
+  riskLevel: row.risk_level,
+  actionType: row.action_type,
+  actionPayload: row.action_payload,
   reason: row.reason,
   requestedAt: iso(row.requested_at),
   resolvedAt: row.resolved_at ? iso(row.resolved_at) : null,
   resolvedBy: row.resolved_by,
-  decision: row.decision
+  decision: row.decision,
+  expiresAt: row.expires_at ? iso(row.expires_at) : null
 });

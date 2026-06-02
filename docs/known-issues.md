@@ -19,3 +19,19 @@ The runtime has a unique constraint on `(run_id, step_index)` and maps duplicate
 Status: open.
 
 Target resolution: add row-level locking or a small transactional unit before real adapters, queues or long-running execution are introduced.
+
+## APPROVAL-001: Approval resolution has no user authorization yet
+
+Approval and rejection payloads include `resolvedBy`, but the API does not yet authenticate users or enforce roles. This is acceptable while the runtime is mock-only and local, but must be resolved before real adapters or side-effectful execution are connected.
+
+Status: open.
+
+Target resolution: add authentication/authorization requirements to the adapter and approval specs before real execution.
+
+## APPROVAL-002: Gate expiration is stored but not enforced
+
+`approval_gates.expires_at` is persisted for future policy use, but the runtime does not currently expire pending gates automatically.
+
+Status: open.
+
+Target resolution: define gate expiration behavior when a worker queue or scheduled runtime loop is introduced.

@@ -3,7 +3,9 @@ import { z } from "zod";
 import {
   AgentRunSchema,
   AgentRunWithDetailsSchema,
+  ApprovalGateSchema,
   CreateAgentRunSchema,
+  ResolveApprovalGateSchema,
   createGoalRequestSchema,
   debateRoundWithProposalsSchema,
   goalSchema,
@@ -24,6 +26,10 @@ const goalParamsSchema = z.object({
 
 const runParamsSchema = z.object({
   runId: z.string().uuid()
+});
+
+const gateParamsSchema = z.object({
+  gateId: z.string().uuid()
 });
 
 const emptyBodySchema = z.union([z.undefined(), z.object({}).strict()]);
@@ -149,6 +155,7 @@ export async function registerRoutes(
         parsedParams.data.goalId,
         parsedBody.data.objective,
         parsedBody.data.definitionOfDone,
+        parsedBody.data.requestedActions,
         parsedBody.data.budget
       );
       reply.status(201).send(AgentRunWithDetailsSchema.parse(run));
@@ -198,6 +205,28 @@ export async function registerRoutes(
       throw error;
     }
   });
+
+  app.get(
+    "/api/runs/:runId/approval-gates",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const parsedParams = runParamsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        sendZodError(reply, parsedParams.error);
+        return;
+      }
+
+      try {
+        const gates = await agentRuntimeService.listApprovalGatesForRun(parsedParams.data.runId);
+        reply.send(z.array(ApprovalGateSchema).parse(gates));
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          reply.status(404).send({ error: "not_found", message: error.message });
+          return;
+        }
+        throw error;
+      }
+    }
+  );
 
   app.post("/api/runs/:runId/start", async (request: FastifyRequest, reply: FastifyReply) => {
     const parsedParams = runParamsSchema.safeParse(request.params);
@@ -282,4 +311,72 @@ export async function registerRoutes(
       throw error;
     }
   });
+
+  app.post(
+    "/api/approval-gates/:gateId/approve",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const parsedParams = gateParamsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        sendZodError(reply, parsedParams.error);
+        return;
+      }
+      const parsedBody = ResolveApprovalGateSchema.safeParse(request.body);
+      if (!parsedBody.success) {
+        sendZodError(reply, parsedBody.error);
+        return;
+      }
+
+      try {
+        const run = await agentRuntimeService.approveGate(
+          parsedParams.data.gateId,
+          parsedBody.data
+        );
+        reply.send(AgentRunWithDetailsSchema.parse(run));
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          reply.status(404).send({ error: "not_found", message: error.message });
+          return;
+        }
+        if (error instanceof ConflictError) {
+          reply.status(409).send({ error: "conflict", message: error.message });
+          return;
+        }
+        throw error;
+      }
+    }
+  );
+
+  app.post(
+    "/api/approval-gates/:gateId/reject",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const parsedParams = gateParamsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        sendZodError(reply, parsedParams.error);
+        return;
+      }
+      const parsedBody = ResolveApprovalGateSchema.safeParse(request.body);
+      if (!parsedBody.success) {
+        sendZodError(reply, parsedBody.error);
+        return;
+      }
+
+      try {
+        const run = await agentRuntimeService.rejectGate(
+          parsedParams.data.gateId,
+          parsedBody.data
+        );
+        reply.send(AgentRunWithDetailsSchema.parse(run));
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          reply.status(404).send({ error: "not_found", message: error.message });
+          return;
+        }
+        if (error instanceof ConflictError) {
+          reply.status(409).send({ error: "conflict", message: error.message });
+          return;
+        }
+        throw error;
+      }
+    }
+  );
 }

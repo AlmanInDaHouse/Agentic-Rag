@@ -2,25 +2,25 @@
 
 ## Objective
 
-Define a persisted, traceable state machine for mock agent execution runs. This milestone turns the system from isolated debate rounds into a formal runtime skeleton that can later host real adapters.
+Define a persisted, traceable state machine for mock agent execution runs. The runtime remains mock-only, but now includes safe execution policy checks and real approval gate transitions before any real adapters or subprocess execution are introduced.
 
 ## Scope
 
-Milestone 1.2 supports deterministic mock runs over a goal, persisted steps, stop conditions, cancellation and timeline events.
+Milestone 1.3 supports deterministic mock runs over a goal, persisted steps, stop conditions, cancellation, approval gates, safe execution classification and timeline events.
 
 ## Out of Scope
 
-Real Codex, Claude, Gemini or Ollama adapters, RAG, GraphRAG, code graph analysis, subprocess execution, secrets, model rate limits and autonomous multi-cycle planning are not part of this milestone.
+Real Codex, Claude, Gemini or Ollama adapters, RAG, GraphRAG, code graph analysis, subprocess execution, worker queues, secrets, model rate limits and autonomous multi-cycle planning are not part of this milestone.
 
 ## Entities
 
 - `agent_runs`: one runtime execution attached to a goal.
 - `agent_steps`: ordered state transitions inside a run.
 - `timeline_events`: shared event log reused for runtime traceability.
-- `approval_gates`: persisted placeholder for future human approval flow.
+- `approval_gates`: persisted human approval boundary for high risk mock actions.
+- `execution_policies`: initial policy seed describing action risk, approval and blocking defaults.
 - `run_budgets`: represented on `agent_runs` as `max_steps`, `max_failures` and `failure_count`.
-- `retry_policy`: intentionally not configurable yet; failed steps count against the failure budget.
-- `stop_conditions`: documented reasons for terminal runtime stop.
+- `requested_actions`: optional mock action requests stored on `agent_runs` and evaluated by `execute_mock_task`.
 
 ## Run States
 
@@ -45,7 +45,7 @@ Terminal states are `completed`, `failed`, `cancelled` and `stopped`.
 - `waiting_for_approval`
 - `cancelled`
 
-## Initial Step Types
+## Step Types
 
 - `load_context`
 - `plan`
@@ -55,13 +55,13 @@ Terminal states are `completed`, `failed`, `cancelled` and `stopped`.
 - `validate`
 - `summarize`
 
-The milestone flow is:
+The default milestone flow is:
 
 ```text
-load_context -> plan -> debate -> judge -> validate -> summarize
+load_context -> plan -> debate -> judge -> execute_mock_task -> validate -> summarize
 ```
 
-`execute_mock_task` is reserved in the contract for near-term mock task execution but is not part of the default flow yet.
+`execute_mock_task` simulates one configured action from `requestedActions[0]`. If no action is provided, it uses a safe mock `write_artifact` action.
 
 ## Stop Conditions
 
@@ -73,18 +73,33 @@ load_context -> plan -> debate -> judge -> validate -> summarize
 
 `max_steps` means the maximum number of steps that may be executed. For example, `max_steps = 1` allows `load_context` to run and then stops the run with `agent_run_stopped`.
 
-## Runtime Flow
+## Approval Flow
 
-1. Create a run for an existing goal.
-2. Persist `agent_run_created`.
-3. Start the run from `created` or `queued`.
-4. Persist `agent_run_started`.
-5. Advance one step per API call.
-6. For each step, create it as `pending`, move it to `running`, produce deterministic mock output, then move it to `succeeded`.
-7. Persist `agent_step_started` and `agent_step_succeeded`.
-8. Complete after the milestone step sequence or stop when the step budget is consumed.
-9. Reject advancing terminal runs with HTTP 409.
-10. Reject cancelling terminal runs with HTTP 409. Cancellation is not idempotent in this milestone.
+1. Runtime reaches `execute_mock_task`.
+2. The requested action is classified by the safe execution policy.
+3. If the action is blocked by default:
+   - no approval gate is created,
+   - the step is marked `failed`,
+   - the run is marked `failed`,
+   - `agent_step_failed` and `agent_run_failed` are recorded with `ACTION_BLOCKED`.
+4. If the action requires approval:
+   - an `approval_gates` row is created with status `pending`,
+   - the gate stores `risk_level`, `action_type` and `action_payload`,
+   - the step is marked `waiting_for_approval`,
+   - the run is marked `waiting_for_approval`,
+   - `approval_gate_created` and `agent_run_waiting_for_approval` are recorded.
+5. `POST /api/runs/:runId/advance` returns `409 Conflict` while a run is `waiting_for_approval`.
+6. Approving a pending gate:
+   - marks the gate `approved`,
+   - records `approval_gate_resolved`,
+   - completes the waiting mock step without side effects,
+   - advances the run to the next step and returns it to `running` unless a stop/completion condition applies.
+7. Rejecting a pending gate:
+   - marks the gate `rejected`,
+   - records `approval_gate_resolved`,
+   - marks the waiting step failed,
+   - stops the run with stop condition `approval_rejected`,
+   - records `agent_run_stopped`.
 
 ## Events
 
@@ -99,6 +114,7 @@ Runtime events reuse `timeline_events`:
 - `agent_run_failed`
 - `agent_run_cancelled`
 - `agent_run_stopped`
+- `agent_run_waiting_for_approval`
 - `approval_gate_created`
 - `approval_gate_resolved`
 
@@ -106,6 +122,12 @@ Runtime events reuse `timeline_events`:
 
 Shared Zod contracts live in `packages/shared/src/index.ts`:
 
+- `ActionTypeSchema`
+- `RiskLevelSchema`
+- `ExecutionPolicySchema`
+- `ApprovalDecisionSchema`
+- `CreateApprovalGateSchema`
+- `ResolveApprovalGateSchema`
 - `AgentRunStatusSchema`
 - `AgentStepStatusSchema`
 - `AgentStepTypeSchema`
@@ -116,6 +138,8 @@ Shared Zod contracts live in `packages/shared/src/index.ts`:
 - `RunBudgetSchema`
 - `StopConditionSchema`
 
+All input schemas are strict.
+
 ## HTTP API
 
 - `POST /api/goals/:goalId/runs`
@@ -124,15 +148,30 @@ Shared Zod contracts live in `packages/shared/src/index.ts`:
 - `POST /api/runs/:runId/start`
 - `POST /api/runs/:runId/advance`
 - `POST /api/runs/:runId/cancel`
+- `GET /api/runs/:runId/approval-gates`
+- `POST /api/approval-gates/:gateId/approve`
+- `POST /api/approval-gates/:gateId/reject`
+
+Approve/reject payload:
+
+```json
+{
+  "resolvedBy": "human",
+  "reason": "Approved for mock execution"
+}
+```
 
 ## Error Rules
 
 - `400` for invalid payloads or params.
-- `404` when a goal or run does not exist.
+- `404` when a goal, run or gate does not exist.
 - `409` when starting from an invalid state.
 - `409` when advancing terminal or non-running runs.
+- `409` when advancing a run waiting for approval.
 - `409` when cancelling terminal runs.
-- `400` when run action endpoints receive unexpected payload fields.
+- `409` when resolving a non-pending gate.
+- `409` when resolving a gate for a terminal run.
+- `400` when action endpoints receive unexpected payload fields.
 
 ## Acceptance Criteria
 
@@ -142,25 +181,21 @@ Shared Zod contracts live in `packages/shared/src/index.ts`:
 - Creating a run records `agent_run_created`.
 - Starting a run records `agent_run_started`.
 - Advancing a run records step start/success events.
-- A happy path run reaches `completed` after the initial step sequence.
+- A happy path run reaches `completed` after the default step sequence.
 - A run with a low `max_steps` reaches `stopped`.
-- `max_steps = 1` executes exactly one step and then reaches `stopped`.
-- A cancelled run cannot advance.
-- Terminal runs cannot be cancelled again.
-- Failed step execution increments `failure_count`, marks the step `failed` and marks the run `failed` when `failure_count >= max_failures`.
-- Unit tests cover critical service transitions.
+- A high risk mock action creates a pending approval gate.
+- A run with a pending gate cannot advance.
+- Approving a gate lets the run continue.
+- Rejecting a gate stops the run with `approval_rejected`.
+- A blocked action creates no gate and fails the run with `ACTION_BLOCKED`.
+- Unit tests cover critical service transitions and policy classification.
 - Harness validates runtime behavior through public HTTP endpoints only.
-- Dashboard can create, start, advance, cancel and inspect runs.
+- Dashboard can inspect gates, approve, reject and see `waiting_for_approval`.
 
 ## Risks
 
 - The state machine is intentionally minimal and not a durable workflow engine.
 - There is no retry delay, exponential backoff or worker queue yet.
-- Approval gates are persisted but not yet exposed as a full human approval workflow.
+- Approval gate authorization is represented by `resolvedBy` but not enforced by auth middleware.
+- `RUNTIME-001` remains open: `advanceRunOneStep` is not fully transactionally locked.
 - Timeline retention remains undefined.
-
-## Open Decisions
-
-- Whether to introduce a queue when real adapters arrive.
-- Retry policy shape for model/subprocess failures.
-- Approval gate UX and authorization model.

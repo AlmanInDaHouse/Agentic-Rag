@@ -1,13 +1,16 @@
 import {
   AgentRunSchema,
   AgentRunWithDetailsSchema,
+  ApprovalGateSchema,
   CreateAgentRunSchema,
+  ResolveApprovalGateSchema,
   createGoalRequestSchema,
   debateRoundWithProposalsSchema,
   goalSchema,
   timelineEventSchema,
   type AgentRun,
   type AgentRunWithDetails,
+  type ApprovalGate,
   type CreateAgentRun,
   type CreateGoalRequest,
   type DebateRoundWithProposals,
@@ -110,10 +113,48 @@ export class HarnessApiClient {
     return AgentRunWithDetailsSchema.parse(body);
   }
 
+  async listApprovalGates(runId: string): Promise<ApprovalGate[]> {
+    const body = await this.request(`/api/runs/${runId}/approval-gates`);
+    return ApprovalGateSchema.array().parse(body);
+  }
+
+  async approveGate(
+    gateId: string,
+    input: { resolvedBy: string; reason: string }
+  ): Promise<AgentRunWithDetails> {
+    const parsed = ResolveApprovalGateSchema.parse(input);
+    const body = await this.request(`/api/approval-gates/${gateId}/approve`, {
+      method: "POST",
+      body: JSON.stringify(parsed)
+    });
+    return AgentRunWithDetailsSchema.parse(body);
+  }
+
+  async rejectGate(
+    gateId: string,
+    input: { resolvedBy: string; reason: string }
+  ): Promise<AgentRunWithDetails> {
+    const parsed = ResolveApprovalGateSchema.parse(input);
+    const body = await this.request(`/api/approval-gates/${gateId}/reject`, {
+      method: "POST",
+      body: JSON.stringify(parsed)
+    });
+    return AgentRunWithDetailsSchema.parse(body);
+  }
+
   async advanceRunStatus(runId: string): Promise<number> {
     const response = await this.rawRequest(`/api/runs/${runId}/advance`, {
       method: "POST",
       body: JSON.stringify({})
+    });
+    await response.text();
+    return response.status;
+  }
+
+  async approveGateStatus(gateId: string, body: unknown): Promise<number> {
+    const response = await this.rawRequest(`/api/approval-gates/${gateId}/approve`, {
+      method: "POST",
+      body: JSON.stringify(body)
     });
     await response.text();
     return response.status;
