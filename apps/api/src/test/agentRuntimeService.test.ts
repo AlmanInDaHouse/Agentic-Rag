@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { ResolveApprovalGateSchema } from "@triforge/shared";
 import type {
   AgentRun,
   AgentRunStatus,
@@ -88,6 +89,10 @@ class MemoryAgentRunRepository implements AgentRunRepository {
 
   async findById(id: string): Promise<AgentRun | null> {
     return this.runs.get(id) ?? null;
+  }
+
+  async findByIdForUpdate(id: string): Promise<AgentRun | null> {
+    return this.findById(id);
   }
 
   async listByGoal(goalId: string): Promise<AgentRun[]> {
@@ -235,6 +240,7 @@ class MemoryApprovalGateRepository implements ApprovalGateRepository {
       requestedAt: now,
       resolvedAt: null,
       resolvedBy: null,
+      actorRole: null,
       decision: null,
       expiresAt: input.expiresAt
     };
@@ -246,13 +252,21 @@ class MemoryApprovalGateRepository implements ApprovalGateRepository {
     return this.gates.find((gate) => gate.id === id) ?? null;
   }
 
+  async findByIdForUpdate(id: string): Promise<ApprovalGate | null> {
+    return this.findById(id);
+  }
+
   async listByRun(runId: string): Promise<ApprovalGate[]> {
     return this.gates.filter((gate) => gate.runId === runId);
   }
 
+  async listPendingByRunForUpdate(runId: string): Promise<ApprovalGate[]> {
+    return this.gates.filter((gate) => gate.runId === runId && gate.status === "pending");
+  }
+
   async resolve(
     id: string,
-    input: ResolveApprovalGate & { decision: "approved" | "rejected" }
+    input: ResolveApprovalGate & { decision: "approved" | "rejected" | "expired" }
   ): Promise<ApprovalGate> {
     const index = this.gates.findIndex((gate) => gate.id === id);
     if (index === -1) {
@@ -264,6 +278,7 @@ class MemoryApprovalGateRepository implements ApprovalGateRepository {
       decision: input.decision,
       reason: input.reason,
       resolvedBy: input.resolvedBy,
+      actorRole: input.actorRole,
       resolvedAt: now
     };
     this.gates[index] = next;
@@ -432,6 +447,7 @@ describe("AgentRuntimeService", () => {
 
     run = await service.approveGate(run.approvalGates[0].id, {
       resolvedBy: "human",
+      actorRole: "human_operator",
       reason: "Approved for mock execution"
     });
 
@@ -456,6 +472,7 @@ describe("AgentRuntimeService", () => {
 
     run = await service.rejectGate(run.approvalGates[0].id, {
       resolvedBy: "human",
+      actorRole: "human_operator",
       reason: "Rejected for test"
     });
 
@@ -483,6 +500,100 @@ describe("AgentRuntimeService", () => {
     expect(run.steps.find((step) => step.type === "execute_mock_task")?.error).toMatchObject({
       code: "ACTION_BLOCKED"
     });
+  });
+
+  it("rejects system approval for high risk gates", async () => {
+    const { service } = createService();
+    let run = await service.createRun(
+      goal.id,
+      "Create a traceable mock runtime.",
+      [],
+      [{ actionType: "run_command", payload: { command: "pnpm test" } }]
+    );
+    run = await service.startRun(run.id);
+    while (run.status === "running") {
+      run = await service.advanceRunOneStep(run.id);
+    }
+
+    await expect(
+      service.approveGate(run.approvalGates[0].id, {
+        resolvedBy: "system",
+        actorRole: "system",
+        reason: "System cannot approve high risk"
+      })
+    ).rejects.toBeInstanceOf(ConflictError);
+  });
+
+  it("expires pending gates and stops the run before approval", async () => {
+    const { service, timelineRepository } = createService();
+    let run = await service.createRun(
+      goal.id,
+      "Create a traceable mock runtime.",
+      [],
+      [
+        {
+          actionType: "run_command",
+          payload: {
+            command: "pnpm test",
+            approvalExpiresAt: "2026-06-01T09:59:59.000Z"
+          }
+        }
+      ]
+    );
+    run = await service.startRun(run.id);
+    while (run.status === "running") {
+      run = await service.advanceRunOneStep(run.id);
+    }
+
+    run = await service.approveGate(run.approvalGates[0].id, {
+      resolvedBy: "human",
+      actorRole: "human_operator",
+      reason: "Too late"
+    });
+
+    expect(run.status).toBe("stopped");
+    expect(run.approvalGates[0]).toMatchObject({
+      status: "expired",
+      decision: "expired",
+      actorRole: "system"
+    });
+    expect(timelineRepository.events.map((event) => event.type)).toContain(
+      "approval_gate_expired"
+    );
+  });
+
+  it("rejects resolving gates when the run is terminal", async () => {
+    const { service, runRepository } = createService();
+    let run = await service.createRun(
+      goal.id,
+      "Create a traceable mock runtime.",
+      [],
+      [{ actionType: "run_command", payload: { command: "pnpm test" } }]
+    );
+    run = await service.startRun(run.id);
+    while (run.status === "running") {
+      run = await service.advanceRunOneStep(run.id);
+    }
+    await runRepository.updateStatus(run.id, "cancelled");
+
+    await expect(
+      service.rejectGate(run.approvalGates[0].id, {
+        resolvedBy: "human",
+        actorRole: "human_operator",
+        reason: "Terminal run"
+      })
+    ).rejects.toBeInstanceOf(ConflictError);
+  });
+
+  it("keeps approval resolution payloads strict", () => {
+    expect(
+      ResolveApprovalGateSchema.safeParse({
+        resolvedBy: "human",
+        actorRole: "human_operator",
+        reason: "ok",
+        unexpected: true
+      }).success
+    ).toBe(false);
   });
 
   it("cancels a non-terminal run", async () => {

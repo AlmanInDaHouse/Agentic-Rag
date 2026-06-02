@@ -1,6 +1,7 @@
 import cors from "@fastify/cors";
 import Fastify from "fastify";
 import { pool } from "./db/pool.js";
+import { PgAgentRuntimeTransactionManager } from "./db/runtimeTransactionManager.js";
 import { PgDebateRepository } from "./repositories/debateRepository.js";
 import { PgGoalsRepository } from "./repositories/goalsRepository.js";
 import { registerRoutes } from "./http/routes.js";
@@ -29,6 +30,7 @@ export async function buildApp() {
   const agentRunRepository = new PgAgentRunRepository(pool);
   const agentStepRepository = new PgAgentStepRepository(pool);
   const approvalGateRepository = new PgApprovalGateRepository(pool);
+  const agentRuntimeTransactionManager = new PgAgentRuntimeTransactionManager(pool);
   const debateService = new DebateService(
     goalsRepository,
     debateRepository,
@@ -41,7 +43,10 @@ export async function buildApp() {
     agentRunRepository,
     agentStepRepository,
     approvalGateRepository,
-    timelineEventsRepository
+    timelineEventsRepository,
+    undefined,
+    undefined,
+    agentRuntimeTransactionManager
   );
 
   await registerRoutes(

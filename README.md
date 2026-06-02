@@ -184,11 +184,11 @@ curl http://127.0.0.1:3001/api/runs/<run-id>/approval-gates
 
 curl -X POST http://127.0.0.1:3001/api/approval-gates/<gate-id>/approve \
   -H "content-type: application/json" \
-  -d '{"resolvedBy":"human","reason":"Approved for mock execution"}'
+  -d '{"resolvedBy":"human","actorRole":"human_operator","reason":"Approved for mock execution"}'
 
 curl -X POST http://127.0.0.1:3001/api/approval-gates/<gate-id>/reject \
   -H "content-type: application/json" \
-  -d '{"resolvedBy":"human","reason":"Rejected for safety review"}'
+  -d '{"resolvedBy":"human","actorRole":"human_operator","reason":"Rejected for safety review"}'
 ```
 
 Estados de run:
@@ -215,6 +215,10 @@ Approval gates:
 - acciones `low` y `medium` se pueden simular automaticamente en el runtime mock,
 - acciones `high` crean un approval gate y pasan el run a `waiting_for_approval`,
 - acciones `critical` se bloquean por defecto, no crean gate y fallan el run con `ACTION_BLOCKED`.
+- `human_operator` y `admin` pueden aprobar/rechazar gates `high`.
+- `system` solo se usa para expiraciones/bloqueos automaticos; no puede aprobar `high` o `critical`.
+- si `expires_at` vence mientras el gate sigue `pending`, el gate pasa a `expired` y el run a `stopped`.
+- `advance` usa transaccion PostgreSQL y lock por run para evitar avances concurrentes duplicados.
 
 Requieren aprobacion humana:
 

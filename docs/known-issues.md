@@ -12,26 +12,30 @@ Schema-per-run isolation still shares the same PostgreSQL instance and database.
 
 Status: open.
 
-## RUNTIME-001: advanceRunOneStep is not fully concurrency-safe
+## RUNTIME-001: advanceRunOneStep was not fully concurrency-safe
 
-The runtime has a unique constraint on `(run_id, step_index)` and maps duplicate step creation to `409 Conflict`, so parallel advances should not create duplicate steps. However, `advanceRunOneStep` is not yet wrapped in a transaction or `SELECT ... FOR UPDATE`. A narrow race can still emit duplicate terminal timeline events around completion or stop transitions.
+Status: resolved.
+
+Resolution: `advanceRunOneStep` now runs inside a PostgreSQL transaction in the API runtime and locks the target `agent_runs` row with `SELECT ... FOR UPDATE NOWAIT`. Step creation, approval gate creation, run updates and timeline events occur in the same transaction. Concurrent advances against the same run are rejected with `409 Conflict` when the row is already locked or when the first request has already moved the run to a non-advanceable state.
+
+## RUNTIME-002: Runtime is still synchronous and request-bound
+
+The runtime has transactional state transitions, but it is still not a durable worker queue. This is acceptable while execution is mock-only.
 
 Status: open.
 
-Target resolution: add row-level locking or a small transactional unit before real adapters, queues or long-running execution are introduced.
+Target resolution: introduce a worker/queue design only after adapter sandboxing and execution specs are accepted.
 
-## APPROVAL-001: Approval resolution has no user authorization yet
+## APPROVAL-001: Approval resolution has no real user authorization yet
 
-Approval and rejection payloads include `resolvedBy`, but the API does not yet authenticate users or enforce roles. This is acceptable while the runtime is mock-only and local, but must be resolved before real adapters or side-effectful execution are connected.
+Approval and rejection payloads include `resolvedBy` and a simulated `actorRole`, and the API enforces the initial role policy. However, there is still no real authentication, identity proof or role binding.
 
 Status: open.
 
 Target resolution: add authentication/authorization requirements to the adapter and approval specs before real execution.
 
-## APPROVAL-002: Gate expiration is stored but not enforced
+## APPROVAL-002: Gate expiration was stored but not enforced
 
-`approval_gates.expires_at` is persisted for future policy use, but the runtime does not currently expire pending gates automatically.
+Status: resolved.
 
-Status: open.
-
-Target resolution: define gate expiration behavior when a worker queue or scheduled runtime loop is introduced.
+Resolution: pending gates are checked for expiration before approve/reject and before advance on a waiting run. Expired gates are resolved by `system`, emit `approval_gate_expired` and stop the run with `approval_expired`. There is still no cron or worker-based background expiry.

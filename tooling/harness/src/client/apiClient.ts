@@ -120,7 +120,7 @@ export class HarnessApiClient {
 
   async approveGate(
     gateId: string,
-    input: { resolvedBy: string; reason: string }
+    input: { resolvedBy: string; actorRole: "human_operator" | "admin" | "system"; reason: string }
   ): Promise<AgentRunWithDetails> {
     const parsed = ResolveApprovalGateSchema.parse(input);
     const body = await this.request(`/api/approval-gates/${gateId}/approve`, {
@@ -132,7 +132,7 @@ export class HarnessApiClient {
 
   async rejectGate(
     gateId: string,
-    input: { resolvedBy: string; reason: string }
+    input: { resolvedBy: string; actorRole: "human_operator" | "admin" | "system"; reason: string }
   ): Promise<AgentRunWithDetails> {
     const parsed = ResolveApprovalGateSchema.parse(input);
     const body = await this.request(`/api/approval-gates/${gateId}/reject`, {
@@ -153,6 +153,15 @@ export class HarnessApiClient {
 
   async approveGateStatus(gateId: string, body: unknown): Promise<number> {
     const response = await this.rawRequest(`/api/approval-gates/${gateId}/approve`, {
+      method: "POST",
+      body: JSON.stringify(body)
+    });
+    await response.text();
+    return response.status;
+  }
+
+  async rejectGateStatus(gateId: string, body: unknown): Promise<number> {
+    const response = await this.rawRequest(`/api/approval-gates/${gateId}/reject`, {
       method: "POST",
       body: JSON.stringify(body)
     });

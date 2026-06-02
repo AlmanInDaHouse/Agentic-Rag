@@ -40,7 +40,7 @@ TriForge Agentic Lab is an experimental platform for coordinating AI agents thro
 
 ## Current State
 
-The MVP supports goal creation/listing, debate round creation, latest round retrieval, mock agents, mock judge, persisted proposals, timeline events and basic dashboard. Milestone 1.3 adds a persisted mock agent runtime state machine with approval gate workflows and a safe execution policy. The runtime remains mock-only and does not execute real commands, modify code, install dependencies, run migrations or call real adapters.
+The MVP supports goal creation/listing, debate round creation, latest round retrieval, mock agents, mock judge, persisted proposals, timeline events and basic dashboard. Milestone 1.3.1 adds a persisted mock agent runtime state machine with approval gate workflows, a safe execution policy, transactional advance locking and approval hardening. The runtime remains mock-only and does not execute real commands, modify code, install dependencies, run migrations or call real adapters.
 
 ## Decisions Taken
 
@@ -49,6 +49,8 @@ The MVP supports goal creation/listing, debate round creation, latest round retr
 - Harness lives outside product runtime in `tooling/harness`.
 - Timeline events are stored in PostgreSQL as JSONB payloads.
 - Agent runtime state uses a minimal PostgreSQL-backed state machine before adopting any external workflow engine.
+- Runtime advance uses a PostgreSQL transaction and `SELECT ... FOR UPDATE NOWAIT` to serialize per-run state transitions.
+- Approval gates use simulated actor roles until real auth is introduced.
 
 ## Next Steps
 
@@ -117,14 +119,14 @@ tooling/harness
 - Real agent adapters will introduce untrusted output and subprocess risks.
 - Timeline event retention is undefined.
 - Agent runtime is synchronous and mock-only; it is not yet a durable worker queue.
-- Approval gate authorization is not yet tied to users or roles.
+- Approval gate authorization is simulated by payload actor roles, but not yet tied to authenticated users.
 
 ## Technical Debt
 
 - Debate orchestration is not wrapped in a single transaction.
 - Dashboard has no live updates.
 - API route schemas are manually wired instead of using Fastify schema integration.
-- Approval gates are exposed for mock runtime actions, but not yet backed by authentication or role-based authorization.
+- Approval gates are exposed for mock runtime actions and enforce simulated actor roles, but are not yet backed by authentication or real role binding.
 
 ## Definition of Done
 

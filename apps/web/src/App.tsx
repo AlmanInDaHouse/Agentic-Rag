@@ -27,6 +27,7 @@ type DebateByGoal = Record<string, DebateRoundWithProposals>;
 type TimelineByGoal = Record<string, TimelineEvent[]>;
 type RunsByGoal = Record<string, AgentRun[]>;
 type RunDetailsById = Record<string, AgentRunWithDetails>;
+type ApprovalActorRole = "human_operator" | "admin" | "system";
 
 const agentLabels: Record<string, string> = {
   codex_architect: "Codex Architect",
@@ -51,6 +52,8 @@ export function App() {
   const [runDetails, setRunDetails] = useState<RunDetailsById>({});
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [approvalActorRole, setApprovalActorRole] =
+    useState<ApprovalActorRole>("human_operator");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -211,13 +214,20 @@ export function App() {
 
   async function handleGateAction(
     gateId: string,
-    action: (gateId: string, input: { resolvedBy: string; reason: string }) => Promise<AgentRunWithDetails>,
+    action: (
+      gateId: string,
+      input: { resolvedBy: string; actorRole: ApprovalActorRole; reason: string }
+    ) => Promise<AgentRunWithDetails>,
     reason: string
   ) {
     setIsLoading(true);
     setError(null);
     try {
-      const run = await action(gateId, { resolvedBy: "human", reason });
+      const run = await action(gateId, {
+        resolvedBy: "human",
+        actorRole: approvalActorRole,
+        reason
+      });
       storeRun(run);
       await refreshGoalRuntime(run.goalId);
     } catch (err) {
@@ -352,6 +362,19 @@ export function App() {
                       </button>
                     </div>
                     <div className="gate-list">
+                      <label className="gate-role">
+                        Approval role
+                        <select
+                          value={approvalActorRole}
+                          onChange={(event) =>
+                            setApprovalActorRole(event.target.value as ApprovalActorRole)
+                          }
+                        >
+                          <option value="human_operator">human_operator</option>
+                          <option value="admin">admin</option>
+                          <option value="system">system</option>
+                        </select>
+                      </label>
                       {selectedRun.approvalGates.length === 0 ? (
                         <p className="muted">No approval gates for this run.</p>
                       ) : null}
@@ -362,6 +385,12 @@ export function App() {
                             <small>
                               {gate.riskLevel} / {gate.status}
                             </small>
+                            <small>
+                              {gate.expiresAt
+                                ? `expires ${new Date(gate.expiresAt).toLocaleString()}`
+                                : "no expiry"}
+                            </small>
+                            {gate.actorRole ? <small>resolved by {gate.actorRole}</small> : null}
                           </div>
                           {gate.status === "pending" ? (
                             <div className="button-row">

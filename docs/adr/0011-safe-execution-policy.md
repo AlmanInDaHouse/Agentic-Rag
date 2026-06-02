@@ -56,7 +56,7 @@ Use a risk-based safe execution policy backed by shared contracts, SQL migration
 
 ## Pending Risks
 
-- Approval authorization is not yet connected to users or roles.
-- Gate expiration is persisted but not actively enforced.
-- `RUNTIME-001` remains open until `advanceRunOneStep` is wrapped in a transaction or row-level lock.
+- Approval authorization uses simulated roles but is not yet connected to authenticated users.
+- Gate expiration is enforced on request paths but not by a background worker.
+- Runtime advance concurrency is handled by ADR 0012.
 - Future adapters will still need sandboxing, subprocess limits, secrets handling and dependency review enforcement.

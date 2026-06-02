@@ -11,6 +11,8 @@ import type {
 } from "@triforge/shared";
 import { ConflictError, NotFoundError } from "../domain/errors.js";
 import type {
+  AgentRuntimeRepositories,
+  AgentRuntimeTransactionManager,
   AgentRunRepository,
   AgentStepRepository,
   ApprovalGateRepository,
@@ -46,7 +48,8 @@ export class AgentRuntimeService {
     private readonly approvalGateRepository: ApprovalGateRepository,
     private readonly timelineEventsRepository: TimelineEventsRepository,
     private readonly executeStep: StepExecutor = executeMockStep,
-    private readonly safeExecutionPolicyService = new SafeExecutionPolicyService()
+    private readonly safeExecutionPolicyService = new SafeExecutionPolicyService(),
+    private readonly transactionManager?: AgentRuntimeTransactionManager
   ) {}
 
   async createRun(
@@ -112,9 +115,26 @@ export class AgentRuntimeService {
   }
 
   async advanceRunOneStep(runId: string): Promise<AgentRunWithDetails> {
-    const run = await this.requiredRun(runId);
+    if (this.transactionManager) {
+      return this.transactionManager.run((repositories) =>
+        this.withRepositories(repositories).advanceRunOneStepLocked(runId)
+      );
+    }
+
+    return this.advanceRunOneStepLocked(runId);
+  }
+
+  private async advanceRunOneStepLocked(runId: string): Promise<AgentRunWithDetails> {
+    const run = await this.requiredRunForUpdate(runId);
     if (terminalRunStatuses.has(run.status)) {
       throw new ConflictError(`Run ${runId} is terminal and cannot advance`);
+    }
+    const expiredRun = await this.expirePendingGateIfAny(run);
+    if (expiredRun) {
+      return expiredRun;
+    }
+    if (run.status === "waiting_for_approval") {
+      throw new ConflictError(`Run ${runId} is waiting for approval and cannot advance`);
     }
     if (run.status !== "running") {
       throw new ConflictError(`Run ${runId} must be running before it can advance`);
@@ -198,7 +218,7 @@ export class AgentRuntimeService {
           actionType: action.actionType,
           actionPayload: action.payload,
           reason: policy.reason,
-          expiresAt: null
+          expiresAt: approvalExpiresAt(action.payload)
         });
         await this.timelineEventsRepository.create({
           goalId: run.goalId,
@@ -305,7 +325,25 @@ export class AgentRuntimeService {
     gateId: string,
     input: ResolveApprovalGate
   ): Promise<AgentRunWithDetails> {
-    const { gate, run } = await this.resolveGatePreconditions(gateId);
+    if (this.transactionManager) {
+      return this.transactionManager.run((repositories) =>
+        this.withRepositories(repositories).approveGateLocked(gateId, input)
+      );
+    }
+
+    return this.approveGateLocked(gateId, input);
+  }
+
+  private async approveGateLocked(
+    gateId: string,
+    input: ResolveApprovalGate
+  ): Promise<AgentRunWithDetails> {
+    const { gate, run } = await this.resolveGatePreconditionsForUpdate(gateId);
+    const expiredRun = await this.expireGateIfExpired(gate, run);
+    if (expiredRun) {
+      return expiredRun;
+    }
+    this.assertActorCanResolveGate("approve", gate, input);
     const resolved = await this.approvalGateRepository.resolve(gate.id, {
       ...input,
       decision: "approved"
@@ -365,7 +403,25 @@ export class AgentRuntimeService {
     gateId: string,
     input: ResolveApprovalGate
   ): Promise<AgentRunWithDetails> {
-    const { gate, run } = await this.resolveGatePreconditions(gateId);
+    if (this.transactionManager) {
+      return this.transactionManager.run((repositories) =>
+        this.withRepositories(repositories).rejectGateLocked(gateId, input)
+      );
+    }
+
+    return this.rejectGateLocked(gateId, input);
+  }
+
+  private async rejectGateLocked(
+    gateId: string,
+    input: ResolveApprovalGate
+  ): Promise<AgentRunWithDetails> {
+    const { gate, run } = await this.resolveGatePreconditionsForUpdate(gateId);
+    const expiredRun = await this.expireGateIfExpired(gate, run);
+    if (expiredRun) {
+      return expiredRun;
+    }
+    this.assertActorCanResolveGate("reject", gate, input);
     const resolved = await this.approvalGateRepository.resolve(gate.id, {
       ...input,
       decision: "rejected"
@@ -415,6 +471,14 @@ export class AgentRuntimeService {
     return run;
   }
 
+  private async requiredRunForUpdate(runId: string): Promise<AgentRun> {
+    const run = await this.agentRunRepository.findByIdForUpdate(runId);
+    if (!run) {
+      throw new NotFoundError(`Run ${runId} was not found`);
+    }
+    return run;
+  }
+
   private async completeRun(run: AgentRun): Promise<AgentRunWithDetails> {
     const completed = await this.agentRunRepository.markCompleted(run.id);
     await this.timelineEventsRepository.create({
@@ -437,20 +501,20 @@ export class AgentRuntimeService {
     return this.withDetails(stopped);
   }
 
-  private async resolveGatePreconditions(
+  private async resolveGatePreconditionsForUpdate(
     gateId: string
   ): Promise<{ gate: ApprovalGate; run: AgentRun }> {
-    const gate = await this.approvalGateRepository.findById(gateId);
+    const gate = await this.approvalGateRepository.findByIdForUpdate(gateId);
     if (!gate) {
       throw new NotFoundError(`Approval gate ${gateId} was not found`);
     }
-    if (gate.status !== "pending") {
-      throw new ConflictError(`Approval gate ${gateId} is not pending`);
-    }
 
-    const run = await this.requiredRun(gate.runId);
+    const run = await this.requiredRunForUpdate(gate.runId);
     if (terminalRunStatuses.has(run.status)) {
       throw new ConflictError(`Run ${run.id} is terminal and cannot resolve approval gates`);
+    }
+    if (gate.status !== "pending") {
+      throw new ConflictError(`Approval gate ${gateId} is not pending`);
     }
     return { gate, run };
   }
@@ -473,6 +537,97 @@ export class AgentRuntimeService {
       this.approvalGateRepository.listByRun(run.id)
     ]);
     return { ...run, steps, approvalGates };
+  }
+
+  private async expirePendingGateIfAny(run: AgentRun): Promise<AgentRunWithDetails | null> {
+    const pendingGates = await this.approvalGateRepository.listPendingByRunForUpdate(run.id);
+    const expiredGate = pendingGates.find(isExpiredGate);
+    if (!expiredGate) {
+      return null;
+    }
+    return this.expireGate(expiredGate, run);
+  }
+
+  private async expireGateIfExpired(
+    gate: ApprovalGate,
+    run: AgentRun
+  ): Promise<AgentRunWithDetails | null> {
+    if (!isExpiredGate(gate)) {
+      return null;
+    }
+    return this.expireGate(gate, run);
+  }
+
+  private async expireGate(gate: ApprovalGate, run: AgentRun): Promise<AgentRunWithDetails> {
+    const resolved = await this.approvalGateRepository.resolve(gate.id, {
+      resolvedBy: "system",
+      actorRole: "system",
+      reason: "approval_expired",
+      decision: "expired"
+    });
+    await this.timelineEventsRepository.create({
+      goalId: run.goalId,
+      type: "approval_gate_expired",
+      message: "Approval gate expired before resolution.",
+      payload: {
+        runId: run.id,
+        gateId: resolved.id,
+        actionType: resolved.actionType,
+        riskLevel: resolved.riskLevel
+      }
+    });
+
+    if (resolved.stepId) {
+      await this.agentStepRepository.fail({
+        stepId: resolved.stepId,
+        error: {
+          code: "APPROVAL_EXPIRED",
+          actionType: resolved.actionType,
+          reason: "approval_expired"
+        }
+      });
+    }
+
+    const stopped = await this.agentRunRepository.updateStatus(run.id, "stopped");
+    await this.timelineEventsRepository.create({
+      goalId: stopped.goalId,
+      type: "agent_run_stopped",
+      message: "Agent run stopped because approval expired.",
+      payload: {
+        runId: stopped.id,
+        gateId: resolved.id,
+        stopCondition: "approval_expired"
+      }
+    });
+    return this.withDetails(stopped);
+  }
+
+  private assertActorCanResolveGate(
+    action: "approve" | "reject",
+    gate: ApprovalGate,
+    input: ResolveApprovalGate
+  ): void {
+    if (gate.riskLevel === "critical") {
+      throw new ConflictError("Critical approval gates cannot be approved or rejected manually");
+    }
+    if (input.actorRole === "system" && gate.riskLevel === "high") {
+      throw new ConflictError(`System actor cannot ${action} ${gate.riskLevel} approval gates`);
+    }
+    if (gate.riskLevel === "high" && input.actorRole !== "human_operator" && input.actorRole !== "admin") {
+      throw new ConflictError(`${input.actorRole} cannot ${action} high risk approval gates`);
+    }
+  }
+
+  private withRepositories(repositories: AgentRuntimeRepositories): AgentRuntimeService {
+    return new AgentRuntimeService(
+      this.goalsRepository,
+      repositories.agentRunRepository,
+      repositories.agentStepRepository,
+      repositories.approvalGateRepository,
+      repositories.timelineEventsRepository,
+      this.executeStep,
+      this.safeExecutionPolicyService
+    );
   }
 }
 
@@ -532,4 +687,23 @@ function selectRequestedAction(run: AgentRun): { actionType: ActionType; payload
       sideEffects: false
     }
   };
+}
+
+function approvalExpiresAt(payload: Record<string, unknown>): string | null {
+  if (typeof payload.approvalExpiresAt !== "string") {
+    return null;
+  }
+
+  const date = new Date(payload.approvalExpiresAt);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  return date.toISOString();
+}
+
+function isExpiredGate(gate: ApprovalGate): boolean {
+  if (!gate.expiresAt) {
+    return false;
+  }
+  return new Date(gate.expiresAt).getTime() < Date.now();
 }

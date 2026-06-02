@@ -18,6 +18,7 @@ body {
 
 button,
 input,
+select,
 textarea {
   font: inherit;
 }
@@ -104,6 +105,7 @@ label {
 }
 
 input,
+select,
 textarea {
   border: 1px solid #c9d0c3;
   border-radius: 6px;
@@ -221,6 +223,10 @@ textarea {
 .gate-list {
   border-top: 1px solid #e0e5da;
   padding-top: 12px;
+}
+
+.gate-role {
+  max-width: 260px;
 }
 
 .step-list {
