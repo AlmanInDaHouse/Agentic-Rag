@@ -125,6 +125,9 @@ See:
 - `POST /api/runs/:runId/start`
 - `POST /api/runs/:runId/advance`
 - `POST /api/runs/:runId/cancel`
+- `GET /api/runs/:runId/approval-gates`
+- `POST /api/approval-gates/:gateId/approve`
+- `POST /api/approval-gates/:gateId/reject`
 
 Ejemplo:
 
@@ -136,7 +139,7 @@ curl -X POST http://127.0.0.1:3001/api/goals \
 
 ## Agent Runtime
 
-El runtime actual es una state machine mockeada y trazable. No ejecuta modelos reales ni procesos externos.
+El runtime actual es una state machine mockeada y trazable. No ejecuta modelos reales, procesos externos, cambios de codigo, instalaciones, migraciones ni operaciones git reales.
 
 Crear un run sobre un goal:
 
@@ -144,6 +147,14 @@ Crear un run sobre un goal:
 curl -X POST http://127.0.0.1:3001/api/goals/<goal-id>/runs \
   -H "content-type: application/json" \
   -d '{"objective":"Advance this goal with the mock runtime.","definitionOfDone":["Run reaches completed."],"budget":{"maxSteps":12,"maxFailures":3}}'
+```
+
+Crear un run que simula una accion de alto riesgo y requiere approval gate:
+
+```bash
+curl -X POST http://127.0.0.1:3001/api/goals/<goal-id>/runs \
+  -H "content-type: application/json" \
+  -d '{"objective":"Test approval gate.","definitionOfDone":["Gate is approved."],"requestedActions":[{"actionType":"run_command","payload":{"command":"pnpm test"}}],"budget":{"maxSteps":12,"maxFailures":3}}'
 ```
 
 Arrancar y avanzar un run:
@@ -166,6 +177,20 @@ curl -X POST http://127.0.0.1:3001/api/runs/<run-id>/cancel \
   -d '{}'
 ```
 
+Listar, aprobar o rechazar approval gates:
+
+```bash
+curl http://127.0.0.1:3001/api/runs/<run-id>/approval-gates
+
+curl -X POST http://127.0.0.1:3001/api/approval-gates/<gate-id>/approve \
+  -H "content-type: application/json" \
+  -d '{"resolvedBy":"human","reason":"Approved for mock execution"}'
+
+curl -X POST http://127.0.0.1:3001/api/approval-gates/<gate-id>/reject \
+  -H "content-type: application/json" \
+  -d '{"resolvedBy":"human","reason":"Rejected for safety review"}'
+```
+
 Estados de run:
 
 ```text
@@ -182,10 +207,39 @@ stopped
 Steps mock iniciales:
 
 ```text
-load_context -> plan -> debate -> judge -> validate -> summarize
+load_context -> plan -> debate -> judge -> execute_mock_task -> validate -> summarize
 ```
 
-Todavía no está implementado: RAG, GraphRAG, Code Graph, adapters reales de Codex/Claude/Gemini/Ollama, colas de workers, approval workflow completo ni ejecución autónoma multi-ciclo.
+Approval gates:
+
+- acciones `low` y `medium` se pueden simular automaticamente en el runtime mock,
+- acciones `high` crean un approval gate y pasan el run a `waiting_for_approval`,
+- acciones `critical` se bloquean por defecto, no crean gate y fallan el run con `ACTION_BLOCKED`.
+
+Requieren aprobacion humana:
+
+```text
+modify_code
+run_command
+install_dependency
+db_migration
+external_adapter_call
+git_operation
+```
+
+Bloqueado por defecto:
+
+```text
+delete_file
+git_operation force push
+git_operation delete branch
+git_operation targeting main
+db destructive migration
+external network call without approved adapter
+install_dependency without dependency review
+```
+
+Todavia no esta implementado: RAG, GraphRAG, Code Graph, adapters reales de Codex/Claude/Gemini/Ollama, colas de workers, auth para approval gates ni ejecucion autonoma multi-ciclo.
 
 ## Variables de entorno
 

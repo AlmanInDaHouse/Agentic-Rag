@@ -15,16 +15,18 @@ export class PgAgentRunRepository implements AgentRunRepository {
           goal_id,
           objective,
           definition_of_done,
+          requested_actions,
           max_steps,
           max_failures
         )
-        VALUES ($1, $2, $3, $4, $5)
+        VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING *
       `,
       [
         input.goalId,
         input.objective,
         JSON.stringify(input.definitionOfDone),
+        JSON.stringify(input.requestedActions),
         input.maxSteps,
         input.maxFailures
       ]

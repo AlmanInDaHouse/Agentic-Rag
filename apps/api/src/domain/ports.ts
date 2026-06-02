@@ -8,10 +8,13 @@ import type {
   AgentStepStatus,
   AgentStepType,
   ApprovalGate,
+  CreateApprovalGate,
   CreateGoalRequest,
   DebateRound,
   DebateRoundWithProposals,
   Goal,
+  RequestedAction,
+  ResolveApprovalGate,
   TimelineEvent,
   TimelineEventType
 } from "@triforge/shared";
@@ -68,6 +71,7 @@ export type CreateRunInput = {
   goalId: string;
   objective: string;
   definitionOfDone: string[];
+  requestedActions: RequestedAction[];
   maxSteps: number;
   maxFailures: number;
 };
@@ -109,7 +113,13 @@ export interface AgentStepRepository {
 }
 
 export interface ApprovalGateRepository {
+  create(input: CreateApprovalGate): Promise<ApprovalGate>;
+  findById(id: string): Promise<ApprovalGate | null>;
   listByRun(runId: string): Promise<ApprovalGate[]>;
+  resolve(
+    id: string,
+    input: ResolveApprovalGate & { decision: "approved" | "rejected" }
+  ): Promise<ApprovalGate>;
 }
 
 export interface AgentRuntimeReadRepository {

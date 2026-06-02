@@ -9,6 +9,7 @@ import type {
 } from "@triforge/shared";
 import {
   advanceRun,
+  approveGate,
   cancelRun,
   createGoal,
   createRun,
@@ -17,6 +18,7 @@ import {
   getTimeline,
   listGoals,
   listRuns,
+  rejectGate,
   runDebate,
   startRun
 } from "./api.js";
@@ -60,6 +62,8 @@ export function App() {
   const selectedTimeline = selectedGoal ? timelines[selectedGoal.id] ?? [] : [];
   const selectedRuns = selectedGoal ? runsByGoal[selectedGoal.id] ?? [] : [];
   const selectedRun = selectedRunId ? runDetails[selectedRunId] : null;
+  const selectedRunHasPendingGate =
+    selectedRun?.approvalGates.some((gate) => gate.status === "pending") ?? false;
 
   async function refreshGoals() {
     const nextGoals = await listGoals();
@@ -176,6 +180,7 @@ export function App() {
       const run = await createRun(goal.id, {
         objective: `Advance goal: ${goal.title}`,
         definitionOfDone: ["Mock runtime reaches summarize step."],
+        requestedActions: [],
         budget: { maxSteps: 12, maxFailures: 3 }
       });
       storeRun(run);
@@ -199,6 +204,24 @@ export function App() {
       await refreshGoalRuntime(run.goalId);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update run");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleGateAction(
+    gateId: string,
+    action: (gateId: string, input: { resolvedBy: string; reason: string }) => Promise<AgentRunWithDetails>,
+    reason: string
+  ) {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const run = await action(gateId, { resolvedBy: "human", reason });
+      storeRun(run);
+      await refreshGoalRuntime(run.goalId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to resolve approval gate");
     } finally {
       setIsLoading(false);
     }
@@ -312,7 +335,11 @@ export function App() {
                       <button
                         className="secondary"
                         onClick={() => handleRunAction(advanceRun)}
-                        disabled={isLoading || selectedRun.status !== "running"}
+                        disabled={
+                          isLoading ||
+                          selectedRun.status !== "running" ||
+                          selectedRunHasPendingGate
+                        }
                       >
                         Advance one step
                       </button>
@@ -323,6 +350,51 @@ export function App() {
                       >
                         Cancel run
                       </button>
+                    </div>
+                    <div className="gate-list">
+                      {selectedRun.approvalGates.length === 0 ? (
+                        <p className="muted">No approval gates for this run.</p>
+                      ) : null}
+                      {selectedRun.approvalGates.map((gate) => (
+                        <div key={gate.id} className="gate-item">
+                          <div>
+                            <span>{gate.actionType}</span>
+                            <small>
+                              {gate.riskLevel} / {gate.status}
+                            </small>
+                          </div>
+                          {gate.status === "pending" ? (
+                            <div className="button-row">
+                              <button
+                                className="secondary"
+                                onClick={() =>
+                                  handleGateAction(
+                                    gate.id,
+                                    approveGate,
+                                    "Approved for mock execution"
+                                  )
+                                }
+                                disabled={isLoading}
+                              >
+                                Approve
+                              </button>
+                              <button
+                                className="secondary danger"
+                                onClick={() =>
+                                  handleGateAction(
+                                    gate.id,
+                                    rejectGate,
+                                    "Rejected from dashboard"
+                                  )
+                                }
+                                disabled={isLoading}
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
+                      ))}
                     </div>
                     <ol className="step-list">
                       {selectedRun.steps.map((step) => (

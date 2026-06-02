@@ -6,7 +6,7 @@ TriForge Agentic Lab is an experimental platform for coordinating AI agents thro
 
 ## Current Architecture
 
-- `apps/api`: Fastify ESM API, PostgreSQL repositories, migrations, mock debate runtime, mock agent runtime state machine and tests.
+- `apps/api`: Fastify ESM API, PostgreSQL repositories, migrations, mock debate runtime, mock agent runtime state machine, safe execution policy and tests.
 - `apps/web`: React + Vite dashboard.
 - `packages/shared`: Zod contracts and shared TypeScript types.
 - `infra/docker`: local PostgreSQL compose setup.
@@ -40,7 +40,7 @@ TriForge Agentic Lab is an experimental platform for coordinating AI agents thro
 
 ## Current State
 
-The MVP supports goal creation/listing, debate round creation, latest round retrieval, mock agents, mock judge, persisted proposals, timeline events and basic dashboard. Milestone 1.2 adds a persisted mock agent runtime state machine with runs, steps, approval gate storage, start/advance/cancel endpoints and deterministic step execution.
+The MVP supports goal creation/listing, debate round creation, latest round retrieval, mock agents, mock judge, persisted proposals, timeline events and basic dashboard. Milestone 1.3 adds a persisted mock agent runtime state machine with approval gate workflows and a safe execution policy. The runtime remains mock-only and does not execute real commands, modify code, install dependencies, run migrations or call real adapters.
 
 ## Decisions Taken
 
@@ -54,7 +54,7 @@ The MVP supports goal creation/listing, debate round creation, latest round retr
 
 - Consider database-per-run harness isolation only if schema isolation becomes insufficient.
 - Add adapter specs before implementing real agent bridges.
-- Keep the runtime mock-only until adapter sandboxing, subprocess and approval specs exist.
+- Keep the runtime mock-only until adapter sandboxing, subprocess limits and authorization exist.
 - Define memory/RAG storage after context spec is expanded.
 
 ## Development Rules
@@ -117,13 +117,14 @@ tooling/harness
 - Real agent adapters will introduce untrusted output and subprocess risks.
 - Timeline event retention is undefined.
 - Agent runtime is synchronous and mock-only; it is not yet a durable worker queue.
+- Approval gate authorization is not yet tied to users or roles.
 
 ## Technical Debt
 
 - Debate orchestration is not wrapped in a single transaction.
 - Dashboard has no live updates.
 - API route schemas are manually wired instead of using Fastify schema integration.
-- Approval gates are persisted but not yet exposed as a full approval workflow.
+- Approval gates are exposed for mock runtime actions, but not yet backed by authentication or role-based authorization.
 
 ## Definition of Done
 

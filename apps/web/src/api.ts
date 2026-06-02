@@ -1,13 +1,16 @@
 import {
   AgentRunSchema,
   AgentRunWithDetailsSchema,
+  ApprovalGateSchema,
   CreateAgentRunSchema,
+  ResolveApprovalGateSchema,
   createGoalRequestSchema,
   debateRoundWithProposalsSchema,
   goalSchema,
   timelineEventSchema,
   type AgentRun,
   type AgentRunWithDetails,
+  type ApprovalGate,
   type CreateAgentRun,
   type CreateGoalRequest,
   type DebateRoundWithProposals,
@@ -116,6 +119,35 @@ export async function cancelRun(runId: string): Promise<AgentRunWithDetails> {
   const body = await request<unknown>(`/api/runs/${runId}/cancel`, {
     method: "POST",
     body: JSON.stringify({})
+  });
+  return AgentRunWithDetailsSchema.parse(body);
+}
+
+export async function listApprovalGates(runId: string): Promise<ApprovalGate[]> {
+  const body = await request<unknown>(`/api/runs/${runId}/approval-gates`);
+  return z.array(ApprovalGateSchema).parse(body);
+}
+
+export async function approveGate(
+  gateId: string,
+  input: { resolvedBy: string; reason: string }
+): Promise<AgentRunWithDetails> {
+  const parsed = ResolveApprovalGateSchema.parse(input);
+  const body = await request<unknown>(`/api/approval-gates/${gateId}/approve`, {
+    method: "POST",
+    body: JSON.stringify(parsed)
+  });
+  return AgentRunWithDetailsSchema.parse(body);
+}
+
+export async function rejectGate(
+  gateId: string,
+  input: { resolvedBy: string; reason: string }
+): Promise<AgentRunWithDetails> {
+  const parsed = ResolveApprovalGateSchema.parse(input);
+  const body = await request<unknown>(`/api/approval-gates/${gateId}/reject`, {
+    method: "POST",
+    body: JSON.stringify(parsed)
   });
   return AgentRunWithDetailsSchema.parse(body);
 }

@@ -25,9 +25,58 @@ export const timelineEventTypeSchema = z.enum([
   "agent_run_failed",
   "agent_run_cancelled",
   "agent_run_stopped",
+  "agent_run_waiting_for_approval",
   "approval_gate_created",
   "approval_gate_resolved"
 ]);
+
+export const ActionTypeSchema = z.enum([
+  "read_context",
+  "plan",
+  "debate",
+  "judge",
+  "write_artifact",
+  "modify_code",
+  "run_command",
+  "install_dependency",
+  "db_migration",
+  "network_request",
+  "external_adapter_call",
+  "delete_file",
+  "git_operation"
+]);
+
+export const RiskLevelSchema = z.enum(["low", "medium", "high", "critical"]);
+
+export const ExecutionPolicySchema = z.object({
+  actionType: ActionTypeSchema,
+  riskLevel: RiskLevelSchema,
+  requiresApproval: z.boolean(),
+  blockedByDefault: z.boolean(),
+  reason: z.string()
+});
+
+export const RequestedActionSchema = z.object({
+  actionType: ActionTypeSchema,
+  payload: z.record(z.unknown()).default({})
+}).strict();
+
+export const ApprovalDecisionSchema = z.enum(["approved", "rejected"]);
+
+export const CreateApprovalGateSchema = z.object({
+  runId: z.string().uuid(),
+  stepId: z.string().uuid().nullable().default(null),
+  riskLevel: RiskLevelSchema,
+  actionType: ActionTypeSchema,
+  actionPayload: z.record(z.unknown()).default({}),
+  reason: z.string().trim().min(1).max(1000).nullable().default(null),
+  expiresAt: z.string().datetime().nullable().default(null)
+}).strict();
+
+export const ResolveApprovalGateSchema = z.object({
+  resolvedBy: z.string().trim().min(1).max(160),
+  reason: z.string().trim().min(1).max(1000)
+}).strict();
 
 export const AgentRunStatusSchema = z.enum([
   "created",
@@ -76,13 +125,14 @@ export const RunBudgetSchema = z.object({
 export const CreateAgentRunSchema = z.object({
   objective: z.string().trim().min(3).max(5000),
   definitionOfDone: z.array(z.string().trim().min(1).max(500)).default([]),
-  budget: RunBudgetSchema.partial().default({})
+  budget: RunBudgetSchema.partial().default({}),
+  requestedActions: z.array(RequestedActionSchema).max(10).default([])
 }).strict();
 
 export const createGoalRequestSchema = z.object({
   title: z.string().trim().min(3).max(160),
   description: z.string().trim().min(10).max(5000)
-});
+}).strict();
 
 export const goalSchema = z.object({
   id: z.string().uuid(),
@@ -133,6 +183,7 @@ export const AgentRunSchema = z.object({
   status: AgentRunStatusSchema,
   objective: z.string(),
   definitionOfDone: z.array(z.string()),
+  requestedActions: z.array(RequestedActionSchema),
   currentStepIndex: z.number().int().nonnegative(),
   maxSteps: z.number().int().positive(),
   maxFailures: z.number().int().nonnegative(),
@@ -163,11 +214,15 @@ export const ApprovalGateSchema = z.object({
   runId: z.string().uuid(),
   stepId: z.string().uuid().nullable(),
   status: z.enum(["pending", "approved", "rejected", "cancelled"]),
+  riskLevel: RiskLevelSchema,
+  actionType: ActionTypeSchema,
+  actionPayload: z.record(z.unknown()),
   reason: z.string().nullable(),
   requestedAt: z.string().datetime(),
   resolvedAt: z.string().datetime().nullable(),
   resolvedBy: z.string().nullable(),
-  decision: z.string().nullable()
+  decision: ApprovalDecisionSchema.nullable(),
+  expiresAt: z.string().datetime().nullable()
 });
 
 export const AgentRunWithDetailsSchema = AgentRunSchema.extend({
@@ -184,6 +239,13 @@ export type AgentId = z.infer<typeof agentIdSchema>;
 export type GoalStatus = z.infer<typeof goalStatusSchema>;
 export type DebateRoundStatus = z.infer<typeof debateRoundStatusSchema>;
 export type TimelineEventType = z.infer<typeof timelineEventTypeSchema>;
+export type ActionType = z.infer<typeof ActionTypeSchema>;
+export type RiskLevel = z.infer<typeof RiskLevelSchema>;
+export type ExecutionPolicy = z.infer<typeof ExecutionPolicySchema>;
+export type RequestedAction = z.infer<typeof RequestedActionSchema>;
+export type ApprovalDecision = z.infer<typeof ApprovalDecisionSchema>;
+export type CreateApprovalGate = z.infer<typeof CreateApprovalGateSchema>;
+export type ResolveApprovalGate = z.infer<typeof ResolveApprovalGateSchema>;
 export type AgentRunStatus = z.infer<typeof AgentRunStatusSchema>;
 export type AgentStepStatus = z.infer<typeof AgentStepStatusSchema>;
 export type AgentStepType = z.infer<typeof AgentStepTypeSchema>;

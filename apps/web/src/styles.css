@@ -42,6 +42,10 @@ button:disabled {
   background: #2f3b42;
 }
 
+.danger {
+  background: #8f321b;
+}
+
 .shell {
   margin: 0 auto;
   max-width: 1280px;
@@ -208,14 +212,24 @@ textarea {
   padding: 14px;
 }
 
+.gate-list,
 .step-list {
   display: grid;
   gap: 8px;
+}
+
+.gate-list {
+  border-top: 1px solid #e0e5da;
+  padding-top: 12px;
+}
+
+.step-list {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
+.gate-item,
 .step-list li {
   align-items: center;
   background: #f7f8f4;
@@ -227,12 +241,24 @@ textarea {
   padding: 8px 10px;
 }
 
+.gate-item {
+  display: flex;
+  gap: 12px;
+}
+
+.gate-item > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
 .step-list span,
+.gate-item span,
 .run-item span {
   font-weight: 800;
 }
 
 .step-list small,
+.gate-item small,
 .run-item small {
   color: #66736a;
 }

@@ -53,6 +53,7 @@ describe("harness: agent runtime happy path", () => {
       "plan",
       "debate",
       "judge",
+      "execute_mock_task",
       "validate",
       "summarize"
     ]);
@@ -60,7 +61,7 @@ describe("harness: agent runtime happy path", () => {
 
     const recovered = await runtime.api.getRun(run.id);
     expect(recovered.status).toBe("completed");
-    expect(recovered.steps).toHaveLength(6);
+    expect(recovered.steps).toHaveLength(7);
 
     const timeline = await runtime.api.timeline(goal.id);
     assertTimelineContains(timeline, [
