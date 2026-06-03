@@ -302,6 +302,27 @@ curl http://127.0.0.1:3001/api/goals/<goal-id>/context/retrievals
 
 Cuando un run avanza por `load_context`, el runtime usa `run.objective` como query, guarda `retrievalId`, `query` y `results` en el output del step y registra `context_retrieval_created` en timeline. Si no hay resultados, el step continua con `results: []`.
 
+## RAG roadmap
+
+Estado actual:
+
+- Context Engine v0 usa retrieval lexical.
+- No hay embeddings reales.
+- No hay pgvector.
+- No hay GraphRAG ni Code Graph.
+- No hay fuentes externas como filesystem, web, GitHub, Gmail o calendar.
+
+Roadmap propuesto:
+
+```text
+v1A: spec y ADR de estrategia RAG/embeddings.
+v1B: interfaces de embeddings y mock embeddings deterministas.
+v1C: pgvector y embeddings locales opcionales.
+v1D: retrieval hibrido lexical + vectorial.
+```
+
+El fallback lexical debe mantenerse durante todo el rollout. Si embeddings no existen o fallan, `load_context` debe poder seguir usando retrieval lexical y registrar el motivo.
+
 ## Variables de entorno
 
 La API usa estas variables con defaults locales:
