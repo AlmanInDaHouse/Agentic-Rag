@@ -197,6 +197,7 @@ Approve/reject payload:
 ```json
 {
   "resolvedBy": "human",
+  "actorRole": "human_operator",
   "reason": "Approved for mock execution"
 }
 ```

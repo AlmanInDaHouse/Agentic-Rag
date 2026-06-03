@@ -322,7 +322,7 @@ export function App() {
                     >
                       <span>{run.objective}</span>
                       <small>
-                        {run.status} · step {run.currentStepIndex}
+                        {run.status} - step {run.currentStepIndex}
                       </small>
                     </button>
                   ))}
