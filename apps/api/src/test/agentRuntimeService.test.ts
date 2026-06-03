@@ -457,6 +457,32 @@ describe("AgentRuntimeService", () => {
     expect(run.steps.find((step) => step.type === "execute_mock_task")?.status).toBe("succeeded");
   });
 
+  it("allows admin approval for high risk gates", async () => {
+    const { service } = createService();
+    let run = await service.createRun(
+      goal.id,
+      "Create a traceable mock runtime.",
+      [],
+      [{ actionType: "run_command", payload: { command: "pnpm test" } }]
+    );
+    run = await service.startRun(run.id);
+    while (run.status === "running") {
+      run = await service.advanceRunOneStep(run.id);
+    }
+
+    run = await service.approveGate(run.approvalGates[0].id, {
+      resolvedBy: "admin-user",
+      actorRole: "admin",
+      reason: "Admin approved high risk mock action"
+    });
+
+    expect(run.status).toBe("running");
+    expect(run.approvalGates[0]).toMatchObject({
+      status: "approved",
+      actorRole: "admin"
+    });
+  });
+
   it("rejects a gate and stops the run", async () => {
     const { service, timelineRepository } = createService();
     let run = await service.createRun(
@@ -479,6 +505,32 @@ describe("AgentRuntimeService", () => {
     expect(run.status).toBe("stopped");
     expect(run.approvalGates[0].status).toBe("rejected");
     expect(timelineRepository.events.map((event) => event.type)).toContain("agent_run_stopped");
+  });
+
+  it("allows admin rejection for high risk gates", async () => {
+    const { service } = createService();
+    let run = await service.createRun(
+      goal.id,
+      "Create a traceable mock runtime.",
+      [],
+      [{ actionType: "run_command", payload: { command: "pnpm test" } }]
+    );
+    run = await service.startRun(run.id);
+    while (run.status === "running") {
+      run = await service.advanceRunOneStep(run.id);
+    }
+
+    run = await service.rejectGate(run.approvalGates[0].id, {
+      resolvedBy: "admin-user",
+      actorRole: "admin",
+      reason: "Admin rejected high risk mock action"
+    });
+
+    expect(run.status).toBe("stopped");
+    expect(run.approvalGates[0]).toMatchObject({
+      status: "rejected",
+      actorRole: "admin"
+    });
   });
 
   it("fails blocked actions without creating a gate", async () => {
