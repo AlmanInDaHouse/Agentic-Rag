@@ -39,3 +39,19 @@ Target resolution: add authentication/authorization requirements to the adapter 
 Status: resolved.
 
 Resolution: pending gates are checked for expiration before approve/reject and before advance on a waiting run. Expired gates are resolved by `system`, emit `approval_gate_expired` and stop the run with `approval_expired`. There is still no cron or worker-based background expiry.
+
+## CONTEXT-001: Retrieval is lexical only
+
+Context Engine v0 uses deterministic keyword scoring over source name, document title and chunk content. It does not use embeddings, pgvector or semantic ranking.
+
+Status: open.
+
+Target resolution: design embeddings and vector storage after lexical retrieval contracts, dashboard and harness flows are stable.
+
+## CONTEXT-002: Context retention and redaction are undefined
+
+Context chunks and retrieval snapshots are persisted without a retention, quota or redaction policy. This is acceptable for local MVP usage with manual/project/artifact sources only.
+
+Status: open.
+
+Target resolution: add retention and redaction requirements before external source adapters or sensitive data ingestion.

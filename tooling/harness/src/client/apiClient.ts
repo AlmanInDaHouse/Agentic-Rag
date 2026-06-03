@@ -2,7 +2,14 @@ import {
   AgentRunSchema,
   AgentRunWithDetailsSchema,
   ApprovalGateSchema,
+  ContextChunkSchema,
+  ContextDocumentSchema,
+  ContextRetrievalSchema,
+  ContextSearchSchema,
+  ContextSourceSchema,
   CreateAgentRunSchema,
+  CreateContextDocumentSchema,
+  CreateContextSourceSchema,
   ResolveApprovalGateSchema,
   createGoalRequestSchema,
   debateRoundWithProposalsSchema,
@@ -11,7 +18,14 @@ import {
   type AgentRun,
   type AgentRunWithDetails,
   type ApprovalGate,
+  type ContextChunk,
+  type ContextDocument,
+  type ContextRetrieval,
+  type ContextSearch,
+  type ContextSource,
   type CreateAgentRun,
+  type CreateContextDocument,
+  type CreateContextSource,
   type CreateGoalRequest,
   type DebateRoundWithProposals,
   type Goal,
@@ -167,6 +181,81 @@ export class HarnessApiClient {
     });
     await response.text();
     return response.status;
+  }
+
+  async createContextSource(
+    goalId: string,
+    input: CreateContextSource
+  ): Promise<ContextSource> {
+    const parsed = CreateContextSourceSchema.parse(input);
+    const body = await this.request(`/api/goals/${goalId}/context/sources`, {
+      method: "POST",
+      body: JSON.stringify(parsed)
+    });
+    return ContextSourceSchema.parse(body);
+  }
+
+  async listContextSources(goalId: string): Promise<ContextSource[]> {
+    const body = await this.request(`/api/goals/${goalId}/context/sources`);
+    return ContextSourceSchema.array().parse(body);
+  }
+
+  async addContextDocument(
+    sourceId: string,
+    input: CreateContextDocument
+  ): Promise<{ document: ContextDocument; chunks: ContextChunk[] }> {
+    const parsed = CreateContextDocumentSchema.parse(input);
+    const body = await this.request(`/api/context/sources/${sourceId}/documents`, {
+      method: "POST",
+      body: JSON.stringify(parsed)
+    });
+    const candidate = body as { document?: unknown; chunks?: unknown };
+    return {
+      document: ContextDocumentSchema.parse(candidate.document),
+      chunks: ContextChunkSchema.array().parse(candidate.chunks)
+    };
+  }
+
+  async addContextDocumentStatus(sourceId: string, body: unknown): Promise<number> {
+    const response = await this.rawRequest(`/api/context/sources/${sourceId}/documents`, {
+      method: "POST",
+      body: JSON.stringify(body)
+    });
+    await response.text();
+    return response.status;
+  }
+
+  async listContextDocuments(sourceId: string): Promise<ContextDocument[]> {
+    const body = await this.request(`/api/context/sources/${sourceId}/documents`);
+    return ContextDocumentSchema.array().parse(body);
+  }
+
+  async listContextChunks(documentId: string): Promise<ContextChunk[]> {
+    const body = await this.request(`/api/context/documents/${documentId}/chunks`);
+    return ContextChunkSchema.array().parse(body);
+  }
+
+  async searchContext(goalId: string, input: ContextSearch): Promise<ContextRetrieval> {
+    const parsed = ContextSearchSchema.parse(input);
+    const body = await this.request(`/api/goals/${goalId}/context/search`, {
+      method: "POST",
+      body: JSON.stringify(parsed)
+    });
+    return ContextRetrievalSchema.parse(body);
+  }
+
+  async searchContextStatus(goalId: string, body: unknown): Promise<number> {
+    const response = await this.rawRequest(`/api/goals/${goalId}/context/search`, {
+      method: "POST",
+      body: JSON.stringify(body)
+    });
+    await response.text();
+    return response.status;
+  }
+
+  async listContextRetrievals(goalId: string): Promise<ContextRetrieval[]> {
+    const body = await this.request(`/api/goals/${goalId}/context/retrievals`);
+    return ContextRetrievalSchema.array().parse(body);
   }
 
   private async request(path: string, init?: RequestInit): Promise<unknown> {

@@ -28,7 +28,8 @@ export const timelineEventTypeSchema = z.enum([
   "agent_run_waiting_for_approval",
   "approval_gate_created",
   "approval_gate_expired",
-  "approval_gate_resolved"
+  "approval_gate_resolved",
+  "context_retrieval_created"
 ]);
 
 export const ActionTypeSchema = z.enum([
@@ -132,6 +133,70 @@ export const CreateAgentRunSchema = z.object({
   budget: RunBudgetSchema.partial().default({}),
   requestedActions: z.array(RequestedActionSchema).max(10).default([])
 }).strict();
+
+export const ContextSourceTypeSchema = z.enum(["manual_text", "project_note", "artifact"]);
+
+export const CreateContextSourceSchema = z.object({
+  name: z.string().trim().min(1).max(160),
+  type: ContextSourceTypeSchema,
+  metadata: z.record(z.unknown()).default({})
+}).strict();
+
+export const ContextSourceSchema = z.object({
+  id: z.string().uuid(),
+  goalId: z.string().uuid().nullable(),
+  name: z.string(),
+  type: ContextSourceTypeSchema,
+  metadata: z.record(z.unknown()),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime()
+});
+
+export const CreateContextDocumentSchema = z.object({
+  title: z.string().trim().min(1).max(240),
+  content: z.string().trim().min(1).max(100_000),
+  metadata: z.record(z.unknown()).default({})
+}).strict();
+
+export const ContextDocumentSchema = z.object({
+  id: z.string().uuid(),
+  sourceId: z.string().uuid(),
+  title: z.string(),
+  contentHash: z.string(),
+  metadata: z.record(z.unknown()),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime()
+});
+
+export const ContextChunkSchema = z.object({
+  id: z.string().uuid(),
+  documentId: z.string().uuid(),
+  chunkIndex: z.number().int().nonnegative(),
+  content: z.string(),
+  tokenEstimate: z.number().int().nonnegative(),
+  metadata: z.record(z.unknown()),
+  createdAt: z.string().datetime()
+});
+
+export const ContextSearchSchema = z.object({
+  query: z.string().trim().min(1).max(5000),
+  limit: z.number().int().positive().max(20).default(5)
+}).strict();
+
+export const ContextSearchResultSchema = z.object({
+  source: ContextSourceSchema,
+  document: ContextDocumentSchema,
+  chunk: ContextChunkSchema,
+  score: z.number().nonnegative()
+});
+
+export const ContextRetrievalSchema = z.object({
+  id: z.string().uuid(),
+  goalId: z.string().uuid().nullable(),
+  query: z.string(),
+  results: z.array(ContextSearchResultSchema),
+  createdAt: z.string().datetime()
+});
 
 export const createGoalRequestSchema = z.object({
   title: z.string().trim().min(3).max(160),
@@ -258,6 +323,15 @@ export type AgentStepType = z.infer<typeof AgentStepTypeSchema>;
 export type StopCondition = z.infer<typeof StopConditionSchema>;
 export type RunBudget = z.infer<typeof RunBudgetSchema>;
 export type CreateAgentRun = z.infer<typeof CreateAgentRunSchema>;
+export type ContextSourceType = z.infer<typeof ContextSourceTypeSchema>;
+export type CreateContextSource = z.infer<typeof CreateContextSourceSchema>;
+export type ContextSource = z.infer<typeof ContextSourceSchema>;
+export type CreateContextDocument = z.infer<typeof CreateContextDocumentSchema>;
+export type ContextDocument = z.infer<typeof ContextDocumentSchema>;
+export type ContextChunk = z.infer<typeof ContextChunkSchema>;
+export type ContextSearch = z.infer<typeof ContextSearchSchema>;
+export type ContextSearchResult = z.infer<typeof ContextSearchResultSchema>;
+export type ContextRetrieval = z.infer<typeof ContextRetrievalSchema>;
 export type CreateGoalRequest = z.infer<typeof createGoalRequestSchema>;
 export type Goal = z.infer<typeof goalSchema>;
 export type AgentProposal = z.infer<typeof agentProposalSchema>;

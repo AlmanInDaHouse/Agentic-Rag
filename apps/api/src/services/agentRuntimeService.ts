@@ -20,6 +20,7 @@ import type {
   TimelineEventsRepository
 } from "../domain/ports.js";
 import { SafeExecutionPolicyService } from "./safeExecutionPolicyService.js";
+import type { ContextEngineService } from "./contextEngineService.js";
 
 const stepSequence: AgentStepType[] = [
   "load_context",
@@ -49,7 +50,8 @@ export class AgentRuntimeService {
     private readonly timelineEventsRepository: TimelineEventsRepository,
     private readonly executeStep: StepExecutor = executeMockStep,
     private readonly safeExecutionPolicyService = new SafeExecutionPolicyService(),
-    private readonly transactionManager?: AgentRuntimeTransactionManager
+    private readonly transactionManager?: AgentRuntimeTransactionManager,
+    private readonly contextEngineService?: ContextEngineService
   ) {}
 
   async createRun(
@@ -247,7 +249,7 @@ export class AgentRuntimeService {
     }
 
     try {
-      const output = await this.executeStep(run, runningStep);
+      const output = await this.executeRuntimeStep(run, runningStep);
       const succeededStep = await this.agentStepRepository.complete({
         stepId: runningStep.id,
         output
@@ -626,8 +628,44 @@ export class AgentRuntimeService {
       repositories.approvalGateRepository,
       repositories.timelineEventsRepository,
       this.executeStep,
-      this.safeExecutionPolicyService
+      this.safeExecutionPolicyService,
+      undefined,
+      this.contextEngineService
     );
+  }
+
+  private async executeRuntimeStep(
+    run: AgentRun,
+    step: AgentStep
+  ): Promise<Record<string, unknown>> {
+    if (step.type !== "load_context" || !this.contextEngineService) {
+      return this.executeStep(run, step);
+    }
+
+    const retrieval = await this.contextEngineService.search(run.goalId, {
+      query: run.objective,
+      limit: 5
+    });
+    await this.timelineEventsRepository.create({
+      goalId: run.goalId,
+      type: "context_retrieval_created",
+      message: "Context retrieval created for load_context step.",
+      payload: {
+        runId: run.id,
+        stepId: step.id,
+        retrievalId: retrieval.id,
+        resultCount: retrieval.results.length
+      }
+    });
+    return {
+      runId: run.id,
+      stepType: step.type,
+      summary: "Loaded lexical context for the run objective.",
+      deterministic: true,
+      retrievalId: retrieval.id,
+      query: retrieval.query,
+      results: retrieval.results
+    };
   }
 }
 

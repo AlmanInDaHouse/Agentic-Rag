@@ -4,7 +4,14 @@ import {
   AgentRunSchema,
   AgentRunWithDetailsSchema,
   ApprovalGateSchema,
+  ContextChunkSchema,
+  ContextDocumentSchema,
+  ContextRetrievalSchema,
+  ContextSearchSchema,
+  ContextSourceSchema,
   CreateAgentRunSchema,
+  CreateContextDocumentSchema,
+  CreateContextSourceSchema,
   ResolveApprovalGateSchema,
   createGoalRequestSchema,
   debateRoundWithProposalsSchema,
@@ -19,6 +26,7 @@ import type {
 } from "../domain/ports.js";
 import type { DebateService } from "../services/debateService.js";
 import type { AgentRuntimeService } from "../services/agentRuntimeService.js";
+import type { ContextEngineService } from "../services/contextEngineService.js";
 
 const goalParamsSchema = z.object({
   goalId: z.string().uuid()
@@ -30,6 +38,14 @@ const runParamsSchema = z.object({
 
 const gateParamsSchema = z.object({
   gateId: z.string().uuid()
+});
+
+const sourceParamsSchema = z.object({
+  sourceId: z.string().uuid()
+});
+
+const documentParamsSchema = z.object({
+  documentId: z.string().uuid()
 });
 
 const emptyBodySchema = z.union([z.undefined(), z.object({}).strict()]);
@@ -47,7 +63,8 @@ export async function registerRoutes(
   debateRepository: DebateRepository,
   timelineEventsRepository: TimelineEventsRepository,
   debateService: DebateService,
-  agentRuntimeService: AgentRuntimeService
+  agentRuntimeService: AgentRuntimeService,
+  contextEngineService: ContextEngineService
 ): Promise<void> {
   app.get("/health", async () => ({ status: "ok" }));
 
@@ -136,6 +153,191 @@ export async function registerRoutes(
     const events = await timelineEventsRepository.listByGoal(parsedParams.data.goalId);
     reply.send(z.array(timelineEventSchema).parse(events));
   });
+
+  app.post(
+    "/api/goals/:goalId/context/sources",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const parsedParams = goalParamsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        sendZodError(reply, parsedParams.error);
+        return;
+      }
+      const parsedBody = CreateContextSourceSchema.safeParse(request.body);
+      if (!parsedBody.success) {
+        sendZodError(reply, parsedBody.error);
+        return;
+      }
+
+      try {
+        const source = await contextEngineService.createSource(
+          parsedParams.data.goalId,
+          parsedBody.data
+        );
+        reply.status(201).send(ContextSourceSchema.parse(source));
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          reply.status(404).send({ error: "not_found", message: error.message });
+          return;
+        }
+        throw error;
+      }
+    }
+  );
+
+  app.get(
+    "/api/goals/:goalId/context/sources",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const parsedParams = goalParamsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        sendZodError(reply, parsedParams.error);
+        return;
+      }
+
+      try {
+        const sources = await contextEngineService.listSources(parsedParams.data.goalId);
+        reply.send(z.array(ContextSourceSchema).parse(sources));
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          reply.status(404).send({ error: "not_found", message: error.message });
+          return;
+        }
+        throw error;
+      }
+    }
+  );
+
+  app.post(
+    "/api/context/sources/:sourceId/documents",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const parsedParams = sourceParamsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        sendZodError(reply, parsedParams.error);
+        return;
+      }
+      const parsedBody = CreateContextDocumentSchema.safeParse(request.body);
+      if (!parsedBody.success) {
+        sendZodError(reply, parsedBody.error);
+        return;
+      }
+
+      try {
+        const result = await contextEngineService.addDocument(
+          parsedParams.data.sourceId,
+          parsedBody.data
+        );
+        reply.status(201).send({
+          document: ContextDocumentSchema.parse(result.document),
+          chunks: z.array(ContextChunkSchema).parse(result.chunks)
+        });
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          reply.status(404).send({ error: "not_found", message: error.message });
+          return;
+        }
+        if (error instanceof ConflictError) {
+          reply.status(409).send({ error: "conflict", message: error.message });
+          return;
+        }
+        throw error;
+      }
+    }
+  );
+
+  app.get(
+    "/api/context/sources/:sourceId/documents",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const parsedParams = sourceParamsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        sendZodError(reply, parsedParams.error);
+        return;
+      }
+
+      try {
+        const documents = await contextEngineService.listDocuments(parsedParams.data.sourceId);
+        reply.send(z.array(ContextDocumentSchema).parse(documents));
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          reply.status(404).send({ error: "not_found", message: error.message });
+          return;
+        }
+        throw error;
+      }
+    }
+  );
+
+  app.get(
+    "/api/context/documents/:documentId/chunks",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const parsedParams = documentParamsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        sendZodError(reply, parsedParams.error);
+        return;
+      }
+
+      try {
+        const chunks = await contextEngineService.listChunks(parsedParams.data.documentId);
+        reply.send(z.array(ContextChunkSchema).parse(chunks));
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          reply.status(404).send({ error: "not_found", message: error.message });
+          return;
+        }
+        throw error;
+      }
+    }
+  );
+
+  app.post(
+    "/api/goals/:goalId/context/search",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const parsedParams = goalParamsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        sendZodError(reply, parsedParams.error);
+        return;
+      }
+      const parsedBody = ContextSearchSchema.safeParse(request.body);
+      if (!parsedBody.success) {
+        sendZodError(reply, parsedBody.error);
+        return;
+      }
+
+      try {
+        const retrieval = await contextEngineService.search(
+          parsedParams.data.goalId,
+          parsedBody.data
+        );
+        reply.status(201).send(ContextRetrievalSchema.parse(retrieval));
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          reply.status(404).send({ error: "not_found", message: error.message });
+          return;
+        }
+        throw error;
+      }
+    }
+  );
+
+  app.get(
+    "/api/goals/:goalId/context/retrievals",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const parsedParams = goalParamsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        sendZodError(reply, parsedParams.error);
+        return;
+      }
+
+      try {
+        const retrievals = await contextEngineService.listRetrievals(parsedParams.data.goalId);
+        reply.send(z.array(ContextRetrievalSchema).parse(retrievals));
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          reply.status(404).send({ error: "not_found", message: error.message });
+          return;
+        }
+        throw error;
+      }
+    }
+  );
 
   app.post("/api/goals/:goalId/runs", async (request: FastifyRequest, reply: FastifyReply) => {
     const parsedParams = goalParamsSchema.safeParse(request.params);

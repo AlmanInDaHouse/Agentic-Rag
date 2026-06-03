@@ -8,7 +8,12 @@ import { registerRoutes } from "./http/routes.js";
 import { PgAgentRunRepository } from "./repositories/agentRunRepository.js";
 import { PgAgentStepRepository } from "./repositories/agentStepRepository.js";
 import { PgApprovalGateRepository } from "./repositories/approvalGateRepository.js";
+import { PgContextChunkRepository } from "./repositories/contextChunkRepository.js";
+import { PgContextDocumentRepository } from "./repositories/contextDocumentRepository.js";
+import { PgContextRetrievalRepository } from "./repositories/contextRetrievalRepository.js";
+import { PgContextSourceRepository } from "./repositories/contextSourceRepository.js";
 import { AgentRuntimeService } from "./services/agentRuntimeService.js";
+import { ContextEngineService } from "./services/contextEngineService.js";
 import { DebateService } from "./services/debateService.js";
 import { createMockAgents } from "./services/mockAgents.js";
 import { HighestConfidenceJudge } from "./services/mockJudge.js";
@@ -30,7 +35,18 @@ export async function buildApp() {
   const agentRunRepository = new PgAgentRunRepository(pool);
   const agentStepRepository = new PgAgentStepRepository(pool);
   const approvalGateRepository = new PgApprovalGateRepository(pool);
+  const contextSourceRepository = new PgContextSourceRepository(pool);
+  const contextDocumentRepository = new PgContextDocumentRepository(pool);
+  const contextChunkRepository = new PgContextChunkRepository(pool);
+  const contextRetrievalRepository = new PgContextRetrievalRepository(pool);
   const agentRuntimeTransactionManager = new PgAgentRuntimeTransactionManager(pool);
+  const contextEngineService = new ContextEngineService(
+    goalsRepository,
+    contextSourceRepository,
+    contextDocumentRepository,
+    contextChunkRepository,
+    contextRetrievalRepository
+  );
   const debateService = new DebateService(
     goalsRepository,
     debateRepository,
@@ -46,7 +62,8 @@ export async function buildApp() {
     timelineEventsRepository,
     undefined,
     undefined,
-    agentRuntimeTransactionManager
+    agentRuntimeTransactionManager,
+    contextEngineService
   );
 
   await registerRoutes(
@@ -55,7 +72,8 @@ export async function buildApp() {
     debateRepository,
     timelineEventsRepository,
     debateService,
-    agentRuntimeService
+    agentRuntimeService,
+    contextEngineService
   );
   return app;
 }

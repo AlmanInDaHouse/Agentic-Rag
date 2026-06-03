@@ -6,7 +6,7 @@ TriForge Agentic Lab is an experimental platform for coordinating AI agents thro
 
 ## Current Architecture
 
-- `apps/api`: Fastify ESM API, PostgreSQL repositories, migrations, mock debate runtime, mock agent runtime state machine, safe execution policy and tests.
+- `apps/api`: Fastify ESM API, PostgreSQL repositories, migrations, mock debate runtime, mock agent runtime state machine, safe execution policy, Context Engine v0 and tests.
 - `apps/web`: React + Vite dashboard.
 - `packages/shared`: Zod contracts and shared TypeScript types.
 - `infra/docker`: local PostgreSQL compose setup.
@@ -40,7 +40,7 @@ TriForge Agentic Lab is an experimental platform for coordinating AI agents thro
 
 ## Current State
 
-The MVP supports goal creation/listing, debate round creation, latest round retrieval, mock agents, mock judge, persisted proposals, timeline events and basic dashboard. Milestone 1.3.1 adds a persisted mock agent runtime state machine with approval gate workflows, a safe execution policy, transactional advance locking and approval hardening. The runtime remains mock-only and does not execute real commands, modify code, install dependencies, run migrations or call real adapters.
+The MVP supports goal creation/listing, debate round creation, latest round retrieval, mock agents, mock judge, persisted proposals, timeline events and basic dashboard. Milestone 1.3.1 adds a persisted mock agent runtime state machine with approval gate workflows, a safe execution policy, transactional advance locking and approval hardening. Milestone 1.4 adds Context Engine v0 with manual/project/artifact sources, deterministic chunking, lexical retrieval and runtime `load_context` integration. The runtime remains mock-only and does not execute real commands, modify code, install dependencies, run migrations or call real adapters.
 
 ## Decisions Taken
 
@@ -51,13 +51,14 @@ The MVP supports goal creation/listing, debate round creation, latest round retr
 - Agent runtime state uses a minimal PostgreSQL-backed state machine before adopting any external workflow engine.
 - Runtime advance uses a PostgreSQL transaction and `SELECT ... FOR UPDATE NOWAIT` to serialize per-run state transitions.
 - Approval gates use simulated actor roles until real auth is introduced.
+- Context Engine v0 uses lexical retrieval without pgvector or external embeddings.
 
 ## Next Steps
 
 - Consider database-per-run harness isolation only if schema isolation becomes insufficient.
 - Add adapter specs before implementing real agent bridges.
 - Keep the runtime mock-only until adapter sandboxing, subprocess limits and authorization exist.
-- Define memory/RAG storage after context spec is expanded.
+- Define embeddings/RAG storage only after lexical Context Engine v0 is validated.
 
 ## Development Rules
 
@@ -127,6 +128,7 @@ tooling/harness
 - Dashboard has no live updates.
 - API route schemas are manually wired instead of using Fastify schema integration.
 - Approval gates are exposed for mock runtime actions and enforce simulated actor roles, but are not yet backed by authentication or real role binding.
+- Context retrieval is lexical only and has no retention/redaction policy yet.
 
 ## Definition of Done
 

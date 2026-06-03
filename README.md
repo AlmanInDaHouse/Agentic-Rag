@@ -128,6 +128,13 @@ See:
 - `GET /api/runs/:runId/approval-gates`
 - `POST /api/approval-gates/:gateId/approve`
 - `POST /api/approval-gates/:gateId/reject`
+- `POST /api/goals/:goalId/context/sources`
+- `GET /api/goals/:goalId/context/sources`
+- `POST /api/context/sources/:sourceId/documents`
+- `GET /api/context/sources/:sourceId/documents`
+- `GET /api/context/documents/:documentId/chunks`
+- `POST /api/goals/:goalId/context/search`
+- `GET /api/goals/:goalId/context/retrievals`
 
 Ejemplo:
 
@@ -244,6 +251,56 @@ install_dependency without dependency review
 ```
 
 Todavia no esta implementado: RAG, GraphRAG, Code Graph, adapters reales de Codex/Claude/Gemini/Ollama, colas de workers, auth para approval gates ni ejecucion autonoma multi-ciclo.
+
+## Context Engine v0
+
+El Context Engine v0 permite registrar contexto manual y recuperarlo con busqueda lexical. No usa embeddings, pgvector, crawlers web, lectores del filesystem ni adapters externos.
+
+Tipos de source permitidos:
+
+```text
+manual_text
+project_note
+artifact
+```
+
+Crear un source:
+
+```bash
+curl -X POST http://127.0.0.1:3001/api/goals/<goal-id>/context/sources \
+  -H "content-type: application/json" \
+  -d '{"name":"Runtime notes","type":"manual_text","metadata":{"origin":"local"}}'
+```
+
+Anadir un documento de texto:
+
+```bash
+curl -X POST http://127.0.0.1:3001/api/context/sources/<source-id>/documents \
+  -H "content-type: application/json" \
+  -d '{"title":"Approval notes","content":"The load_context step retrieves lexical chunks.","metadata":{}}'
+```
+
+Listar chunks de un documento:
+
+```bash
+curl http://127.0.0.1:3001/api/context/documents/<document-id>/chunks
+```
+
+Buscar contexto:
+
+```bash
+curl -X POST http://127.0.0.1:3001/api/goals/<goal-id>/context/search \
+  -H "content-type: application/json" \
+  -d '{"query":"approval lexical chunks","limit":5}'
+```
+
+Listar retrievals:
+
+```bash
+curl http://127.0.0.1:3001/api/goals/<goal-id>/context/retrievals
+```
+
+Cuando un run avanza por `load_context`, el runtime usa `run.objective` como query, guarda `retrievalId`, `query` y `results` en el output del step y registra `context_retrieval_created` en timeline. Si no hay resultados, el step continua con `results: []`.
 
 ## Variables de entorno
 
