@@ -55,3 +55,35 @@ Context chunks and retrieval snapshots are persisted without a retention, quota 
 Status: open.
 
 Target resolution: add retention and redaction requirements before external source adapters or sensitive data ingestion.
+
+## RAG-001: No semantic retrieval yet
+
+RAG v1 is specified, but the implementation still uses lexical Context Engine v0 retrieval only. There are no chunk embeddings or vector search yet.
+
+Status: open.
+
+Target resolution: implement deterministic mock embedding interfaces before adding pgvector or local models.
+
+## RAG-002: No embedding redaction policy
+
+There is no policy yet for redacting context before embedding generation. This matters before local models process sensitive data and is mandatory before external embedding providers are considered.
+
+Status: open.
+
+Target resolution: define redaction and data handling policy in the embedding implementation milestone.
+
+## RAG-003: No vector index or pgvector support yet
+
+The database does not enable pgvector and has no vector index. This is intentional until embedding interfaces and harness behavior are proven.
+
+Status: open.
+
+Target resolution: add pgvector only after a migration and CI plan is accepted.
+
+## RAG-004: No external embedding provider policy
+
+External embedding providers are not approved. Sending persisted context to a provider requires explicit approval policy, provider configuration, audit logging and redaction rules.
+
+Status: open.
+
+Target resolution: add external provider policy only after local/mock embedding paths are stable.

@@ -52,13 +52,14 @@ The MVP supports goal creation/listing, debate round creation, latest round retr
 - Runtime advance uses a PostgreSQL transaction and `SELECT ... FOR UPDATE NOWAIT` to serialize per-run state transitions.
 - Approval gates use simulated actor roles until real auth is introduced.
 - Context Engine v0 uses lexical retrieval without pgvector or external embeddings.
+- RAG v1 will be introduced in phases: spec/ADR, deterministic mock embeddings, optional pgvector/local embeddings, then hybrid retrieval.
 
 ## Next Steps
 
 - Consider database-per-run harness isolation only if schema isolation becomes insufficient.
 - Add adapter specs before implementing real agent bridges.
 - Keep the runtime mock-only until adapter sandboxing, subprocess limits and authorization exist.
-- Define embeddings/RAG storage only after lexical Context Engine v0 is validated.
+- Implement embedding interfaces with deterministic mock embeddings before adding pgvector or local models.
 
 ## Development Rules
 
@@ -129,6 +130,7 @@ tooling/harness
 - API route schemas are manually wired instead of using Fastify schema integration.
 - Approval gates are exposed for mock runtime actions and enforce simulated actor roles, but are not yet backed by authentication or real role binding.
 - Context retrieval is lexical only and has no retention/redaction policy yet.
+- RAG v1 has a strategy spec and ADR, but no embeddings, pgvector or hybrid retrieval implementation yet.
 
 ## Definition of Done
 
