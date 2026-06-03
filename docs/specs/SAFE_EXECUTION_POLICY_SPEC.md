@@ -8,6 +8,8 @@ Define what the mock runtime may classify as safe, what requires human approval,
 
 Milestone 1.3.1 implements classification, approval gates, simulated actor-role enforcement and request-time gate expiration. It does not execute real commands, modify files, install packages, run migrations, call networks or connect real model adapters.
 
+Context Engine v0 is limited to user-provided text through `manual_text`, `project_note` and `artifact` sources. Filesystem, web, GitHub, Gmail and Calendar context sources are out of scope and require future approval policy and adapter specs.
+
 ## Action Types
 
 ```text

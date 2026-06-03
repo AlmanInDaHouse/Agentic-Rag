@@ -8,6 +8,13 @@ import type {
   AgentStepStatus,
   AgentStepType,
   ApprovalGate,
+  ContextChunk,
+  ContextDocument,
+  ContextRetrieval,
+  ContextSearchResult,
+  ContextSource,
+  CreateContextDocument,
+  CreateContextSource,
   CreateApprovalGate,
   CreateGoalRequest,
   DebateRound,
@@ -138,4 +145,51 @@ export type AgentRuntimeRepositories = {
 
 export interface AgentRuntimeTransactionManager {
   run<T>(callback: (repositories: AgentRuntimeRepositories) => Promise<T>): Promise<T>;
+}
+
+export type CreateContextSourceInput = CreateContextSource & {
+  goalId: string;
+};
+
+export type CreateContextDocumentInput = Omit<CreateContextDocument, "content"> & {
+  sourceId: string;
+  contentHash: string;
+};
+
+export type CreateContextChunkInput = {
+  documentId: string;
+  chunkIndex: number;
+  content: string;
+  tokenEstimate: number;
+  metadata?: Record<string, unknown>;
+};
+
+export type ContextChunkCandidate = ContextSearchResult;
+
+export interface ContextSourceRepository {
+  create(input: CreateContextSourceInput): Promise<ContextSource>;
+  findById(id: string): Promise<ContextSource | null>;
+  listByGoal(goalId: string): Promise<ContextSource[]>;
+}
+
+export interface ContextDocumentRepository {
+  create(input: CreateContextDocumentInput): Promise<ContextDocument>;
+  findById(id: string): Promise<ContextDocument | null>;
+  findBySourceAndHash(sourceId: string, contentHash: string): Promise<ContextDocument | null>;
+  listBySource(sourceId: string): Promise<ContextDocument[]>;
+}
+
+export interface ContextChunkRepository {
+  createMany(chunks: CreateContextChunkInput[]): Promise<ContextChunk[]>;
+  listByDocument(documentId: string): Promise<ContextChunk[]>;
+  listCandidatesByGoal(goalId: string, limit: number): Promise<ContextChunkCandidate[]>;
+}
+
+export interface ContextRetrievalRepository {
+  create(input: {
+    goalId: string;
+    query: string;
+    results: ContextSearchResult[];
+  }): Promise<ContextRetrieval>;
+  listByGoal(goalId: string): Promise<ContextRetrieval[]>;
 }

@@ -183,6 +183,28 @@ textarea {
   padding: 20px 0;
 }
 
+.context-panel {
+  border-bottom: 1px solid #e0e5da;
+  display: grid;
+  gap: 16px;
+  padding: 20px 0;
+}
+
+.context-grid,
+.context-lists {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.context-form {
+  border: 1px solid #d9ded4;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
 .run-list {
   display: grid;
   gap: 10px;
@@ -202,6 +224,26 @@ textarea {
 }
 
 .run-item.active {
+  border-color: #176b5b;
+  box-shadow: inset 3px 0 0 #176b5b;
+}
+
+.context-item {
+  align-items: start;
+  background: #f7f8f4;
+  border: 1px solid #dce2d6;
+  color: #17201a;
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  margin-bottom: 8px;
+  min-height: 52px;
+  padding: 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.context-item.active {
   border-color: #176b5b;
   box-shadow: inset 3px 0 0 #176b5b;
 }
@@ -259,14 +301,45 @@ textarea {
 
 .step-list span,
 .gate-item span,
-.run-item span {
+.run-item span,
+.context-item span {
   font-weight: 800;
 }
 
 .step-list small,
 .gate-item small,
-.run-item small {
+.run-item small,
+.context-item small,
+.chunk-item small,
+.retrieval-item small {
   color: #66736a;
+}
+
+.context-lists h4,
+.retrieval-list h4 {
+  margin: 0 0 10px;
+}
+
+.chunk-item,
+.retrieval-item {
+  background: #f7f8f4;
+  border: 1px solid #dce2d6;
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 12px;
+}
+
+.chunk-item p,
+.retrieval-item p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.retrieval-list {
+  border-top: 1px solid #e0e5da;
+  padding-top: 14px;
 }
 
 .debate {
@@ -394,7 +467,9 @@ textarea {
   }
 
   .layout,
-  .proposal-grid {
+  .proposal-grid,
+  .context-grid,
+  .context-lists {
     grid-template-columns: 1fr;
   }
 }

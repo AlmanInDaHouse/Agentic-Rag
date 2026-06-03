@@ -6,11 +6,11 @@ Build TriForge Agentic Lab as an experimental system for coordinating AI agents 
 
 ## Scope
 
-MVP scope is goals, mock debate rounds, persisted proposals, judge decision, timeline events and dashboard observation.
+MVP scope is goals, mock debate rounds, persisted proposals, judge decision, timeline events, dashboard observation, mock runtime state transitions and Context Engine v0 lexical retrieval.
 
 ## Out of Scope
 
-Real Codex, Claude, Gemini, Ollama, RAG, GraphRAG and code graph adapters are not part of this milestone.
+Real Codex, Claude, Gemini, Ollama, GraphRAG, code graph adapters, external embeddings and external source adapters are not part of this milestone.
 
 ## Main Entities
 
@@ -19,6 +19,10 @@ Real Codex, Claude, Gemini, Ollama, RAG, GraphRAG and code graph adapters are no
 - Agent proposal
 - Judge decision
 - Timeline event
+- Context source
+- Context document
+- Context chunk
+- Context retrieval
 
 ## Contracts
 

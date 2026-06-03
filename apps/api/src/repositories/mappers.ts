@@ -3,6 +3,10 @@ import type {
   AgentRun,
   AgentStep,
   ApprovalGate,
+  ContextChunk,
+  ContextDocument,
+  ContextRetrieval,
+  ContextSource,
   DebateRound,
   Goal,
   TimelineEvent
@@ -94,6 +98,44 @@ type ApprovalGateRow = {
   actor_role: ApprovalGate["actorRole"];
   decision: ApprovalGate["decision"];
   expires_at: Date | null;
+};
+
+type ContextSourceRow = {
+  id: string;
+  goal_id: string | null;
+  name: string;
+  type: ContextSource["type"];
+  metadata: Record<string, unknown>;
+  created_at: Date;
+  updated_at: Date;
+};
+
+type ContextDocumentRow = {
+  id: string;
+  source_id: string;
+  title: string;
+  content_hash: string;
+  metadata: Record<string, unknown>;
+  created_at: Date;
+  updated_at: Date;
+};
+
+type ContextChunkRow = {
+  id: string;
+  document_id: string;
+  chunk_index: number;
+  content: string;
+  token_estimate: number;
+  metadata: Record<string, unknown>;
+  created_at: Date;
+};
+
+type ContextRetrievalRow = {
+  id: string;
+  goal_id: string | null;
+  query: string;
+  results: unknown;
+  created_at: Date;
 };
 
 const iso = (date: Date): string => date.toISOString();
@@ -195,4 +237,42 @@ export const mapApprovalGate = (row: ApprovalGateRow): ApprovalGate => ({
   actorRole: row.actor_role,
   decision: row.decision,
   expiresAt: row.expires_at ? iso(row.expires_at) : null
+});
+
+export const mapContextSource = (row: ContextSourceRow): ContextSource => ({
+  id: row.id,
+  goalId: row.goal_id,
+  name: row.name,
+  type: row.type,
+  metadata: row.metadata,
+  createdAt: iso(row.created_at),
+  updatedAt: iso(row.updated_at)
+});
+
+export const mapContextDocument = (row: ContextDocumentRow): ContextDocument => ({
+  id: row.id,
+  sourceId: row.source_id,
+  title: row.title,
+  contentHash: row.content_hash,
+  metadata: row.metadata,
+  createdAt: iso(row.created_at),
+  updatedAt: iso(row.updated_at)
+});
+
+export const mapContextChunk = (row: ContextChunkRow): ContextChunk => ({
+  id: row.id,
+  documentId: row.document_id,
+  chunkIndex: row.chunk_index,
+  content: row.content,
+  tokenEstimate: row.token_estimate,
+  metadata: row.metadata,
+  createdAt: iso(row.created_at)
+});
+
+export const mapContextRetrieval = (row: ContextRetrievalRow): ContextRetrieval => ({
+  id: row.id,
+  goalId: row.goal_id,
+  query: row.query,
+  results: Array.isArray(row.results) ? row.results as ContextRetrieval["results"] : [],
+  createdAt: iso(row.created_at)
 });

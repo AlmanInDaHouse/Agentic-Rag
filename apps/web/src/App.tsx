@@ -3,23 +3,35 @@ import type {
   AgentRun,
   AgentRunStatus,
   AgentRunWithDetails,
+  ContextChunk,
+  ContextDocument,
+  ContextRetrieval,
+  ContextSource,
+  ContextSourceType,
   DebateRoundWithProposals,
   Goal,
   TimelineEvent
 } from "@triforge/shared";
 import {
   advanceRun,
+  addContextDocument,
   approveGate,
+  createContextSource,
   cancelRun,
   createGoal,
   createRun,
   getLatestDebate,
   getRun,
   getTimeline,
+  listContextChunks,
+  listContextDocuments,
+  listContextRetrievals,
+  listContextSources,
   listGoals,
   listRuns,
   rejectGate,
   runDebate,
+  searchContext,
   startRun
 } from "./api.js";
 
@@ -27,6 +39,10 @@ type DebateByGoal = Record<string, DebateRoundWithProposals>;
 type TimelineByGoal = Record<string, TimelineEvent[]>;
 type RunsByGoal = Record<string, AgentRun[]>;
 type RunDetailsById = Record<string, AgentRunWithDetails>;
+type ContextSourcesByGoal = Record<string, ContextSource[]>;
+type ContextDocumentsBySource = Record<string, ContextDocument[]>;
+type ContextChunksByDocument = Record<string, ContextChunk[]>;
+type ContextRetrievalsByGoal = Record<string, ContextRetrieval[]>;
 type ApprovalActorRole = "human_operator" | "admin" | "system";
 
 const agentLabels: Record<string, string> = {
@@ -50,8 +66,20 @@ export function App() {
   const [timelines, setTimelines] = useState<TimelineByGoal>({});
   const [runsByGoal, setRunsByGoal] = useState<RunsByGoal>({});
   const [runDetails, setRunDetails] = useState<RunDetailsById>({});
+  const [contextSources, setContextSources] = useState<ContextSourcesByGoal>({});
+  const [contextDocuments, setContextDocuments] = useState<ContextDocumentsBySource>({});
+  const [contextChunks, setContextChunks] = useState<ContextChunksByDocument>({});
+  const [contextRetrievals, setContextRetrievals] = useState<ContextRetrievalsByGoal>({});
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [contextSourceName, setContextSourceName] = useState("");
+  const [contextSourceType, setContextSourceType] =
+    useState<ContextSourceType>("manual_text");
+  const [contextDocumentTitle, setContextDocumentTitle] = useState("");
+  const [contextDocumentContent, setContextDocumentContent] = useState("");
+  const [contextSearchQuery, setContextSearchQuery] = useState("");
   const [approvalActorRole, setApprovalActorRole] =
     useState<ApprovalActorRole>("human_operator");
   const [isLoading, setIsLoading] = useState(false);
@@ -65,6 +93,18 @@ export function App() {
   const selectedTimeline = selectedGoal ? timelines[selectedGoal.id] ?? [] : [];
   const selectedRuns = selectedGoal ? runsByGoal[selectedGoal.id] ?? [] : [];
   const selectedRun = selectedRunId ? runDetails[selectedRunId] : null;
+  const selectedContextSources = selectedGoal ? contextSources[selectedGoal.id] ?? [] : [];
+  const selectedSource =
+    selectedContextSources.find((source) => source.id === selectedSourceId) ??
+    selectedContextSources[0] ??
+    null;
+  const selectedDocuments = selectedSource ? contextDocuments[selectedSource.id] ?? [] : [];
+  const selectedDocument =
+    selectedDocuments.find((document) => document.id === selectedDocumentId) ??
+    selectedDocuments[0] ??
+    null;
+  const selectedChunks = selectedDocument ? contextChunks[selectedDocument.id] ?? [] : [];
+  const selectedRetrievals = selectedGoal ? contextRetrievals[selectedGoal.id] ?? [] : [];
   const selectedRunHasPendingGate =
     selectedRun?.approvalGates.some((gate) => gate.status === "pending") ?? false;
 
@@ -84,6 +124,37 @@ export function App() {
       }
       return runs[0]?.id ?? null;
     });
+  }
+
+  async function refreshGoalContext(goalId: string) {
+    const [sources, retrievals] = await Promise.all([
+      listContextSources(goalId),
+      listContextRetrievals(goalId)
+    ]);
+    setContextSources((current) => ({ ...current, [goalId]: sources }));
+    setContextRetrievals((current) => ({ ...current, [goalId]: retrievals }));
+    setSelectedSourceId((current) => {
+      if (current && sources.some((source) => source.id === current)) {
+        return current;
+      }
+      return sources[0]?.id ?? null;
+    });
+  }
+
+  async function refreshSourceDocuments(sourceId: string) {
+    const documents = await listContextDocuments(sourceId);
+    setContextDocuments((current) => ({ ...current, [sourceId]: documents }));
+    setSelectedDocumentId((current) => {
+      if (current && documents.some((document) => document.id === current)) {
+        return current;
+      }
+      return documents[0]?.id ?? null;
+    });
+  }
+
+  async function refreshDocumentChunks(documentId: string) {
+    const chunks = await listContextChunks(documentId);
+    setContextChunks((current) => ({ ...current, [documentId]: chunks }));
   }
 
   function storeRun(run: AgentRunWithDetails) {
@@ -128,7 +199,30 @@ export function App() {
     refreshGoalRuntime(selectedGoal.id).catch((err: unknown) => {
       setError(err instanceof Error ? err.message : "Failed to load runtime state");
     });
+    refreshGoalContext(selectedGoal.id).catch((err: unknown) => {
+      setError(err instanceof Error ? err.message : "Failed to load context");
+    });
   }, [selectedGoal]);
+
+  useEffect(() => {
+    if (!selectedSource || contextDocuments[selectedSource.id]) {
+      return;
+    }
+
+    refreshSourceDocuments(selectedSource.id).catch((err: unknown) => {
+      setError(err instanceof Error ? err.message : "Failed to load context documents");
+    });
+  }, [contextDocuments, selectedSource]);
+
+  useEffect(() => {
+    if (!selectedDocument || contextChunks[selectedDocument.id]) {
+      return;
+    }
+
+    refreshDocumentChunks(selectedDocument.id).catch((err: unknown) => {
+      setError(err instanceof Error ? err.message : "Failed to load context chunks");
+    });
+  }, [contextChunks, selectedDocument]);
 
   useEffect(() => {
     if (!selectedRunId || runDetails[selectedRunId]) {
@@ -153,6 +247,7 @@ export function App() {
       setTitle("");
       setDescription("");
       await refreshGoalRuntime(goal.id);
+      await refreshGoalContext(goal.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create goal");
     } finally {
@@ -232,6 +327,75 @@ export function App() {
       await refreshGoalRuntime(run.goalId);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to resolve approval gate");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleCreateContextSource(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selectedGoal) {
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      const source = await createContextSource(selectedGoal.id, {
+        name: contextSourceName,
+        type: contextSourceType,
+        metadata: {}
+      });
+      setContextSourceName("");
+      setSelectedSourceId(source.id);
+      await refreshGoalContext(selectedGoal.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create context source");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleAddContextDocument(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selectedGoal || !selectedSource) {
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      const result = await addContextDocument(selectedSource.id, {
+        title: contextDocumentTitle,
+        content: contextDocumentContent,
+        metadata: {}
+      });
+      setContextDocumentTitle("");
+      setContextDocumentContent("");
+      setSelectedDocumentId(result.document.id);
+      await refreshSourceDocuments(selectedSource.id);
+      await refreshDocumentChunks(result.document.id);
+      await refreshGoalContext(selectedGoal.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to add context document");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleSearchContext(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!selectedGoal) {
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      await searchContext(selectedGoal.id, {
+        query: contextSearchQuery,
+        limit: 5
+      });
+      await refreshGoalContext(selectedGoal.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to search context");
     } finally {
       setIsLoading(false);
     }
@@ -428,13 +592,165 @@ export function App() {
                     <ol className="step-list">
                       {selectedRun.steps.map((step) => (
                         <li key={step.id}>
-                          <span>{step.type}</span>
+                          <div>
+                            <span>{step.type}</span>
+                            {step.type === "load_context" && step.output ? (
+                              <small>
+                                {Array.isArray(step.output.results)
+                                  ? `${step.output.results.length} context result(s)`
+                                  : "context loaded"}
+                              </small>
+                            ) : null}
+                          </div>
                           <small>{step.status}</small>
                         </li>
                       ))}
                     </ol>
                   </div>
                 ) : null}
+              </div>
+
+              <div className="context-panel">
+                <div className="section-heading">
+                  <p className="eyebrow">Context</p>
+                  <h3>Sources and retrievals</h3>
+                </div>
+                <div className="context-grid">
+                  <form onSubmit={handleCreateContextSource} className="context-form">
+                    <label>
+                      Source name
+                      <input
+                        value={contextSourceName}
+                        onChange={(event) => setContextSourceName(event.target.value)}
+                      />
+                    </label>
+                    <label>
+                      Source type
+                      <select
+                        value={contextSourceType}
+                        onChange={(event) =>
+                          setContextSourceType(event.target.value as ContextSourceType)
+                        }
+                      >
+                        <option value="manual_text">manual_text</option>
+                        <option value="project_note">project_note</option>
+                        <option value="artifact">artifact</option>
+                      </select>
+                    </label>
+                    <button disabled={isLoading || contextSourceName.trim().length === 0}>
+                      Create source
+                    </button>
+                  </form>
+
+                  <form onSubmit={handleAddContextDocument} className="context-form">
+                    <label>
+                      Document title
+                      <input
+                        value={contextDocumentTitle}
+                        onChange={(event) => setContextDocumentTitle(event.target.value)}
+                        disabled={!selectedSource}
+                      />
+                    </label>
+                    <label>
+                      Plain text
+                      <textarea
+                        value={contextDocumentContent}
+                        onChange={(event) => setContextDocumentContent(event.target.value)}
+                        rows={5}
+                        disabled={!selectedSource}
+                      />
+                    </label>
+                    <button
+                      disabled={
+                        isLoading ||
+                        !selectedSource ||
+                        contextDocumentTitle.trim().length === 0 ||
+                        contextDocumentContent.trim().length === 0
+                      }
+                    >
+                      Add document
+                    </button>
+                  </form>
+
+                  <form onSubmit={handleSearchContext} className="context-form">
+                    <label>
+                      Search query
+                      <input
+                        value={contextSearchQuery}
+                        onChange={(event) => setContextSearchQuery(event.target.value)}
+                      />
+                    </label>
+                    <button disabled={isLoading || contextSearchQuery.trim().length === 0}>
+                      Search context
+                    </button>
+                  </form>
+                </div>
+
+                <div className="context-lists">
+                  <div>
+                    <h4>Sources</h4>
+                    {selectedContextSources.length === 0 ? (
+                      <p className="muted">No context sources.</p>
+                    ) : null}
+                    {selectedContextSources.map((source) => (
+                      <button
+                        key={source.id}
+                        className={source.id === selectedSource?.id ? "context-item active" : "context-item"}
+                        onClick={() => setSelectedSourceId(source.id)}
+                      >
+                        <span>{source.name}</span>
+                        <small>{source.type}</small>
+                      </button>
+                    ))}
+                  </div>
+                  <div>
+                    <h4>Documents</h4>
+                    {selectedDocuments.length === 0 ? (
+                      <p className="muted">No documents for this source.</p>
+                    ) : null}
+                    {selectedDocuments.map((document) => (
+                      <button
+                        key={document.id}
+                        className={
+                          document.id === selectedDocument?.id ? "context-item active" : "context-item"
+                        }
+                        onClick={() => setSelectedDocumentId(document.id)}
+                      >
+                        <span>{document.title}</span>
+                        <small>{document.contentHash.slice(0, 12)}</small>
+                      </button>
+                    ))}
+                  </div>
+                  <div>
+                    <h4>Chunks</h4>
+                    {selectedChunks.length === 0 ? <p className="muted">No chunks selected.</p> : null}
+                    {selectedChunks.map((chunk) => (
+                      <div key={chunk.id} className="chunk-item">
+                        <strong>#{chunk.chunkIndex}</strong>
+                        <p>{chunk.content}</p>
+                        <small>{chunk.tokenEstimate} estimated tokens</small>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="retrieval-list">
+                  <h4>Retrievals</h4>
+                  {selectedRetrievals.length === 0 ? (
+                    <p className="muted">No retrievals recorded.</p>
+                  ) : null}
+                  {selectedRetrievals.map((retrieval) => (
+                    <div key={retrieval.id} className="retrieval-item">
+                      <strong>{retrieval.query}</strong>
+                      <small>{new Date(retrieval.createdAt).toLocaleString()}</small>
+                      {retrieval.results.map((result) => (
+                        <p key={result.chunk.id}>
+                          {result.document.title}: {result.chunk.content}
+                        </p>
+                      ))}
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {selectedDebate ? (

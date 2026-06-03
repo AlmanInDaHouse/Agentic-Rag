@@ -63,6 +63,8 @@ load_context -> plan -> debate -> judge -> execute_mock_task -> validate -> summ
 
 `execute_mock_task` simulates one configured action from `requestedActions[0]`. If no action is provided, it uses a safe mock `write_artifact` action.
 
+`load_context` uses Context Engine v0 when available. It searches context for the run goal using `run.objective`, stores retrieval results in the step output and continues with `results: []` when no chunks match.
+
 ## Stop Conditions
 
 - `max_steps`
@@ -157,6 +159,7 @@ Runtime events reuse `timeline_events`:
 - `approval_gate_created`
 - `approval_gate_expired`
 - `approval_gate_resolved`
+- `context_retrieval_created`
 
 ## Contracts
 
@@ -235,6 +238,7 @@ Approve/reject payload:
 - Unit tests cover critical service transitions and policy classification.
 - Harness validates runtime behavior through public HTTP endpoints only.
 - Dashboard can inspect gates, approve, reject and see `waiting_for_approval`.
+- Runtime `load_context` can attach persisted Context Engine retrieval results without external adapters.
 
 ## Risks
 
