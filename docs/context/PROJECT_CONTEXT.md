@@ -6,7 +6,7 @@ TriForge Agentic Lab is an experimental platform for coordinating AI agents thro
 
 ## Current Architecture
 
-- `apps/api`: Fastify ESM API, PostgreSQL repositories, migrations, mock debate runtime, mock agent runtime state machine, safe execution policy, Context Engine v0 and tests.
+- `apps/api`: Fastify ESM API, PostgreSQL repositories, migrations, mock debate runtime, mock agent runtime state machine, safe execution policy, Context Engine, mock embedding boundary and tests.
 - `apps/web`: React + Vite dashboard.
 - `packages/shared`: Zod contracts and shared TypeScript types.
 - `infra/docker`: local PostgreSQL compose setup.
@@ -51,15 +51,15 @@ The MVP supports goal creation/listing, debate round creation, latest round retr
 - Agent runtime state uses a minimal PostgreSQL-backed state machine before adopting any external workflow engine.
 - Runtime advance uses a PostgreSQL transaction and `SELECT ... FOR UPDATE NOWAIT` to serialize per-run state transitions.
 - Approval gates use simulated actor roles until real auth is introduced.
-- Context Engine v0 uses lexical retrieval without pgvector or external embeddings.
-- RAG v1 will be introduced in phases: spec/ADR, deterministic mock embeddings, optional pgvector/local embeddings, then hybrid retrieval.
+- Context Engine uses lexical retrieval by default.
+- RAG v1 now has deterministic mock embeddings and mock/hybrid search modes without pgvector or external embeddings.
 
 ## Next Steps
 
 - Consider database-per-run harness isolation only if schema isolation becomes insufficient.
 - Add adapter specs before implementing real agent bridges.
 - Keep the runtime mock-only until adapter sandboxing, subprocess limits and authorization exist.
-- Implement embedding interfaces with deterministic mock embeddings before adding pgvector or local models.
+- Add pgvector and real local embeddings only after the mock embedding boundary, harness behavior and data policy are stable.
 
 ## Development Rules
 
@@ -130,7 +130,7 @@ tooling/harness
 - API route schemas are manually wired instead of using Fastify schema integration.
 - Approval gates are exposed for mock runtime actions and enforce simulated actor roles, but are not yet backed by authentication or real role binding.
 - Context retrieval is lexical only and has no retention/redaction policy yet.
-- RAG v1 has a strategy spec and ADR, but no embeddings, pgvector or hybrid retrieval implementation yet.
+- RAG v1 has deterministic mock embeddings and hybrid/mock-vector modes, but no real semantic embeddings or pgvector yet.
 
 ## Definition of Done
 

@@ -2,6 +2,7 @@ import {
   AgentRunSchema,
   AgentRunWithDetailsSchema,
   ApprovalGateSchema,
+  ChunkEmbeddingSchema,
   ContextChunkSchema,
   ContextDocumentSchema,
   ContextRetrievalSchema,
@@ -10,6 +11,8 @@ import {
   CreateAgentRunSchema,
   CreateContextDocumentSchema,
   CreateContextSourceSchema,
+  EmbeddingModelSchema,
+  GenerateEmbeddingsRequestSchema,
   ResolveApprovalGateSchema,
   createGoalRequestSchema,
   debateRoundWithProposalsSchema,
@@ -18,6 +21,7 @@ import {
   type AgentRun,
   type AgentRunWithDetails,
   type ApprovalGate,
+  type ChunkEmbedding,
   type ContextChunk,
   type ContextDocument,
   type ContextRetrieval,
@@ -28,6 +32,8 @@ import {
   type CreateAgentRun,
   type CreateGoalRequest,
   type DebateRoundWithProposals,
+  type EmbeddingModel,
+  type GenerateEmbeddingsRequest,
   type Goal,
   type TimelineEvent
 } from "@triforge/shared";
@@ -224,3 +230,61 @@ export async function listContextRetrievals(goalId: string): Promise<ContextRetr
   const body = await request<unknown>(`/api/goals/${goalId}/context/retrievals`);
   return z.array(ContextRetrievalSchema).parse(body);
 }
+
+export async function listEmbeddingModels(): Promise<EmbeddingModel[]> {
+  const body = await request<unknown>("/api/embedding-models");
+  return z.array(EmbeddingModelSchema).parse(body);
+}
+
+export async function generateDocumentMockEmbeddings(
+  documentId: string,
+  input: GenerateEmbeddingsRequest = { force: false }
+): Promise<EmbeddingGenerationResponse> {
+  const parsed = GenerateEmbeddingsRequestSchema.parse(input);
+  const body = await request<unknown>(`/api/context/documents/${documentId}/embeddings/mock`, {
+    method: "POST",
+    body: JSON.stringify(parsed)
+  });
+  return EmbeddingGenerationResponseSchema.parse(body);
+}
+
+export async function generateSourceMockEmbeddings(
+  sourceId: string,
+  input: GenerateEmbeddingsRequest = { force: false }
+): Promise<EmbeddingGenerationResponse> {
+  const parsed = GenerateEmbeddingsRequestSchema.parse(input);
+  const body = await request<unknown>(`/api/context/sources/${sourceId}/embeddings/mock`, {
+    method: "POST",
+    body: JSON.stringify(parsed)
+  });
+  return EmbeddingGenerationResponseSchema.parse(body);
+}
+
+export async function getDocumentEmbeddingCoverage(
+  documentId: string
+): Promise<DocumentEmbeddingCoverageResponse> {
+  const body = await request<unknown>(`/api/context/documents/${documentId}/embeddings`);
+  return DocumentEmbeddingCoverageResponseSchema.parse(body);
+}
+
+const EmbeddingGenerationResponseSchema = z.object({
+  model: EmbeddingModelSchema,
+  documentId: z.string().uuid().optional(),
+  sourceId: z.string().uuid().optional(),
+  generatedCount: z.number().int().nonnegative(),
+  skippedCount: z.number().int().nonnegative(),
+  embeddings: z.array(ChunkEmbeddingSchema)
+});
+
+const DocumentEmbeddingCoverageResponseSchema = z.object({
+  documentId: z.string().uuid(),
+  model: EmbeddingModelSchema,
+  chunkCount: z.number().int().nonnegative(),
+  embeddedChunkCount: z.number().int().nonnegative(),
+  coverage: z.number().min(0).max(1),
+  embeddings: z.array(ChunkEmbeddingSchema)
+});
+
+export type EmbeddingGenerationResponse = z.infer<typeof EmbeddingGenerationResponseSchema>;
+export type DocumentEmbeddingCoverageResponse = z.infer<typeof DocumentEmbeddingCoverageResponseSchema>;
+export type { ChunkEmbedding };

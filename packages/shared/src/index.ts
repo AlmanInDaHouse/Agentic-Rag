@@ -178,16 +178,64 @@ export const ContextChunkSchema = z.object({
   createdAt: z.string().datetime()
 });
 
+export const EmbeddingProviderSchema = z.enum(["mock"]);
+
+export const EmbeddingModelSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  provider: EmbeddingProviderSchema,
+  dimension: z.number().int().positive(),
+  isActive: z.boolean(),
+  metadata: z.record(z.unknown()),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime()
+});
+
+export const EmbeddingVectorSchema = z.array(z.number()).length(32);
+
+export const ChunkEmbeddingSchema = z.object({
+  id: z.string().uuid(),
+  chunkId: z.string().uuid(),
+  modelId: z.string().uuid(),
+  embedding: EmbeddingVectorSchema,
+  embeddingHash: z.string(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime()
+});
+
+export const EmbeddingRequestSchema = z.object({
+  input: z.string().trim().min(1).max(100_000)
+}).strict();
+
+export const EmbeddingResultSchema = z.object({
+  modelId: z.string().uuid(),
+  provider: EmbeddingProviderSchema,
+  dimension: z.number().int().positive(),
+  embedding: EmbeddingVectorSchema,
+  embeddingHash: z.string()
+});
+
+export const GenerateEmbeddingsRequestSchema = z.object({
+  force: z.boolean().default(false)
+}).strict();
+
+export const RagSearchModeSchema = z.enum(["lexical", "mock_vector", "hybrid"]);
+
 export const ContextSearchSchema = z.object({
   query: z.string().trim().min(1).max(5000),
-  limit: z.number().int().positive().max(20).default(5)
+  limit: z.number().int().positive().max(20).default(5),
+  mode: RagSearchModeSchema.default("lexical")
 }).strict();
 
 export const ContextSearchResultSchema = z.object({
   source: ContextSourceSchema,
   document: ContextDocumentSchema,
   chunk: ContextChunkSchema,
-  score: z.number().nonnegative()
+  score: z.number().nonnegative(),
+  lexicalScore: z.number().nonnegative().default(0),
+  vectorScore: z.number().nonnegative().nullable().default(null),
+  mode: RagSearchModeSchema.default("lexical"),
+  fallbackReason: z.string().nullable().default(null)
 });
 
 export const ContextRetrievalSchema = z.object({
@@ -329,6 +377,14 @@ export type ContextSource = z.infer<typeof ContextSourceSchema>;
 export type CreateContextDocument = z.infer<typeof CreateContextDocumentSchema>;
 export type ContextDocument = z.infer<typeof ContextDocumentSchema>;
 export type ContextChunk = z.infer<typeof ContextChunkSchema>;
+export type EmbeddingProvider = z.infer<typeof EmbeddingProviderSchema>;
+export type EmbeddingModel = z.infer<typeof EmbeddingModelSchema>;
+export type EmbeddingVector = z.infer<typeof EmbeddingVectorSchema>;
+export type ChunkEmbedding = z.infer<typeof ChunkEmbeddingSchema>;
+export type EmbeddingRequest = z.infer<typeof EmbeddingRequestSchema>;
+export type EmbeddingResult = z.infer<typeof EmbeddingResultSchema>;
+export type GenerateEmbeddingsRequest = z.infer<typeof GenerateEmbeddingsRequestSchema>;
+export type RagSearchMode = z.infer<typeof RagSearchModeSchema>;
 export type ContextSearch = z.infer<typeof ContextSearchSchema>;
 export type ContextSearchResult = z.infer<typeof ContextSearchResultSchema>;
 export type ContextRetrieval = z.infer<typeof ContextRetrievalSchema>;

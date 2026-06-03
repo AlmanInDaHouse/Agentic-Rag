@@ -56,13 +56,13 @@ Status: open.
 
 Target resolution: add retention and redaction requirements before external source adapters or sensitive data ingestion.
 
-## RAG-001: No semantic retrieval yet
+## RAG-001: Semantic retrieval is still not real
 
-RAG v1 is specified, but the implementation still uses lexical Context Engine v0 retrieval only. There are no chunk embeddings or vector search yet.
+RAG v1 now has deterministic mock embeddings, `mock_vector` and `hybrid` modes. This partially addresses the retrieval boundary and lifecycle, but it is not real semantic retrieval because `mock_embedding_v1` is hash-based and not trained on language semantics.
 
 Status: open.
 
-Target resolution: implement deterministic mock embedding interfaces before adding pgvector or local models.
+Target resolution: add a real local embedding adapter and semantic/vector storage after redaction, adapter policy and pgvector migration design are accepted.
 
 ## RAG-002: No embedding redaction policy
 
@@ -79,6 +79,14 @@ The database does not enable pgvector and has no vector index. This is intention
 Status: open.
 
 Target resolution: add pgvector only after a migration and CI plan is accepted.
+
+## RAG-005: Mock embeddings are not semantically meaningful
+
+`mock_embedding_v1` is deterministic, local and useful for CI/harness coverage, but hash-derived vectors do not encode semantic similarity. Search quality from `mock_vector` and `hybrid` modes should not be interpreted as production RAG quality.
+
+Status: open.
+
+Target resolution: replace or complement mock embeddings with an approved local embedding adapter, then validate retrieval behavior with real semantic vectors.
 
 ## RAG-004: No external embedding provider policy
 

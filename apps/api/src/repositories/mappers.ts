@@ -3,11 +3,13 @@ import type {
   AgentRun,
   AgentStep,
   ApprovalGate,
+  ChunkEmbedding,
   ContextChunk,
   ContextDocument,
   ContextRetrieval,
   ContextSource,
   DebateRound,
+  EmbeddingModel,
   Goal,
   TimelineEvent
 } from "@triforge/shared";
@@ -136,6 +138,27 @@ type ContextRetrievalRow = {
   query: string;
   results: unknown;
   created_at: Date;
+};
+
+type EmbeddingModelRow = {
+  id: string;
+  name: string;
+  provider: EmbeddingModel["provider"];
+  dimension: number;
+  is_active: boolean;
+  metadata: Record<string, unknown>;
+  created_at: Date;
+  updated_at: Date;
+};
+
+type ChunkEmbeddingRow = {
+  id: string;
+  chunk_id: string;
+  model_id: string;
+  embedding: unknown;
+  embedding_hash: string;
+  created_at: Date;
+  updated_at: Date;
 };
 
 const iso = (date: Date): string => date.toISOString();
@@ -276,3 +299,31 @@ export const mapContextRetrieval = (row: ContextRetrievalRow): ContextRetrieval 
   results: Array.isArray(row.results) ? row.results as ContextRetrieval["results"] : [],
   createdAt: iso(row.created_at)
 });
+
+export const mapEmbeddingModel = (row: EmbeddingModelRow): EmbeddingModel => ({
+  id: row.id,
+  name: row.name,
+  provider: row.provider,
+  dimension: row.dimension,
+  isActive: row.is_active,
+  metadata: row.metadata,
+  createdAt: iso(row.created_at),
+  updatedAt: iso(row.updated_at)
+});
+
+export const mapChunkEmbedding = (row: ChunkEmbeddingRow): ChunkEmbedding => ({
+  id: row.id,
+  chunkId: row.chunk_id,
+  modelId: row.model_id,
+  embedding: parseEmbeddingVector(row.embedding),
+  embeddingHash: row.embedding_hash,
+  createdAt: iso(row.created_at),
+  updatedAt: iso(row.updated_at)
+});
+
+function parseEmbeddingVector(value: unknown): number[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.map(Number);
+}

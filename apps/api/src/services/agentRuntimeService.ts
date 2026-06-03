@@ -644,7 +644,8 @@ export class AgentRuntimeService {
 
     const retrieval = await this.contextEngineService.search(run.goalId, {
       query: run.objective,
-      limit: 5
+      limit: 5,
+      mode: "lexical"
     });
     await this.timelineEventsRepository.create({
       goalId: run.goalId,

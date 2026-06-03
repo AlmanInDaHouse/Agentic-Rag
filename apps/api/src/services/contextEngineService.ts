@@ -5,6 +5,7 @@ import type {
   ContextRetrieval,
   ContextSearch,
   ContextSearchResult,
+  RagSearchMode,
   ContextSource,
   CreateContextDocument,
   CreateContextSource
@@ -15,9 +16,17 @@ import type {
   ContextDocumentRepository,
   ContextRetrievalRepository,
   ContextSourceRepository,
+  ChunkEmbeddingRepository,
+  EmbeddingModelRepository,
   GoalsRepository
 } from "../domain/ports.js";
 import { ContextChunkingService, normalizeText } from "./contextChunkingService.js";
+import type { EmbeddingAdapter } from "./embeddings/embeddingAdapter.js";
+import {
+  cosineSimilarity,
+  MockEmbeddingAdapter,
+  normalizeCosineScore
+} from "./embeddings/mockEmbeddingAdapter.js";
 
 const candidateLimit = 500;
 
@@ -28,7 +37,10 @@ export class ContextEngineService {
     private readonly contextDocumentRepository: ContextDocumentRepository,
     private readonly contextChunkRepository: ContextChunkRepository,
     private readonly contextRetrievalRepository: ContextRetrievalRepository,
-    private readonly chunkingService = new ContextChunkingService()
+    private readonly chunkingService = new ContextChunkingService(),
+    private readonly embeddingModelRepository?: EmbeddingModelRepository,
+    private readonly chunkEmbeddingRepository?: ChunkEmbeddingRepository,
+    private readonly embeddingAdapter: EmbeddingAdapter = new MockEmbeddingAdapter()
   ) {}
 
   async createSource(
@@ -98,25 +110,130 @@ export class ContextEngineService {
       goalId,
       candidateLimit
     );
-    const results = candidates
-      .map((candidate) => ({
-        ...candidate,
-        score: lexicalScore(candidate, terms)
-      }))
-      .filter((candidate) => candidate.score > 0)
-      .sort((left, right) => {
-        if (right.score !== left.score) {
-          return right.score - left.score;
-        }
-        return left.chunk.chunkIndex - right.chunk.chunkIndex;
-      })
-      .slice(0, input.limit);
+    const results = await this.rankCandidates(input, candidates, terms);
 
     return this.contextRetrievalRepository.create({
       goalId,
       query: input.query,
       results
     });
+  }
+
+  private async rankCandidates(
+    input: ContextSearch,
+    candidates: ContextSearchResult[],
+    terms: string[]
+  ): Promise<ContextSearchResult[]> {
+    const mode = input.mode ?? "lexical";
+    const lexicalRanked = candidates
+      .map((candidate) => withLexicalScore(candidate, terms))
+      .filter((candidate) => candidate.lexicalScore > 0);
+
+    if (mode === "lexical") {
+      return sortResults(lexicalRanked, "lexical").slice(0, input.limit);
+    }
+
+    const vectorScored = await this.tryVectorScores(input, candidates);
+    if (!vectorScored || vectorScored.availableCount === 0) {
+      return sortResults(
+        lexicalRanked.map((candidate) => ({
+          ...candidate,
+          fallbackReason: vectorScored?.fallbackReason ?? "mock_embeddings_unavailable"
+        })),
+        "lexical"
+      ).slice(0, input.limit);
+    }
+
+    if (mode === "mock_vector") {
+      return sortResults(
+        vectorScored.results.filter((candidate) => candidate.vectorScore !== null),
+        "mock_vector"
+      ).slice(0, input.limit);
+    }
+
+    const maxLexicalScore = Math.max(
+      ...vectorScored.results.map((candidate) => candidate.lexicalScore),
+      1
+    );
+    return sortResults(
+      vectorScored.results
+        .map((candidate) => {
+          const vectorScore = candidate.vectorScore ?? 0;
+          const normalizedLexicalScore = candidate.lexicalScore / maxLexicalScore;
+          return {
+            ...candidate,
+            score: 0.4 * normalizedLexicalScore + 0.6 * vectorScore,
+            mode: "hybrid" as RagSearchMode
+          };
+        })
+        .filter((candidate) => candidate.score > 0),
+      "hybrid"
+    ).slice(0, input.limit);
+  }
+
+  private async tryVectorScores(
+    input: ContextSearch,
+    candidates: ContextSearchResult[]
+  ): Promise<{
+    results: ContextSearchResult[];
+    availableCount: number;
+    fallbackReason: string | null;
+  } | null> {
+    if (!this.embeddingModelRepository || !this.chunkEmbeddingRepository) {
+      return {
+        results: [],
+        availableCount: 0,
+        fallbackReason: "embedding_repository_unavailable"
+      };
+    }
+
+    const model = await this.embeddingModelRepository.getOrCreateMockModel();
+    const embeddings = await this.chunkEmbeddingRepository.getEmbeddingsByChunkIds(
+      candidates.map((candidate) => candidate.chunk.id),
+      model.id
+    );
+    if (embeddings.length === 0) {
+      return {
+        results: [],
+        availableCount: 0,
+        fallbackReason: "mock_embeddings_unavailable"
+      };
+    }
+
+    let queryEmbedding: number[];
+    try {
+      queryEmbedding = await this.embeddingAdapter.embedText(input.query);
+    } catch {
+      return {
+        results: [],
+        availableCount: 0,
+        fallbackReason: "query_embedding_failed"
+      };
+    }
+    const embeddingsByChunkId = new Map(
+      embeddings.map((embedding) => [embedding.chunkId, embedding])
+    );
+    const results = candidates.map((candidate) => {
+      const embedding = embeddingsByChunkId.get(candidate.chunk.id);
+      const lexical = lexicalScore(candidate, tokenizeQuery(input.query));
+      const vectorScore = embedding
+        ? normalizeCosineScore(cosineSimilarity(queryEmbedding, embedding.embedding))
+        : null;
+      return {
+        ...candidate,
+        lexicalScore: lexical,
+        vectorScore,
+        score: vectorScore ?? 0,
+        mode: "mock_vector" as RagSearchMode,
+        fallbackReason: null
+      };
+    });
+
+    return {
+      results,
+      availableCount: embeddings.length,
+      fallbackReason: null
+    };
   }
 
   async listRetrievals(goalId: string): Promise<ContextRetrieval[]> {
@@ -170,6 +287,47 @@ export function lexicalScore(candidate: ContextSearchResult, terms: string[]): n
     const sourceMatches = countOccurrences(sourceName, term);
     return score + contentMatches + titleMatches * 2 + sourceMatches;
   }, 0);
+}
+
+function withLexicalScore(
+  candidate: ContextSearchResult,
+  terms: string[]
+): ContextSearchResult {
+  const score = lexicalScore(candidate, terms);
+  return {
+    ...candidate,
+    score,
+    lexicalScore: score,
+    vectorScore: null,
+    mode: "lexical",
+    fallbackReason: null
+  };
+}
+
+function sortResults(
+  candidates: ContextSearchResult[],
+  mode: RagSearchMode
+): ContextSearchResult[] {
+  return candidates
+    .map((candidate) => ({
+      ...candidate,
+      mode
+    }))
+    .sort((left, right) => {
+      if (right.score !== left.score) {
+        return right.score - left.score;
+      }
+      if (right.lexicalScore !== left.lexicalScore) {
+        return right.lexicalScore - left.lexicalScore;
+      }
+      if ((right.vectorScore ?? 0) !== (left.vectorScore ?? 0)) {
+        return (right.vectorScore ?? 0) - (left.vectorScore ?? 0);
+      }
+      if (left.chunk.chunkIndex !== right.chunk.chunkIndex) {
+        return left.chunk.chunkIndex - right.chunk.chunkIndex;
+      }
+      return left.chunk.id.localeCompare(right.chunk.id);
+    });
 }
 
 function countOccurrences(input: string, term: string): number {
