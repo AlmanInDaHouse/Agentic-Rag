@@ -31,7 +31,6 @@ import {
   type Goal,
   type TimelineEvent
 } from "@triforge/shared";
-import { z } from "zod";
 
 export class HarnessApiClient {
   constructor(private readonly baseUrl: string) {}
@@ -210,7 +209,11 @@ export class HarnessApiClient {
       method: "POST",
       body: JSON.stringify(parsed)
     });
-    return ContextDocumentWithChunksSchema.parse(body);
+    const candidate = body as { document?: unknown; chunks?: unknown };
+    return {
+      document: ContextDocumentSchema.parse(candidate.document),
+      chunks: ContextChunkSchema.array().parse(candidate.chunks)
+    };
   }
 
   async addContextDocumentStatus(sourceId: string, body: unknown): Promise<number> {
@@ -276,8 +279,3 @@ export class HarnessApiClient {
     });
   }
 }
-
-const ContextDocumentWithChunksSchema = z.object({
-  document: ContextDocumentSchema,
-  chunks: ContextChunkSchema.array()
-});
