@@ -96,6 +96,7 @@ export type FailStepInput = {
 export interface AgentRunRepository {
   create(input: CreateRunInput): Promise<AgentRun>;
   findById(id: string): Promise<AgentRun | null>;
+  findByIdForUpdate(id: string): Promise<AgentRun | null>;
   listByGoal(goalId: string): Promise<AgentRun[]>;
   updateStatus(id: string, status: AgentRunStatus): Promise<AgentRun>;
   markStarted(id: string): Promise<AgentRun>;
@@ -115,13 +116,26 @@ export interface AgentStepRepository {
 export interface ApprovalGateRepository {
   create(input: CreateApprovalGate): Promise<ApprovalGate>;
   findById(id: string): Promise<ApprovalGate | null>;
+  findByIdForUpdate(id: string): Promise<ApprovalGate | null>;
   listByRun(runId: string): Promise<ApprovalGate[]>;
+  listPendingByRunForUpdate(runId: string): Promise<ApprovalGate[]>;
   resolve(
     id: string,
-    input: ResolveApprovalGate & { decision: "approved" | "rejected" }
+    input: ResolveApprovalGate & { decision: "approved" | "rejected" | "expired" }
   ): Promise<ApprovalGate>;
 }
 
 export interface AgentRuntimeReadRepository {
   findRunWithDetails(runId: string): Promise<AgentRunWithDetails | null>;
+}
+
+export type AgentRuntimeRepositories = {
+  agentRunRepository: AgentRunRepository;
+  agentStepRepository: AgentStepRepository;
+  approvalGateRepository: ApprovalGateRepository;
+  timelineEventsRepository: TimelineEventsRepository;
+};
+
+export interface AgentRuntimeTransactionManager {
+  run<T>(callback: (repositories: AgentRuntimeRepositories) => Promise<T>): Promise<T>;
 }

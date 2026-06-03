@@ -7,4 +7,6 @@ export const pool = new pg.Pool({
   options: `-c search_path=${searchPathOption(env.TRIFORGE_DB_SCHEMA)}`
 });
 
-export type DbPool = Pick<pg.Pool, "query">;
+export type DbQueryable = Pick<pg.Pool | pg.PoolClient, "query">;
+export type DbPool = Pick<pg.Pool, "connect" | "query">;
+export type DbClient = Pick<pg.PoolClient, "query" | "release">;

@@ -91,6 +91,7 @@ type ApprovalGateRow = {
   requested_at: Date;
   resolved_at: Date | null;
   resolved_by: string | null;
+  actor_role: ApprovalGate["actorRole"];
   decision: ApprovalGate["decision"];
   expires_at: Date | null;
 };
@@ -191,6 +192,7 @@ export const mapApprovalGate = (row: ApprovalGateRow): ApprovalGate => ({
   requestedAt: iso(row.requested_at),
   resolvedAt: row.resolved_at ? iso(row.resolved_at) : null,
   resolvedBy: row.resolved_by,
+  actorRole: row.actor_role,
   decision: row.decision,
   expiresAt: row.expires_at ? iso(row.expires_at) : null
 });

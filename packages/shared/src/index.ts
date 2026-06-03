@@ -27,6 +27,7 @@ export const timelineEventTypeSchema = z.enum([
   "agent_run_stopped",
   "agent_run_waiting_for_approval",
   "approval_gate_created",
+  "approval_gate_expired",
   "approval_gate_resolved"
 ]);
 
@@ -47,6 +48,7 @@ export const ActionTypeSchema = z.enum([
 ]);
 
 export const RiskLevelSchema = z.enum(["low", "medium", "high", "critical"]);
+export const ApprovalActorRoleSchema = z.enum(["human_operator", "admin", "system"]);
 
 export const ExecutionPolicySchema = z.object({
   actionType: ActionTypeSchema,
@@ -61,7 +63,7 @@ export const RequestedActionSchema = z.object({
   payload: z.record(z.unknown()).default({})
 }).strict();
 
-export const ApprovalDecisionSchema = z.enum(["approved", "rejected"]);
+export const ApprovalDecisionSchema = z.enum(["approved", "rejected", "expired"]);
 
 export const CreateApprovalGateSchema = z.object({
   runId: z.string().uuid(),
@@ -75,6 +77,7 @@ export const CreateApprovalGateSchema = z.object({
 
 export const ResolveApprovalGateSchema = z.object({
   resolvedBy: z.string().trim().min(1).max(160),
+  actorRole: ApprovalActorRoleSchema,
   reason: z.string().trim().min(1).max(1000)
 }).strict();
 
@@ -114,6 +117,7 @@ export const StopConditionSchema = z.enum([
   "max_failures",
   "manual_stop",
   "approval_rejected",
+  "approval_expired",
   "definition_of_done_met"
 ]);
 
@@ -213,7 +217,7 @@ export const ApprovalGateSchema = z.object({
   id: z.string().uuid(),
   runId: z.string().uuid(),
   stepId: z.string().uuid().nullable(),
-  status: z.enum(["pending", "approved", "rejected", "cancelled"]),
+  status: z.enum(["pending", "approved", "rejected", "expired", "cancelled"]),
   riskLevel: RiskLevelSchema,
   actionType: ActionTypeSchema,
   actionPayload: z.record(z.unknown()),
@@ -221,6 +225,7 @@ export const ApprovalGateSchema = z.object({
   requestedAt: z.string().datetime(),
   resolvedAt: z.string().datetime().nullable(),
   resolvedBy: z.string().nullable(),
+  actorRole: ApprovalActorRoleSchema.nullable(),
   decision: ApprovalDecisionSchema.nullable(),
   expiresAt: z.string().datetime().nullable()
 });
@@ -241,6 +246,7 @@ export type DebateRoundStatus = z.infer<typeof debateRoundStatusSchema>;
 export type TimelineEventType = z.infer<typeof timelineEventTypeSchema>;
 export type ActionType = z.infer<typeof ActionTypeSchema>;
 export type RiskLevel = z.infer<typeof RiskLevelSchema>;
+export type ApprovalActorRole = z.infer<typeof ApprovalActorRoleSchema>;
 export type ExecutionPolicy = z.infer<typeof ExecutionPolicySchema>;
 export type RequestedAction = z.infer<typeof RequestedActionSchema>;
 export type ApprovalDecision = z.infer<typeof ApprovalDecisionSchema>;

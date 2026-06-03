@@ -6,7 +6,7 @@ Define a persisted, traceable state machine for mock agent execution runs. The r
 
 ## Scope
 
-Milestone 1.3 supports deterministic mock runs over a goal, persisted steps, stop conditions, cancellation, approval gates, safe execution classification and timeline events.
+Milestone 1.3.1 supports deterministic mock runs over a goal, persisted steps, stop conditions, cancellation, approval gates, safe execution classification, transactional advance locking and timeline events.
 
 ## Out of Scope
 
@@ -69,6 +69,7 @@ load_context -> plan -> debate -> judge -> execute_mock_task -> validate -> summ
 - `max_failures`
 - `manual_stop`
 - `approval_rejected`
+- `approval_expired`
 - `definition_of_done_met`
 
 `max_steps` means the maximum number of steps that may be executed. For example, `max_steps = 1` allows `load_context` to run and then stops the run with `agent_run_stopped`.
@@ -100,6 +101,44 @@ load_context -> plan -> debate -> judge -> execute_mock_task -> validate -> summ
    - marks the waiting step failed,
    - stops the run with stop condition `approval_rejected`,
    - records `agent_run_stopped`.
+8. Expiring a pending gate:
+   - occurs before approve/reject or before advance on a waiting run,
+   - marks the gate `expired`,
+   - records `approval_gate_expired`,
+   - fails the waiting step with `APPROVAL_EXPIRED`,
+   - stops the run with stop condition `approval_expired`.
+
+## Concurrency
+
+`POST /api/runs/:runId/advance` is serialized per run in the PostgreSQL-backed API runtime:
+
+1. The service opens a transaction.
+2. It locks the target `agent_runs` row with `SELECT ... FOR UPDATE NOWAIT`.
+3. It validates run state, creates or updates the step, creates any approval gate, updates the run and writes timeline events inside the same transaction.
+4. A concurrent advance that cannot acquire the row lock returns `409 Conflict`.
+5. A later advance that observes a terminal or waiting run also returns `409 Conflict`.
+
+This resolves duplicate step and duplicate terminal-event races for request-bound mock execution.
+
+## Simulated Approval Actors
+
+Approve/reject payloads require:
+
+```json
+{
+  "resolvedBy": "human",
+  "actorRole": "human_operator",
+  "reason": "Approved for mock execution"
+}
+```
+
+Allowed `actorRole` values:
+
+- `human_operator`
+- `admin`
+- `system`
+
+`human_operator` and `admin` can approve or reject high risk gates. `system` cannot manually approve or reject high or critical gates. Critical gates remain blocked by default and cannot be approved manually.
 
 ## Events
 
@@ -116,6 +155,7 @@ Runtime events reuse `timeline_events`:
 - `agent_run_stopped`
 - `agent_run_waiting_for_approval`
 - `approval_gate_created`
+- `approval_gate_expired`
 - `approval_gate_resolved`
 
 ## Contracts
@@ -157,6 +197,7 @@ Approve/reject payload:
 ```json
 {
   "resolvedBy": "human",
+  "actorRole": "human_operator",
   "reason": "Approved for mock execution"
 }
 ```
@@ -171,6 +212,7 @@ Approve/reject payload:
 - `409` when cancelling terminal runs.
 - `409` when resolving a non-pending gate.
 - `409` when resolving a gate for a terminal run.
+- `409` when the actor role cannot resolve the gate risk level.
 - `400` when action endpoints receive unexpected payload fields.
 
 ## Acceptance Criteria
@@ -187,6 +229,8 @@ Approve/reject payload:
 - A run with a pending gate cannot advance.
 - Approving a gate lets the run continue.
 - Rejecting a gate stops the run with `approval_rejected`.
+- Expiring a gate stops the run with `approval_expired`.
+- Concurrent advance calls do not duplicate steps or terminal events.
 - A blocked action creates no gate and fails the run with `ACTION_BLOCKED`.
 - Unit tests cover critical service transitions and policy classification.
 - Harness validates runtime behavior through public HTTP endpoints only.
@@ -196,6 +240,5 @@ Approve/reject payload:
 
 - The state machine is intentionally minimal and not a durable workflow engine.
 - There is no retry delay, exponential backoff or worker queue yet.
-- Approval gate authorization is represented by `resolvedBy` but not enforced by auth middleware.
-- `RUNTIME-001` remains open: `advanceRunOneStep` is not fully transactionally locked.
+- Approval gate authorization uses simulated actor roles but is not backed by real auth middleware.
 - Timeline retention remains undefined.

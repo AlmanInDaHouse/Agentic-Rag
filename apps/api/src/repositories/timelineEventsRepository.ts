@@ -1,10 +1,10 @@
 import type { TimelineEvent } from "@triforge/shared";
-import type { DbPool } from "../db/pool.js";
+import type { DbQueryable } from "../db/pool.js";
 import type { TimelineEventInput, TimelineEventsRepository } from "../domain/ports.js";
 import { mapTimelineEvent } from "./mappers.js";
 
 export class PgTimelineEventsRepository implements TimelineEventsRepository {
-  constructor(private readonly db: DbPool) {}
+  constructor(private readonly db: DbQueryable) {}
 
   async create(input: TimelineEventInput): Promise<TimelineEvent> {
     const result = await this.db.query(

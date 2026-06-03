@@ -130,7 +130,7 @@ export async function listApprovalGates(runId: string): Promise<ApprovalGate[]> 
 
 export async function approveGate(
   gateId: string,
-  input: { resolvedBy: string; reason: string }
+  input: { resolvedBy: string; actorRole: "human_operator" | "admin" | "system"; reason: string }
 ): Promise<AgentRunWithDetails> {
   const parsed = ResolveApprovalGateSchema.parse(input);
   const body = await request<unknown>(`/api/approval-gates/${gateId}/approve`, {
@@ -142,7 +142,7 @@ export async function approveGate(
 
 export async function rejectGate(
   gateId: string,
-  input: { resolvedBy: string; reason: string }
+  input: { resolvedBy: string; actorRole: "human_operator" | "admin" | "system"; reason: string }
 ): Promise<AgentRunWithDetails> {
   const parsed = ResolveApprovalGateSchema.parse(input);
   const body = await request<unknown>(`/api/approval-gates/${gateId}/reject`, {

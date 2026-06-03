@@ -1,13 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { CreateGoalRequest } from "@triforge/shared";
-import { assertTimelineContains } from "../assertions/assertTimeline.js";
 import { harnessSchemaExists } from "../db/schemaIsolation.js";
 import { readFixture } from "../fixtures/readFixture.js";
 import { startHarnessRuntime, type HarnessRuntime } from "../runner.js";
 
 const databaseUrl = process.env.DATABASE_URL ?? "postgres://triforge:triforge@localhost:5432/triforge";
 
-describe("harness: approval gate reject", () => {
+describe("harness: runtime concurrent advance", () => {
   let runtime: HarnessRuntime;
   let schemaName: string;
 
@@ -23,32 +22,30 @@ describe("harness: approval gate reject", () => {
     }
   });
 
-  it("rejects a pending gate and stops the run", async () => {
+  it("does not duplicate steps or terminal events under double advance", async () => {
     const goalFixture = await readFixture<CreateGoalRequest>("tests/fixtures/goals/basic-goal.json");
     const goal = await runtime.api.createGoal(goalFixture);
     const created = await runtime.api.createRun(goal.id, {
-      objective: "Reject a high risk mock action.",
-      definitionOfDone: ["Run stops after rejection."],
-      requestedActions: [{ actionType: "external_adapter_call", payload: { adapter: "codex" } }],
-      budget: { maxSteps: 12, maxFailures: 3 }
+      objective: "Validate concurrent advance locking.",
+      definitionOfDone: ["Only one terminal transition is emitted."],
+      requestedActions: [],
+      budget: { maxSteps: 1, maxFailures: 3 }
     });
+    const started = await runtime.api.startRun(created.id);
 
-    let run = await runtime.api.startRun(created.id);
-    while (run.status === "running") {
-      run = await runtime.api.advanceRun(run.id);
-    }
+    const statuses = await Promise.all([
+      runtime.api.advanceRunStatus(started.id),
+      runtime.api.advanceRunStatus(started.id)
+    ]);
 
-    run = await runtime.api.rejectGate(run.approvalGates[0].id, {
-      resolvedBy: "human",
-      actorRole: "human_operator",
-      reason: "Rejected for harness validation"
-    });
+    expect(statuses.sort()).toEqual([200, 409]);
 
+    const run = await runtime.api.getRun(started.id);
     expect(run.status).toBe("stopped");
-    expect(run.approvalGates[0].status).toBe("rejected");
-    expect(await runtime.api.advanceRunStatus(run.id)).toBe(409);
+    expect(run.steps).toHaveLength(1);
+    expect(run.steps[0].stepIndex).toBe(0);
 
     const timeline = await runtime.api.timeline(goal.id);
-    assertTimelineContains(timeline, ["approval_gate_resolved", "agent_run_stopped"]);
+    expect(timeline.filter((event) => event.type === "agent_run_stopped")).toHaveLength(1);
   });
 });

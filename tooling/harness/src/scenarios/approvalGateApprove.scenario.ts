@@ -43,6 +43,7 @@ describe("harness: approval gate approve", () => {
 
     run = await runtime.api.approveGate(gate.id, {
       resolvedBy: "human",
+      actorRole: "human_operator",
       reason: "Approved for mock execution"
     });
     expect(run.status).toBe("running");

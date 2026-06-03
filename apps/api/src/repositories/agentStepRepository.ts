@@ -1,5 +1,5 @@
 import type { AgentStep, AgentStepStatus } from "@triforge/shared";
-import type { DbPool } from "../db/pool.js";
+import type { DbQueryable } from "../db/pool.js";
 import { ConflictError } from "../domain/errors.js";
 import type {
   AgentStepRepository,
@@ -10,7 +10,7 @@ import type {
 import { mapAgentStep } from "./mappers.js";
 
 export class PgAgentStepRepository implements AgentStepRepository {
-  constructor(private readonly db: DbPool) {}
+  constructor(private readonly db: DbQueryable) {}
 
   async create(input: CreateStepInput): Promise<AgentStep> {
     try {

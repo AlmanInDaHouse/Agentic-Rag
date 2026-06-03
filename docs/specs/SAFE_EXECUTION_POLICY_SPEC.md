@@ -6,7 +6,7 @@ Define what the mock runtime may classify as safe, what requires human approval,
 
 ## Scope
 
-Milestone 1.3 implements classification and approval gates only. It does not execute real commands, modify files, install packages, run migrations, call networks or connect real model adapters.
+Milestone 1.3.1 implements classification, approval gates, simulated actor-role enforcement and request-time gate expiration. It does not execute real commands, modify files, install packages, run migrations, call networks or connect real model adapters.
 
 ## Action Types
 
@@ -109,6 +109,33 @@ The gate stores:
 
 The run becomes `waiting_for_approval`, and the step becomes `waiting_for_approval`.
 
+## Simulated Actor Roles
+
+No real authentication is implemented yet. Approval requests must still provide an explicit simulated actor:
+
+```json
+{
+  "resolvedBy": "human",
+  "actorRole": "human_operator",
+  "reason": "Approved for mock execution"
+}
+```
+
+Allowed `actorRole` values:
+
+```text
+human_operator
+admin
+system
+```
+
+Role policy:
+
+- `human_operator`: can approve or reject high risk gates.
+- `admin`: can approve or reject high risk gates. Critical gates remain blocked in this milestone.
+- `system`: cannot manually approve or reject high or critical gates. It is reserved for automatic expiration and blocking outcomes.
+- `critical`: blocked by default and cannot be approved manually.
+
 ## Approval
 
 `POST /api/approval-gates/:gateId/approve` accepts:
@@ -116,6 +143,7 @@ The run becomes `waiting_for_approval`, and the step becomes `waiting_for_approv
 ```json
 {
   "resolvedBy": "human",
+  "actorRole": "human_operator",
   "reason": "Approved for mock execution"
 }
 ```
@@ -125,6 +153,7 @@ Rules:
 - missing gate returns `404`,
 - non-pending gate returns `409`,
 - terminal run returns `409`,
+- actor role not allowed for the gate risk returns `409`,
 - invalid payload returns `400`.
 
 Approval marks the gate `approved`, records `approval_gate_resolved`, completes the mock step without side effects and returns the run to `running` unless the run reaches completion or a stop condition.
@@ -142,9 +171,43 @@ Rules:
 
 Rejection marks the gate `rejected`, records `approval_gate_resolved`, fails the waiting step and stops the run with stop condition `approval_rejected`.
 
+## Expiration
+
+If `expires_at < now()` and the gate is still `pending`, the runtime resolves the gate automatically as expired:
+
+- `status = expired`
+- `decision = expired`
+- `resolved_by = system`
+- `actor_role = system`
+- `reason = approval_expired`
+
+Expiration is checked:
+
+- before approve,
+- before reject,
+- before advance when a run is `waiting_for_approval`.
+
+Expired gates emit `approval_gate_expired` and stop the run with stop condition `approval_expired`. There is no background cron or worker yet.
+
+## Approval Concurrency
+
+Approve/reject operations lock the approval gate and run rows inside a transaction in the PostgreSQL-backed API runtime. If two approval resolutions race, one wins and the other receives `409 Conflict` because the gate is locked or no longer pending.
+
+## Terminal Runs
+
+Approval resolution is rejected with `409 Conflict` when the attached run is terminal:
+
+```text
+completed
+failed
+cancelled
+stopped
+```
+
 ## Events
 
 - `approval_gate_created`
+- `approval_gate_expired`
 - `approval_gate_resolved`
 - `agent_run_waiting_for_approval`
 - `agent_run_stopped` on rejection
@@ -158,6 +221,9 @@ Rejection marks the gate `rejected`, records `approval_gate_resolved`, fails the
 - It is clear when a run moves to `waiting_for_approval`.
 - It is clear how a gate is approved.
 - It is clear how a gate is rejected.
+- It is clear how a gate expires.
+- It is clear how simulated actor roles are enforced.
+- It is clear that terminal runs cannot resolve gates.
 - It is clear which events are recorded.
 - It is clear which actions are always blocked.
 - No real external execution is introduced.

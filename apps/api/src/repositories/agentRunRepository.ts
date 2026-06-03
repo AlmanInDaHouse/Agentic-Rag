@@ -1,12 +1,13 @@
 import type { AgentRun, AgentRunStatus } from "@triforge/shared";
-import type { DbPool } from "../db/pool.js";
+import type { DbQueryable } from "../db/pool.js";
+import { ConflictError } from "../domain/errors.js";
 import type { AgentRunRepository, CreateRunInput } from "../domain/ports.js";
 import { mapAgentRun } from "./mappers.js";
 
 const terminalStatuses = new Set<AgentRunStatus>(["completed", "failed", "cancelled", "stopped"]);
 
 export class PgAgentRunRepository implements AgentRunRepository {
-  constructor(private readonly db: DbPool) {}
+  constructor(private readonly db: DbQueryable) {}
 
   async create(input: CreateRunInput): Promise<AgentRun> {
     const result = await this.db.query(
@@ -37,6 +38,21 @@ export class PgAgentRunRepository implements AgentRunRepository {
   async findById(id: string): Promise<AgentRun | null> {
     const result = await this.db.query("SELECT * FROM agent_runs WHERE id = $1", [id]);
     return result.rows[0] ? mapAgentRun(result.rows[0]) : null;
+  }
+
+  async findByIdForUpdate(id: string): Promise<AgentRun | null> {
+    try {
+      const result = await this.db.query(
+        "SELECT * FROM agent_runs WHERE id = $1 FOR UPDATE NOWAIT",
+        [id]
+      );
+      return result.rows[0] ? mapAgentRun(result.rows[0]) : null;
+    } catch (error) {
+      if (isLockUnavailable(error)) {
+        throw new ConflictError(`Run ${id} is already being advanced`);
+      }
+      throw error;
+    }
   }
 
   async listByGoal(goalId: string): Promise<AgentRun[]> {
@@ -124,4 +140,13 @@ export class PgAgentRunRepository implements AgentRunRepository {
     );
     return mapAgentRun(result.rows[0]);
   }
+}
+
+function isLockUnavailable(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "55P03"
+  );
 }

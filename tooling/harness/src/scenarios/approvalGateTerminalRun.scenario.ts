@@ -1,13 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { CreateGoalRequest } from "@triforge/shared";
-import { assertTimelineContains } from "../assertions/assertTimeline.js";
 import { harnessSchemaExists } from "../db/schemaIsolation.js";
 import { readFixture } from "../fixtures/readFixture.js";
 import { startHarnessRuntime, type HarnessRuntime } from "../runner.js";
 
 const databaseUrl = process.env.DATABASE_URL ?? "postgres://triforge:triforge@localhost:5432/triforge";
 
-describe("harness: approval gate reject", () => {
+describe("harness: approval gate terminal run", () => {
   let runtime: HarnessRuntime;
   let schemaName: string;
 
@@ -23,13 +22,13 @@ describe("harness: approval gate reject", () => {
     }
   });
 
-  it("rejects a pending gate and stops the run", async () => {
+  it("rejects approval resolution after the run becomes terminal", async () => {
     const goalFixture = await readFixture<CreateGoalRequest>("tests/fixtures/goals/basic-goal.json");
     const goal = await runtime.api.createGoal(goalFixture);
     const created = await runtime.api.createRun(goal.id, {
-      objective: "Reject a high risk mock action.",
-      definitionOfDone: ["Run stops after rejection."],
-      requestedActions: [{ actionType: "external_adapter_call", payload: { adapter: "codex" } }],
+      objective: "Create a gate and cancel before resolution.",
+      definitionOfDone: ["Terminal runs reject approval resolution."],
+      requestedActions: [{ actionType: "run_command", payload: { command: "pnpm test" } }],
       budget: { maxSteps: 12, maxFailures: 3 }
     });
 
@@ -37,18 +36,17 @@ describe("harness: approval gate reject", () => {
     while (run.status === "running") {
       run = await runtime.api.advanceRun(run.id);
     }
+    const gateId = run.approvalGates[0].id;
 
-    run = await runtime.api.rejectGate(run.approvalGates[0].id, {
+    run = await runtime.api.cancelRun(run.id);
+    expect(run.status).toBe("cancelled");
+
+    const payload = {
       resolvedBy: "human",
       actorRole: "human_operator",
-      reason: "Rejected for harness validation"
-    });
-
-    expect(run.status).toBe("stopped");
-    expect(run.approvalGates[0].status).toBe("rejected");
-    expect(await runtime.api.advanceRunStatus(run.id)).toBe(409);
-
-    const timeline = await runtime.api.timeline(goal.id);
-    assertTimelineContains(timeline, ["approval_gate_resolved", "agent_run_stopped"]);
+      reason: "Too late"
+    };
+    expect(await runtime.api.approveGateStatus(gateId, payload)).toBe(409);
+    expect(await runtime.api.rejectGateStatus(gateId, payload)).toBe(409);
   });
 });
