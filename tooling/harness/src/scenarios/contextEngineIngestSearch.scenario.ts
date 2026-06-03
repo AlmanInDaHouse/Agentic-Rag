@@ -25,6 +25,10 @@ describe("harness: context engine ingest and search", () => {
   it("creates a source, ingests text, chunks it and retrieves relevant context", async () => {
     const goalFixture = await readFixture<CreateGoalRequest>("tests/fixtures/goals/basic-goal.json");
     const goal = await runtime.api.createGoal(goalFixture);
+    const otherGoal = await runtime.api.createGoal({
+      ...goalFixture,
+      title: "Other context goal"
+    });
 
     const source = await runtime.api.createContextSource(goal.id, {
       name: "Manual runtime notes",
@@ -40,6 +44,17 @@ describe("harness: context engine ingest and search", () => {
     });
     expect(ingested.chunks.length).toBeGreaterThan(0);
 
+    const otherSource = await runtime.api.createContextSource(otherGoal.id, {
+      name: "Other runtime notes",
+      type: "manual_text",
+      metadata: { origin: "harness-other-goal" }
+    });
+    await runtime.api.addContextDocument(otherSource.id, {
+      title: "Other approval gate context",
+      content: "The other goal also mentions approval gate notes and must stay isolated.",
+      metadata: { fixture: "contextEngineIngestSearchOtherGoal" }
+    });
+
     const documents = await runtime.api.listContextDocuments(source.id);
     expect(documents.map((document) => document.id)).toContain(ingested.document.id);
     const chunks = await runtime.api.listContextChunks(ingested.document.id);
@@ -53,6 +68,7 @@ describe("harness: context engine ingest and search", () => {
     });
     expect(retrieval.results.length).toBeGreaterThan(0);
     expect(retrieval.results[0].chunk.content).toContain("approval gate");
+    expect(retrieval.results.every((result) => result.source.goalId === goal.id)).toBe(true);
 
     const retrievals = await runtime.api.listContextRetrievals(goal.id);
     expect(retrievals.map((item) => item.id)).toContain(retrieval.id);

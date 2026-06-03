@@ -33,6 +33,7 @@ const goal: Goal = {
   createdAt: now,
   updatedAt: now
 };
+const otherGoalId = "00000000-0000-4000-8000-000000000002";
 
 describe("ContextEngineService", () => {
   it("uses stable hashes for normalized content", () => {
@@ -89,6 +90,52 @@ describe("ContextEngineService", () => {
     await expect(fixture.service.addDocument(source.id, input)).rejects.toBeInstanceOf(ConflictError);
   });
 
+  it("treats the same normalized content with a different title as duplicate in one source", async () => {
+    const fixture = createContextFixture();
+    const source = await fixture.service.createSource(goal.id, {
+      name: "Duplicate title source",
+      type: "manual_text",
+      metadata: {}
+    });
+    await fixture.service.addDocument(source.id, {
+      title: "First title",
+      content: "Same normalized content",
+      metadata: {}
+    });
+
+    await expect(
+      fixture.service.addDocument(source.id, {
+        title: "Second title",
+        content: "Same normalized content",
+        metadata: {}
+      })
+    ).rejects.toBeInstanceOf(ConflictError);
+  });
+
+  it("allows the same content in a different source", async () => {
+    const fixture = createContextFixture();
+    const firstSource = await fixture.service.createSource(goal.id, {
+      name: "First source",
+      type: "manual_text",
+      metadata: {}
+    });
+    const secondSource = await fixture.service.createSource(goal.id, {
+      name: "Second source",
+      type: "artifact",
+      metadata: {}
+    });
+    const input = {
+      title: "Shared content",
+      content: "Shared content is allowed across sources.",
+      metadata: {}
+    };
+
+    await fixture.service.addDocument(firstSource.id, input);
+    const second = await fixture.service.addDocument(secondSource.id, input);
+
+    expect(second.document.sourceId).toBe(secondSource.id);
+  });
+
   it("persists search with no results", async () => {
     const fixture = createContextFixture();
 
@@ -122,6 +169,39 @@ describe("ContextEngineService", () => {
     expect(retrieval.results).toHaveLength(1);
     expect(retrieval.results[0].chunk.content).toContain("approval gate");
     expect(retrieval.results[0].score).toBeGreaterThan(0);
+  });
+
+  it("does not return chunks from other goals", async () => {
+    const fixture = createContextFixture();
+    const firstSource = await fixture.service.createSource(goal.id, {
+      name: "Goal one source",
+      type: "manual_text",
+      metadata: {}
+    });
+    const secondSource = await fixture.service.createSource(otherGoalId, {
+      name: "Goal two source",
+      type: "manual_text",
+      metadata: {}
+    });
+    await fixture.service.addDocument(firstSource.id, {
+      title: "Goal one context",
+      content: "shared retrieval phrase from goal one",
+      metadata: {}
+    });
+    await fixture.service.addDocument(secondSource.id, {
+      title: "Goal two context",
+      content: "shared retrieval phrase from goal two",
+      metadata: {}
+    });
+
+    const retrieval = await fixture.service.search(goal.id, {
+      query: "shared retrieval phrase",
+      limit: 10
+    });
+
+    expect(retrieval.results).toHaveLength(1);
+    expect(retrieval.results[0].source.goalId).toBe(goal.id);
+    expect(retrieval.results[0].chunk.content).toContain("goal one");
   });
 
   it("returns not found for unknown goals", async () => {

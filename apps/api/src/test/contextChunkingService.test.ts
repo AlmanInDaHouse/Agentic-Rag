@@ -35,4 +35,26 @@ describe("ContextChunkingService", () => {
     expect(chunks).toHaveLength(1);
     expect(chunks[0].content).toBe("First paragraph.\n\nSecond paragraph.");
   });
+
+  it("returns no chunks for whitespace-only input", () => {
+    const service = new ContextChunkingService();
+
+    expect(service.chunk(" \n\n\t ")).toEqual([]);
+  });
+
+  it("keeps important boundaries when splitting a long paragraph", () => {
+    const service = new ContextChunkingService();
+    const text = [
+      "alpha-start",
+      ...Array.from({ length: 80 }, (_, index) => `middle-${index}`),
+      "omega-end"
+    ].join(" ");
+
+    const chunks = service.chunk(text, { targetCharacters: 140, overlapCharacters: 20 });
+
+    expect(chunks.length).toBeGreaterThan(1);
+    expect(chunks[0].content).toContain("alpha-start");
+    expect(chunks[chunks.length - 1].content).toContain("omega-end");
+    expect(chunks.every((chunk) => chunk.content.length <= 180)).toBe(true);
+  });
 });
