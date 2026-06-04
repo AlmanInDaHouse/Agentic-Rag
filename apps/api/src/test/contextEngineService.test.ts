@@ -523,10 +523,23 @@ describe("ContextEngineService", () => {
       limit: 5,
       mode: "lexical"
     });
+    const deletedVectorSearch = await fixture.service.search(goal.id, {
+      query: "searchable phrase",
+      limit: 5,
+      mode: "mock_vector"
+    });
 
     expect(deleted?.deletedAt).not.toBeNull();
     expect(fixture.chunkRepository.chunks.every((chunk) => chunk.deletedAt)).toBe(true);
     expect(deletedSearch.results).toEqual([]);
+    expect(deletedVectorSearch.results).toEqual([]);
+    await expect(
+      fixture.service.deleteDocument(result.document.id, {
+        actor: "human_operator",
+        reason: "cleanup again",
+        hardDelete: false
+      })
+    ).rejects.toThrow("already deleted");
 
     const restored = await fixture.service.restoreDocument(result.document.id, {
       actor: "human_operator",
@@ -540,6 +553,12 @@ describe("ContextEngineService", () => {
 
     expect(restored.deletedAt).toBeNull();
     expect(restoredSearch.results).toHaveLength(1);
+    await expect(
+      fixture.service.restoreDocument(result.document.id, {
+        actor: "human_operator",
+        reason: "restore again"
+      })
+    ).rejects.toThrow("is not deleted");
     expect(fixture.auditEventRepository.events.map((event) => event.eventType)).toEqual(
       expect.arrayContaining(["context_document_deleted", "context_document_restored"])
     );
