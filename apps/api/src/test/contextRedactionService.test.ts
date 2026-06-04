@@ -14,6 +14,7 @@ describe("ContextRedactionService", () => {
       "jwt eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.signature123456",
       "api_key=sk_1234567890abcdef1234567890",
       "password=supersecret",
+      "token=abcdef1234567890",
       "https://example.test/callback?token=abcdef1234567890"
     ].join("\n"));
 
@@ -28,6 +29,7 @@ describe("ContextRedactionService", () => {
       "jwt_like",
       "api_key_like",
       "password_like",
+      "secret_token_like",
       "url_with_token"
     ]));
     expect(result.redactedContent).toContain("[REDACTED_EMAIL]");
@@ -61,6 +63,53 @@ describe("ContextRedactionService", () => {
     expect(result.redactionStatus).toBe("clean");
     expect(result.findings).toEqual([]);
     expect(result.redactedContent).toBe("Runtime context explains approval gates.");
+  });
+
+  it("handles empty and whitespace-only text as clean", () => {
+    expect(service.redactText("")).toMatchObject({
+      classification: "internal",
+      redactionStatus: "clean",
+      findings: [],
+      redactedContent: ""
+    });
+    expect(service.redactText(" \n\t ")).toMatchObject({
+      classification: "internal",
+      redactionStatus: "clean",
+      findings: [],
+      redactedContent: " \n\t "
+    });
+  });
+
+  it("returns metadata-only findings with stable positions", () => {
+    const input = "Contact ops@example.com.";
+    const result = service.redactText(input);
+
+    expect(result.findings).toEqual([{
+      type: "email",
+      start: 8,
+      end: 23,
+      replacement: "[REDACTED_EMAIL]",
+      severity: "medium"
+    }]);
+    expect(JSON.stringify(result.findings)).not.toContain("ops@example.com");
+  });
+
+  it("redacts secret token findings without retaining raw token values", () => {
+    const input = "token=abcdef1234567890";
+    const result = service.redactText(input);
+
+    expect(result.classification).toBe("secret");
+    expect(result.redactionStatus).toBe("redacted");
+    expect(result.findings).toEqual([{
+      type: "secret_token_like",
+      start: 0,
+      end: input.length,
+      replacement: "[REDACTED_TOKEN]",
+      severity: "high"
+    }]);
+    expect(result.redactedContent).toBe("[REDACTED_TOKEN]");
+    expect(result.redactedContent).not.toContain("abcdef1234567890");
+    expect(JSON.stringify(result.findings)).not.toContain("abcdef1234567890");
   });
 
   it("is stable for repeated redaction", () => {
