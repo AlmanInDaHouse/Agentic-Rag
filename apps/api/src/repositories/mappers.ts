@@ -4,6 +4,7 @@ import type {
   AgentStep,
   ApprovalGate,
   ChunkEmbedding,
+  ContextAuditEvent,
   ContextChunk,
   ContextDocument,
   ContextRetrieval,
@@ -108,6 +109,8 @@ type ContextSourceRow = {
   name: string;
   type: ContextSource["type"];
   metadata: Record<string, unknown>;
+  deleted_at?: Date | null;
+  deleted_reason?: string | null;
   created_at: Date;
   updated_at: Date;
 };
@@ -121,6 +124,9 @@ type ContextDocumentRow = {
   redaction_status?: ContextDocument["redactionStatus"];
   sensitive_findings?: unknown;
   redacted_content_hash?: string | null;
+  content_size?: number;
+  deleted_at?: Date | null;
+  deleted_reason?: string | null;
   metadata: Record<string, unknown>;
   created_at: Date;
   updated_at: Date;
@@ -133,6 +139,9 @@ type ContextChunkRow = {
   content: string;
   token_estimate: number;
   redaction_status?: ContextChunk["redactionStatus"];
+  content_size?: number;
+  deleted_at?: Date | null;
+  deleted_reason?: string | null;
   metadata: Record<string, unknown>;
   created_at: Date;
 };
@@ -164,6 +173,19 @@ type ChunkEmbeddingRow = {
   embedding_hash: string;
   created_at: Date;
   updated_at: Date;
+};
+
+type ContextAuditEventRow = {
+  id: string;
+  goal_id: string | null;
+  source_id: string | null;
+  document_id: string | null;
+  chunk_id: string | null;
+  event_type: ContextAuditEvent["eventType"];
+  actor: string;
+  reason: string | null;
+  payload: Record<string, unknown>;
+  created_at: Date;
 };
 
 const iso = (date: Date): string => date.toISOString();
@@ -273,6 +295,8 @@ export const mapContextSource = (row: ContextSourceRow): ContextSource => ({
   name: row.name,
   type: row.type,
   metadata: row.metadata,
+  deletedAt: row.deleted_at ? iso(row.deleted_at) : null,
+  deletedReason: row.deleted_reason ?? null,
   createdAt: iso(row.created_at),
   updatedAt: iso(row.updated_at)
 });
@@ -286,6 +310,9 @@ export const mapContextDocument = (row: ContextDocumentRow): ContextDocument => 
   redactionStatus: row.redaction_status ?? "not_scanned",
   sensitiveFindings: parseSensitiveFindings(row.sensitive_findings),
   redactedContentHash: row.redacted_content_hash ?? null,
+  contentSize: row.content_size ?? 0,
+  deletedAt: row.deleted_at ? iso(row.deleted_at) : null,
+  deletedReason: row.deleted_reason ?? null,
   metadata: row.metadata,
   createdAt: iso(row.created_at),
   updatedAt: iso(row.updated_at)
@@ -298,6 +325,9 @@ export const mapContextChunk = (row: ContextChunkRow): ContextChunk => ({
   content: row.content,
   tokenEstimate: row.token_estimate,
   redactionStatus: row.redaction_status ?? "not_scanned",
+  contentSize: row.content_size ?? 0,
+  deletedAt: row.deleted_at ? iso(row.deleted_at) : null,
+  deletedReason: row.deleted_reason ?? null,
   metadata: row.metadata,
   createdAt: iso(row.created_at)
 });
@@ -329,6 +359,19 @@ export const mapChunkEmbedding = (row: ChunkEmbeddingRow): ChunkEmbedding => ({
   embeddingHash: row.embedding_hash,
   createdAt: iso(row.created_at),
   updatedAt: iso(row.updated_at)
+});
+
+export const mapContextAuditEvent = (row: ContextAuditEventRow): ContextAuditEvent => ({
+  id: row.id,
+  goalId: row.goal_id,
+  sourceId: row.source_id,
+  documentId: row.document_id,
+  chunkId: row.chunk_id,
+  eventType: row.event_type,
+  actor: row.actor,
+  reason: row.reason,
+  payload: row.payload,
+  createdAt: iso(row.created_at)
 });
 
 function parseEmbeddingVector(value: unknown): number[] {

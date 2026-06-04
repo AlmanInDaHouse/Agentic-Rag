@@ -6,7 +6,7 @@ TriForge Agentic Lab is an experimental platform for coordinating AI agents thro
 
 ## Current Architecture
 
-- `apps/api`: Fastify ESM API, PostgreSQL repositories, migrations, mock debate runtime, mock agent runtime state machine, safe execution policy, Context Engine, basic context redaction policy, mock embedding boundary and tests.
+- `apps/api`: Fastify ESM API, PostgreSQL repositories, migrations, mock debate runtime, mock agent runtime state machine, safe execution policy, Context Engine, basic context redaction/retention policy, mock embedding boundary and tests.
 - `apps/web`: React + Vite dashboard.
 - `packages/shared`: Zod contracts and shared TypeScript types.
 - `infra/docker`: local PostgreSQL compose setup.
@@ -40,7 +40,7 @@ TriForge Agentic Lab is an experimental platform for coordinating AI agents thro
 
 ## Current State
 
-The MVP supports goal creation/listing, debate round creation, latest round retrieval, mock agents, mock judge, persisted proposals, timeline events and basic dashboard. Milestone 1.3.1 adds a persisted mock agent runtime state machine with approval gate workflows, a safe execution policy, transactional advance locking and approval hardening. Milestone 1.4 adds Context Engine v0 with manual/project/artifact sources, deterministic chunking, lexical retrieval and runtime `load_context` integration. Milestone 1.5C-A adds deterministic regex redaction and context data policy metadata before future real embedding work. The runtime remains mock-only and does not execute real commands, modify code, install dependencies, run migrations or call real adapters.
+The MVP supports goal creation/listing, debate round creation, latest round retrieval, mock agents, mock judge, persisted proposals, timeline events and basic dashboard. Milestone 1.3.1 adds a persisted mock agent runtime state machine with approval gate workflows, a safe execution policy, transactional advance locking and approval hardening. Milestone 1.4 adds Context Engine v0 with manual/project/artifact sources, deterministic chunking, lexical retrieval and runtime `load_context` integration. Milestone 1.5C-A adds deterministic regex redaction and context data policy metadata before future real embedding work. Milestone 1.5C-B adds basic context retention quotas, soft delete/restore and audit events. The runtime remains mock-only and does not execute real commands, modify code, install dependencies, run migrations or call real adapters.
 
 ## Decisions Taken
 
@@ -54,6 +54,7 @@ The MVP supports goal creation/listing, debate round creation, latest round retr
 - Context Engine uses lexical retrieval by default.
 - RAG v1 now has deterministic mock embeddings and mock/hybrid search modes without pgvector or external embeddings.
 - Context ingestion applies basic local regex redaction before chunk persistence.
+- Context retention uses simple service-layer quotas, soft delete by default and audit events for deletion/quota outcomes.
 
 ## Next Steps
 
@@ -121,6 +122,7 @@ tooling/harness
 - Harness uses temporary schemas inside the configured PostgreSQL database.
 - Real agent adapters will introduce untrusted output and subprocess risks.
 - Timeline event retention is undefined.
+- Context retention has no background worker and no tenant-specific quota configuration.
 - Agent runtime is synchronous and mock-only; it is not yet a durable worker queue.
 - Approval gate authorization is simulated by payload actor roles, but not yet tied to authenticated users.
 
@@ -130,7 +132,7 @@ tooling/harness
 - Dashboard has no live updates.
 - API route schemas are manually wired instead of using Fastify schema integration.
 - Approval gates are exposed for mock runtime actions and enforce simulated actor roles, but are not yet backed by authentication or real role binding.
-- Context retrieval is lexical by default and has basic regex redaction, but no full DLP or retention policy yet.
+- Context retrieval is lexical by default and has basic regex redaction plus basic retention/quota/delete policy, but no full DLP yet.
 - RAG v1 has deterministic mock embeddings and hybrid/mock-vector modes, but no real semantic embeddings or pgvector yet.
 
 ## Definition of Done

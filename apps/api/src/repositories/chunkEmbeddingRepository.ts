@@ -23,6 +23,7 @@ export class PgChunkEmbeddingRepository implements ChunkEmbeddingRepository {
         DO UPDATE SET
           embedding = EXCLUDED.embedding,
           embedding_hash = EXCLUDED.embedding_hash,
+          deleted_at = NULL,
           updated_at = now()
         RETURNING *
       `,
@@ -50,6 +51,7 @@ export class PgChunkEmbeddingRepository implements ChunkEmbeddingRepository {
         FROM context_chunk_embeddings
         WHERE model_id = $1
           AND chunk_id = ANY($2::uuid[])
+          AND deleted_at IS NULL
       `,
       [modelId, chunkIds]
     );
@@ -62,11 +64,41 @@ export class PgChunkEmbeddingRepository implements ChunkEmbeddingRepository {
         SELECT e.*
         FROM context_chunk_embeddings e
         INNER JOIN context_chunks c ON c.id = e.chunk_id
+        INNER JOIN context_documents d ON d.id = c.document_id
         WHERE c.document_id = $1
+          AND d.deleted_at IS NULL
+          AND c.deleted_at IS NULL
+          AND e.deleted_at IS NULL
         ORDER BY c.chunk_index ASC
       `,
       [documentId]
     );
     return result.rows.map(mapChunkEmbedding);
+  }
+
+  async softDeleteByDocument(documentId: string): Promise<void> {
+    await this.db.query(
+      `
+        UPDATE context_chunk_embeddings e
+        SET deleted_at = now()
+        FROM context_chunks c
+        WHERE e.chunk_id = c.id
+          AND c.document_id = $1
+      `,
+      [documentId]
+    );
+  }
+
+  async restoreByDocument(documentId: string): Promise<void> {
+    await this.db.query(
+      `
+        UPDATE context_chunk_embeddings e
+        SET deleted_at = NULL
+        FROM context_chunks c
+        WHERE e.chunk_id = c.id
+          AND c.document_id = $1
+      `,
+      [documentId]
+    );
   }
 }

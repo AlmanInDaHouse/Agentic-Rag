@@ -12,11 +12,13 @@ import { PgContextChunkRepository } from "./repositories/contextChunkRepository.
 import { PgContextDocumentRepository } from "./repositories/contextDocumentRepository.js";
 import { PgContextRetrievalRepository } from "./repositories/contextRetrievalRepository.js";
 import { PgContextSourceRepository } from "./repositories/contextSourceRepository.js";
+import { PgContextAuditEventRepository } from "./repositories/contextAuditEventRepository.js";
 import { PgChunkEmbeddingRepository } from "./repositories/chunkEmbeddingRepository.js";
 import { PgEmbeddingModelRepository } from "./repositories/embeddingModelRepository.js";
 import { AgentRuntimeService } from "./services/agentRuntimeService.js";
 import { ContextEmbeddingService } from "./services/contextEmbeddingService.js";
 import { ContextEngineService } from "./services/contextEngineService.js";
+import { ContextRetentionPolicyService } from "./services/contextRetentionPolicyService.js";
 import { MockEmbeddingAdapter } from "./services/embeddings/mockEmbeddingAdapter.js";
 import { DebateService } from "./services/debateService.js";
 import { createMockAgents } from "./services/mockAgents.js";
@@ -43,10 +45,18 @@ export async function buildApp() {
   const contextDocumentRepository = new PgContextDocumentRepository(pool);
   const contextChunkRepository = new PgContextChunkRepository(pool);
   const contextRetrievalRepository = new PgContextRetrievalRepository(pool);
+  const contextAuditEventRepository = new PgContextAuditEventRepository(pool);
   const embeddingModelRepository = new PgEmbeddingModelRepository(pool);
   const chunkEmbeddingRepository = new PgChunkEmbeddingRepository(pool);
   const agentRuntimeTransactionManager = new PgAgentRuntimeTransactionManager(pool);
   const mockEmbeddingAdapter = new MockEmbeddingAdapter();
+  const contextRetentionPolicyService = new ContextRetentionPolicyService(
+    goalsRepository,
+    contextSourceRepository,
+    contextDocumentRepository,
+    contextRetrievalRepository,
+    contextAuditEventRepository
+  );
   const contextEngineService = new ContextEngineService(
     goalsRepository,
     contextSourceRepository,
@@ -56,7 +66,10 @@ export async function buildApp() {
     undefined,
     embeddingModelRepository,
     chunkEmbeddingRepository,
-    mockEmbeddingAdapter
+    mockEmbeddingAdapter,
+    undefined,
+    contextRetentionPolicyService,
+    contextAuditEventRepository
   );
   const contextEmbeddingService = new ContextEmbeddingService(
     contextSourceRepository,

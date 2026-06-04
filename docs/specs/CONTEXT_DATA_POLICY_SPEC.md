@@ -25,7 +25,7 @@ Milestone 1.5C-A introduces deterministic local scanning and redaction before pg
 - GraphRAG.
 - Code Graph.
 - Filesystem, web, GitHub, Gmail or calendar sources.
-- Tenant-level retention, quota or deletion policy.
+- Tenant-specific retention, quota or deletion configuration.
 
 ## Data Classifications
 
@@ -167,5 +167,5 @@ Preview does not persist data.
 - False negatives are expected.
 - False positives are possible.
 - Finding offsets are relative to normalized input.
-- There is no tenant-level retention, quota or deletion policy yet.
+- Basic retention, quota, soft delete/restore and audit now exist, but there is no tenant-specific configuration or background retention worker yet.
 - Original input exists transiently in request memory and logs must not record request bodies.

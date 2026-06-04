@@ -130,8 +130,12 @@ See:
 - `POST /api/approval-gates/:gateId/reject`
 - `POST /api/goals/:goalId/context/sources`
 - `GET /api/goals/:goalId/context/sources`
+- `GET /api/goals/:goalId/context/quota`
+- `GET /api/goals/:goalId/context/audit-events`
 - `POST /api/context/sources/:sourceId/documents`
 - `GET /api/context/sources/:sourceId/documents`
+- `DELETE /api/context/documents/:documentId`
+- `POST /api/context/documents/:documentId/restore`
 - `GET /api/context/documents/:documentId/chunks`
 - `GET /api/embedding-models`
 - `POST /api/context/documents/:documentId/embeddings/mock`
@@ -296,6 +300,30 @@ Antes de guardar un documento, la API escanea el texto normalizado. Si detecta d
 
 La politica de duplicados sigue usando el hash del contenido original normalizado. Si hubo redaccion, `redactedContentHash` describe el texto usado para chunking/search/embeddings.
 
+La policy de retention/quota inicial limita documentos por goal, tamano de documento, numero/tamano de chunks, retrieval history y embedding rows por documento. Los documentos borrados con soft delete no cuentan como documentos activos para cuota.
+
+Consultar quota y audit events:
+
+```bash
+curl http://127.0.0.1:3001/api/goals/<goal-id>/context/quota
+
+curl http://127.0.0.1:3001/api/goals/<goal-id>/context/audit-events
+```
+
+Soft delete y restore de documentos:
+
+```bash
+curl -X DELETE http://127.0.0.1:3001/api/context/documents/<document-id> \
+  -H "content-type: application/json" \
+  -d '{"actor":"human_operator","reason":"cleanup","hardDelete":false}'
+
+curl -X POST http://127.0.0.1:3001/api/context/documents/<document-id>/restore \
+  -H "content-type: application/json" \
+  -d '{"actor":"human_operator","reason":"restore for test"}'
+```
+
+Search y embeddings ignoran documentos/chunks deleted. Los retrieval logs existentes se conservan como historico.
+
 Listar chunks de un documento:
 
 ```bash
@@ -358,7 +386,7 @@ Limitaciones actuales:
 - Es reproducible para CI/harness, pero no representa semantica real.
 - Los vectores se guardan en JSONB solo para este milestone; no es un indice vectorial productivo.
 - La redaccion actual es regex basica y no es DLP completo.
-- No hay politica tenant-level de retention, cuota o borrado.
+- Hay policy basica de retention, quota, soft delete/restore y audit; no hay worker de retention ni cuotas tenant-specific.
 - No se envia contexto a providers externos.
 
 ## RAG roadmap
@@ -379,6 +407,7 @@ Roadmap propuesto:
 v1A: spec y ADR de estrategia RAG/embeddings.
 v1B: interfaces de embeddings y mock embeddings deterministas.
 v1C-A: data policy y redaccion regex local.
+v1C-B: retention, quota, soft delete/restore y audit.
 v1C: pgvector y embeddings locales opcionales, despues de endurecer data policy.
 v1D: retrieval hibrido lexical + vectorial.
 ```

@@ -19,7 +19,7 @@ Milestone 1.4 supports:
 
 Milestone 1.5B extends the context layer with deterministic mock embeddings and search mode selection while preserving lexical retrieval as the default.
 
-Milestone 1.5C-A adds a basic deterministic context data policy and regex redaction layer before future pgvector or real embedding work.
+Milestone 1.5C-A adds a basic deterministic context data policy and regex redaction layer before future pgvector or real embedding work. Milestone 1.5C-B adds retention quotas, soft delete/restore and context audit events.
 
 ## Out of Scope
 
@@ -47,6 +47,9 @@ Milestone 1.5C-A adds a basic deterministic context data policy and regex redact
 - `classification`: document data classification.
 - `redaction_status`: document/chunk scan state.
 - `sensitive_findings`: metadata-only sensitive finding list without matched values.
+- `deleted_at` / `deleted_reason`: soft-delete markers for context sources, documents and chunks.
+- `content_size`: stored character size for documents and chunks.
+- `context_audit_events`: quota, deletion, restore and hard-delete audit log.
 
 ## Source Types
 
@@ -101,6 +104,8 @@ Context ingestion runs deterministic local regex scanning before document persis
 Duplicate detection remains based on the original normalized content hash. `redacted_content_hash` is stored when redaction changes the chunking input.
 
 Initial finding types and rules are defined in `docs/specs/CONTEXT_DATA_POLICY_SPEC.md`. The policy is not full DLP and does not allow external providers.
+
+Retention validates document size and active document quota before persistence. Chunk count and chunk size are validated after deterministic chunking and before chunk rows are created. Soft-deleted documents and chunks are excluded from active search and embedding generation.
 
 ## Retrieval
 
@@ -172,8 +177,12 @@ The runtime remains mock-only and does not read files, call networks or invoke r
 
 - `POST /api/goals/:goalId/context/sources`
 - `GET /api/goals/:goalId/context/sources`
+- `GET /api/goals/:goalId/context/quota`
+- `GET /api/goals/:goalId/context/audit-events`
 - `POST /api/context/sources/:sourceId/documents`
 - `GET /api/context/sources/:sourceId/documents`
+- `DELETE /api/context/documents/:documentId`
+- `POST /api/context/documents/:documentId/restore`
 - `GET /api/context/documents/:documentId/chunks`
 - `POST /api/goals/:goalId/context/search`
 - `GET /api/goals/:goalId/context/retrievals`
@@ -186,8 +195,9 @@ The runtime remains mock-only and does not read files, call networks or invoke r
 Error rules:
 
 - `400` invalid params or payload.
+- `413` document content exceeds retention policy size.
 - `404` missing goal, source or document.
-- `409` duplicate document for the same source and normalized content hash.
+- `409` duplicate document for the same source and normalized content hash, quota conflict, deleted document/source or invalid delete/restore state.
 
 ## Contracts
 
@@ -205,6 +215,11 @@ Shared Zod contracts live in `packages/shared/src/index.ts`:
 - `SensitiveFindingSchema`
 - `RedactionResultSchema`
 - `ContextDataPolicySchema`
+- `ContextRetentionPolicySchema`
+- `ContextAuditEventSchema`
+- `DeleteContextDocumentSchema`
+- `RestoreContextDocumentSchema`
+- `ContextQuotaStatusSchema`
 - `RedactionPreviewRequestSchema`
 - `ContextSearchSchema`
 - `ContextSearchResultSchema`
@@ -227,10 +242,14 @@ All input schemas are strict.
 - A plain text document can be added to a source.
 - Document ingestion scans and redacts sensitive data before chunk persistence.
 - Restricted content is blocked by policy.
+- Oversized documents and quota overages are rejected and audited.
 - Ingestion creates deterministic chunks.
 - Sensitive chunks do not expose original detected values.
 - Chunks can be listed for a document.
 - Context search returns relevant chunks by lexical scoring.
+- Soft-deleted documents and chunks are excluded from active search.
+- Soft-deleted documents can be restored.
+- Context audit events are listable per goal.
 - Context search accepts `lexical`, `mock_vector` and `hybrid` modes.
 - Mock embeddings can be generated for a document or a source.
 - Embedding generation is deterministic and idempotent.
@@ -247,7 +266,9 @@ All input schemas are strict.
 
 - Lexical ranking is intentionally basic and may miss semantically relevant context.
 - Regex redaction is basic and not complete DLP.
-- There is no tenant-level retention or quota policy yet.
+- There is no background retention worker yet.
+- There is no tenant-level quota customization yet.
+- Existing retrieval logs can remain as historical snapshots after later deletion.
 - Chunks can grow storage over time.
 - Retrieval result JSONB snapshots may become large if limits increase.
 - Future external sources need approval and adapter specs before implementation.

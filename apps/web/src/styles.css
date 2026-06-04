@@ -206,6 +206,25 @@ textarea {
   padding: 14px;
 }
 
+.quota-panel,
+.document-actions {
+  align-items: center;
+  background: #eef6f3;
+  border: 1px solid #c4ded5;
+  border-radius: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 12px;
+}
+
+.quota-panel > div,
+.document-actions > div {
+  display: grid;
+  gap: 4px;
+}
+
 .context-form {
   border: 1px solid #d9ded4;
   border-radius: 8px;
@@ -325,12 +344,14 @@ textarea {
 }
 
 .context-lists h4,
-.retrieval-list h4 {
+.retrieval-list h4,
+.audit-list h4 {
   margin: 0 0 10px;
 }
 
 .chunk-item,
 .retrieval-item,
+.audit-item,
 .embedding-item,
 .policy-preview {
   background: #f7f8f4;
@@ -358,6 +379,17 @@ textarea {
 .retrieval-list {
   border-top: 1px solid #e0e5da;
   padding-top: 14px;
+}
+
+.audit-list {
+  border-top: 1px solid #e0e5da;
+  padding-top: 14px;
+}
+
+.quota-panel small,
+.document-actions small,
+.audit-item small {
+  color: #66736a;
 }
 
 .debate {

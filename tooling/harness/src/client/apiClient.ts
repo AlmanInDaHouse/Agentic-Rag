@@ -3,19 +3,23 @@ import {
   AgentRunWithDetailsSchema,
   ApprovalGateSchema,
   ChunkEmbeddingSchema,
+  ContextAuditEventSchema,
   ContextChunkSchema,
   ContextDocumentSchema,
+  ContextQuotaStatusSchema,
   ContextRetrievalSchema,
   ContextSearchSchema,
   ContextSourceSchema,
   CreateAgentRunSchema,
   CreateContextDocumentSchema,
   CreateContextSourceSchema,
+  DeleteContextDocumentSchema,
   EmbeddingModelSchema,
   GenerateEmbeddingsRequestSchema,
   RedactionPreviewRequestSchema,
   RedactionResultSchema,
   ResolveApprovalGateSchema,
+  RestoreContextDocumentSchema,
   createGoalRequestSchema,
   debateRoundWithProposalsSchema,
   goalSchema,
@@ -24,14 +28,17 @@ import {
   type AgentRunWithDetails,
   type ApprovalGate,
   type ChunkEmbedding,
+  type ContextAuditEvent,
   type ContextChunk,
   type ContextDocument,
+  type ContextQuotaStatus,
   type ContextRetrieval,
   type ContextSearch,
   type ContextSource,
   type CreateAgentRun,
   type CreateContextDocument,
   type CreateContextSource,
+  type DeleteContextDocument,
   type CreateGoalRequest,
   type DebateRoundWithProposals,
   type EmbeddingModel,
@@ -39,6 +46,7 @@ import {
   type Goal,
   type RedactionPreviewRequest,
   type RedactionResult,
+  type RestoreContextDocument,
   type TimelineEvent
 } from "@triforge/shared";
 
@@ -266,6 +274,62 @@ export class HarnessApiClient {
   async listContextRetrievals(goalId: string): Promise<ContextRetrieval[]> {
     const body = await this.request(`/api/goals/${goalId}/context/retrievals`);
     return ContextRetrievalSchema.array().parse(body);
+  }
+
+  async getContextQuota(goalId: string): Promise<ContextQuotaStatus> {
+    const body = await this.request(`/api/goals/${goalId}/context/quota`);
+    return ContextQuotaStatusSchema.parse(body);
+  }
+
+  async listContextAuditEvents(goalId: string): Promise<ContextAuditEvent[]> {
+    const body = await this.request(`/api/goals/${goalId}/context/audit-events`);
+    return ContextAuditEventSchema.array().parse(body);
+  }
+
+  async deleteContextDocument(
+    documentId: string,
+    input: DeleteContextDocument
+  ): Promise<{ hardDeleted: boolean; document: ContextDocument | null }> {
+    const parsed = DeleteContextDocumentSchema.parse(input);
+    const body = await this.request(`/api/context/documents/${documentId}`, {
+      method: "DELETE",
+      body: JSON.stringify(parsed)
+    });
+    const candidate = body as { hardDeleted?: unknown; document?: unknown };
+    return {
+      hardDeleted: Boolean(candidate.hardDeleted),
+      document: candidate.document === null ? null : ContextDocumentSchema.parse(candidate.document)
+    };
+  }
+
+  async deleteContextDocumentStatus(documentId: string, body: unknown): Promise<number> {
+    const response = await this.rawRequest(`/api/context/documents/${documentId}`, {
+      method: "DELETE",
+      body: JSON.stringify(body)
+    });
+    await response.text();
+    return response.status;
+  }
+
+  async restoreContextDocument(
+    documentId: string,
+    input: RestoreContextDocument
+  ): Promise<ContextDocument> {
+    const parsed = RestoreContextDocumentSchema.parse(input);
+    const body = await this.request(`/api/context/documents/${documentId}/restore`, {
+      method: "POST",
+      body: JSON.stringify(parsed)
+    });
+    return ContextDocumentSchema.parse(body);
+  }
+
+  async restoreContextDocumentStatus(documentId: string, body: unknown): Promise<number> {
+    const response = await this.rawRequest(`/api/context/documents/${documentId}/restore`, {
+      method: "POST",
+      body: JSON.stringify(body)
+    });
+    await response.text();
+    return response.status;
   }
 
   async previewContextRedaction(input: RedactionPreviewRequest): Promise<RedactionResult> {

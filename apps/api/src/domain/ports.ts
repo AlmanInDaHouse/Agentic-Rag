@@ -9,6 +9,8 @@ import type {
   AgentStepType,
   ApprovalGate,
   ContextChunk,
+  ContextAuditEvent,
+  ContextAuditEventType,
   ChunkEmbedding,
   ContextDocument,
   ContextRetrieval,
@@ -163,12 +165,14 @@ export type CreateContextDocumentInput = Omit<CreateContextDocument, "content"> 
   redactionStatus: RedactionStatus;
   sensitiveFindings: SensitiveFinding[];
   redactedContentHash: string | null;
+  contentSize: number;
 };
 
 export type CreateContextChunkInput = {
   documentId: string;
   chunkIndex: number;
   content: string;
+  contentSize: number;
   tokenEstimate: number;
   redactionStatus?: RedactionStatus;
   metadata?: Record<string, unknown>;
@@ -187,12 +191,18 @@ export interface ContextDocumentRepository {
   findById(id: string): Promise<ContextDocument | null>;
   findBySourceAndHash(sourceId: string, contentHash: string): Promise<ContextDocument | null>;
   listBySource(sourceId: string): Promise<ContextDocument[]>;
+  countActiveByGoal(goalId: string): Promise<number>;
+  softDelete(id: string, reason: string | null): Promise<ContextDocument>;
+  restore(id: string, reason: string | null): Promise<ContextDocument>;
+  hardDelete(id: string): Promise<void>;
 }
 
 export interface ContextChunkRepository {
   createMany(chunks: CreateContextChunkInput[]): Promise<ContextChunk[]>;
   listByDocument(documentId: string): Promise<ContextChunk[]>;
   listCandidatesByGoal(goalId: string, limit: number): Promise<ContextChunkCandidate[]>;
+  softDeleteByDocument(documentId: string, reason: string | null): Promise<void>;
+  restoreByDocument(documentId: string): Promise<void>;
 }
 
 export interface ContextRetrievalRepository {
@@ -202,6 +212,23 @@ export interface ContextRetrievalRepository {
     results: ContextSearchResult[];
   }): Promise<ContextRetrieval>;
   listByGoal(goalId: string): Promise<ContextRetrieval[]>;
+  countByGoal(goalId: string): Promise<number>;
+}
+
+export type CreateContextAuditEventInput = {
+  goalId?: string | null;
+  sourceId?: string | null;
+  documentId?: string | null;
+  chunkId?: string | null;
+  eventType: ContextAuditEventType;
+  actor?: string;
+  reason?: string | null;
+  payload?: Record<string, unknown>;
+};
+
+export interface ContextAuditEventRepository {
+  create(input: CreateContextAuditEventInput): Promise<ContextAuditEvent>;
+  listByGoal(goalId: string): Promise<ContextAuditEvent[]>;
 }
 
 export type UpsertChunkEmbeddingInput = {
@@ -220,4 +247,6 @@ export interface ChunkEmbeddingRepository {
   upsertChunkEmbedding(input: UpsertChunkEmbeddingInput): Promise<ChunkEmbedding>;
   getEmbeddingsByChunkIds(chunkIds: string[], modelId: string): Promise<ChunkEmbedding[]>;
   listChunkEmbeddings(documentId: string): Promise<ChunkEmbedding[]>;
+  softDeleteByDocument(documentId: string): Promise<void>;
+  restoreByDocument(documentId: string): Promise<void>;
 }

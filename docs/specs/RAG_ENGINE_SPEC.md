@@ -281,6 +281,15 @@ Fallback rules:
 - Use redacted chunks for search and mock embeddings.
 - Do not add pgvector, local models or external providers.
 
+### Milestone 1.5C-B: Retention, Quota and Deletion Policy
+
+- Add service-layer quotas for document count, document size, chunk count, chunk size and retrieval history.
+- Add soft delete/restore and audit events for context lifecycle operations.
+- Exclude deleted documents/chunks from active lexical, mock-vector and hybrid search.
+- Block embedding generation for deleted documents/sources and skip deleted chunks.
+- Keep hard delete limited to local dev/test policy.
+- Do not add pgvector, local models or external providers.
+
 ### Milestone 1.5C: pgvector and Local Embeddings
 
 - Implement only after Milestone 1.5C-A data policy is accepted.
@@ -300,6 +309,8 @@ Fallback rules:
 - Embedding text already persisted from `manual_text`, `project_note` or `artifact` sources is medium risk when processed by an approved local/mock embedding adapter.
 - Sensitive context must be scanned before persistence and redacted before chunking when findings are detected.
 - Restricted context must be blocked by default.
+- Deleted context must not be returned by active search or used for new embedding generation.
+- Quota and deletion operations must write context audit events.
 - External embedding providers are `external_adapter_call` and require future approval policy.
 - Sensitive context must not be sent to an external provider. Basic regex redaction is not enough to approve external providers.
 - Filesystem, web, GitHub, Gmail and Calendar sources remain out of scope.
@@ -328,3 +339,5 @@ Fallback rules:
 - External providers introduce data handling, approval and privacy risks.
 - Hybrid scoring can become hard to reason about without clear normalization.
 - Regex redaction is not complete DLP and does not eliminate the need for stronger data governance before real providers.
+- Basic retention has no background pruning worker yet.
+- Existing retrieval snapshots may reference content selected before later deletion.

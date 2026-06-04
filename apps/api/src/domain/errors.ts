@@ -11,3 +11,10 @@ export class ConflictError extends Error {
     this.name = "ConflictError";
   }
 }
+
+export class PayloadTooLargeError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PayloadTooLargeError";
+  }
+}

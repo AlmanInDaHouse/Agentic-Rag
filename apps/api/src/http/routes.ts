@@ -6,24 +6,28 @@ import {
   ApprovalGateSchema,
   ChunkEmbeddingSchema,
   ContextChunkSchema,
+  ContextAuditEventSchema,
   ContextDocumentSchema,
+  ContextQuotaStatusSchema,
   ContextRetrievalSchema,
   ContextSearchSchema,
   ContextSourceSchema,
   CreateAgentRunSchema,
   CreateContextDocumentSchema,
   CreateContextSourceSchema,
+  DeleteContextDocumentSchema,
   EmbeddingModelSchema,
   GenerateEmbeddingsRequestSchema,
   RedactionPreviewRequestSchema,
   RedactionResultSchema,
   ResolveApprovalGateSchema,
+  RestoreContextDocumentSchema,
   createGoalRequestSchema,
   debateRoundWithProposalsSchema,
   goalSchema,
   timelineEventSchema
 } from "@triforge/shared";
-import { ConflictError, NotFoundError } from "../domain/errors.js";
+import { ConflictError, NotFoundError, PayloadTooLargeError } from "../domain/errors.js";
 import type {
   DebateRepository,
   GoalsRepository,
@@ -235,6 +239,50 @@ export async function registerRoutes(
     }
   );
 
+  app.get(
+    "/api/goals/:goalId/context/quota",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const parsedParams = goalParamsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        sendZodError(reply, parsedParams.error);
+        return;
+      }
+
+      try {
+        const status = await contextEngineService.getQuotaStatus(parsedParams.data.goalId);
+        reply.send(ContextQuotaStatusSchema.parse(status));
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          reply.status(404).send({ error: "not_found", message: error.message });
+          return;
+        }
+        throw error;
+      }
+    }
+  );
+
+  app.get(
+    "/api/goals/:goalId/context/audit-events",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const parsedParams = goalParamsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        sendZodError(reply, parsedParams.error);
+        return;
+      }
+
+      try {
+        const events = await contextEngineService.listAuditEvents(parsedParams.data.goalId);
+        reply.send(z.array(ContextAuditEventSchema).parse(events));
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          reply.status(404).send({ error: "not_found", message: error.message });
+          return;
+        }
+        throw error;
+      }
+    }
+  );
+
   app.post(
     "/api/context/sources/:sourceId/documents",
     async (request: FastifyRequest, reply: FastifyReply) => {
@@ -267,6 +315,10 @@ export async function registerRoutes(
           reply.status(409).send({ error: "conflict", message: error.message });
           return;
         }
+        if (error instanceof PayloadTooLargeError) {
+          reply.status(413).send({ error: "payload_too_large", message: error.message });
+          return;
+        }
         throw error;
       }
     }
@@ -287,6 +339,77 @@ export async function registerRoutes(
       } catch (error) {
         if (error instanceof NotFoundError) {
           reply.status(404).send({ error: "not_found", message: error.message });
+          return;
+        }
+        throw error;
+      }
+    }
+  );
+
+  app.delete(
+    "/api/context/documents/:documentId",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const parsedParams = documentParamsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        sendZodError(reply, parsedParams.error);
+        return;
+      }
+      const parsedBody = DeleteContextDocumentSchema.safeParse(request.body ?? {});
+      if (!parsedBody.success) {
+        sendZodError(reply, parsedBody.error);
+        return;
+      }
+
+      try {
+        const document = await contextEngineService.deleteDocument(
+          parsedParams.data.documentId,
+          parsedBody.data
+        );
+        reply.send({
+          hardDeleted: document === null,
+          document: document ? ContextDocumentSchema.parse(document) : null
+        });
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          reply.status(404).send({ error: "not_found", message: error.message });
+          return;
+        }
+        if (error instanceof ConflictError) {
+          reply.status(409).send({ error: "conflict", message: error.message });
+          return;
+        }
+        throw error;
+      }
+    }
+  );
+
+  app.post(
+    "/api/context/documents/:documentId/restore",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const parsedParams = documentParamsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        sendZodError(reply, parsedParams.error);
+        return;
+      }
+      const parsedBody = RestoreContextDocumentSchema.safeParse(request.body);
+      if (!parsedBody.success) {
+        sendZodError(reply, parsedBody.error);
+        return;
+      }
+
+      try {
+        const document = await contextEngineService.restoreDocument(
+          parsedParams.data.documentId,
+          parsedBody.data
+        );
+        reply.send(ContextDocumentSchema.parse(document));
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          reply.status(404).send({ error: "not_found", message: error.message });
+          return;
+        }
+        if (error instanceof ConflictError) {
+          reply.status(409).send({ error: "conflict", message: error.message });
           return;
         }
         throw error;

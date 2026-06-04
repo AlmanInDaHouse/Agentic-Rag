@@ -66,8 +66,12 @@ export class ContextEmbeddingService {
     if (!source) {
       throw new NotFoundError(`Context source ${sourceId} was not found`);
     }
+    if (source.deletedAt) {
+      throw new ConflictError(`Context source ${source.id} is deleted`);
+    }
 
-    const documents = await this.contextDocumentRepository.listBySource(source.id);
+    const documents = (await this.contextDocumentRepository.listBySource(source.id))
+      .filter((document) => !document.deletedAt);
     let generatedCount = 0;
     let skippedCount = 0;
     const embeddings: ChunkEmbedding[] = [];
@@ -90,8 +94,12 @@ export class ContextEmbeddingService {
 
   async getEmbeddingCoverageForDocument(documentId: string): Promise<DocumentEmbeddingCoverage> {
     const document = await this.requiredDocument(documentId);
+    if (document.deletedAt) {
+      throw new ConflictError(`Context document ${document.id} is deleted`);
+    }
     const model = await this.embeddingModelRepository.getOrCreateMockModel();
-    const chunks = await this.contextChunkRepository.listByDocument(document.id);
+    const chunks = (await this.contextChunkRepository.listByDocument(document.id))
+      .filter((chunk) => !chunk.deletedAt);
     const embeddings = await this.chunkEmbeddingRepository.getEmbeddingsByChunkIds(
       chunks.map((chunk) => chunk.id),
       model.id
@@ -109,7 +117,10 @@ export class ContextEmbeddingService {
   }
 
   async listChunkEmbeddings(documentId: string): Promise<ChunkEmbedding[]> {
-    await this.requiredDocument(documentId);
+    const document = await this.requiredDocument(documentId);
+    if (document.deletedAt) {
+      throw new ConflictError(`Context document ${document.id} is deleted`);
+    }
     return this.chunkEmbeddingRepository.listChunkEmbeddings(documentId);
   }
 
@@ -121,8 +132,12 @@ export class ContextEmbeddingService {
     if (document.redactionStatus === "blocked" || document.classification === "restricted") {
       throw new ConflictError(`Context document ${document.id} is blocked by data policy`);
     }
+    if (document.deletedAt) {
+      throw new ConflictError(`Context document ${document.id} is deleted`);
+    }
     const model = existingModel ?? (await this.embeddingModelRepository.getOrCreateMockModel());
-    const chunks = await this.contextChunkRepository.listByDocument(document.id);
+    const chunks = (await this.contextChunkRepository.listByDocument(document.id))
+      .filter((chunk) => !chunk.deletedAt);
     const existingEmbeddings = await this.chunkEmbeddingRepository.getEmbeddingsByChunkIds(
       chunks.map((chunk) => chunk.id),
       model.id

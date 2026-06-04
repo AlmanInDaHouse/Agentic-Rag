@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type {
   ContextChunk,
+  ContextAuditEvent,
   ChunkEmbedding,
   ContextDocument,
   ContextRetrieval,
+  ContextRetentionPolicy,
   ContextSearchResult,
   ContextSource,
   EmbeddingModel,
@@ -11,6 +13,7 @@ import type {
 } from "@triforge/shared";
 import { ConflictError, NotFoundError } from "../domain/errors.js";
 import type {
+  ContextAuditEventRepository,
   ContextChunkRepository,
   ContextDocumentRepository,
   ContextRetrievalRepository,
@@ -19,6 +22,7 @@ import type {
   CreateContextChunkInput,
   CreateContextDocumentInput,
   CreateContextSourceInput,
+  CreateContextAuditEventInput,
   EmbeddingModelRepository,
   UpsertChunkEmbeddingInput,
   GoalsRepository
@@ -29,6 +33,7 @@ import {
   stableContentHash
 } from "../services/contextEngineService.js";
 import { MockEmbeddingAdapter, embeddingHash } from "../services/embeddings/mockEmbeddingAdapter.js";
+import { ContextRetentionPolicyService } from "../services/contextRetentionPolicyService.js";
 
 const now = new Date("2026-01-01T00:00:00.000Z").toISOString();
 const goal: Goal = {
@@ -406,6 +411,139 @@ describe("ContextEngineService", () => {
     expect(retrieval.results[0].chunk.content).not.toContain("goal two");
   });
 
+  it("rejects oversized documents and records quota audit", async () => {
+    const fixture = createContextFixture({
+      includeRetention: true,
+      policy: { maxDocumentCharacters: 10 }
+    });
+    const source = await fixture.service.createSource(goal.id, {
+      name: "Quota source",
+      type: "manual_text",
+      metadata: {}
+    });
+
+    await expect(
+      fixture.service.addDocument(source.id, {
+        title: "Too large",
+        content: "this document is too large",
+        metadata: {}
+      })
+    ).rejects.toThrow("maxDocumentCharacters");
+    expect(fixture.auditEventRepository.events[0]).toMatchObject({
+      eventType: "context_quota_rejected",
+      reason: "max_document_characters_exceeded"
+    });
+  });
+
+  it("rejects max documents per goal and excludes deleted documents from quota", async () => {
+    const fixture = createContextFixture({
+      includeRetention: true,
+      policy: { maxDocumentsPerGoal: 1 }
+    });
+    const source = await fixture.service.createSource(goal.id, {
+      name: "Document quota source",
+      type: "manual_text",
+      metadata: {}
+    });
+    const first = await fixture.service.addDocument(source.id, {
+      title: "First",
+      content: "first active quota document",
+      metadata: {}
+    });
+
+    await expect(
+      fixture.service.addDocument(source.id, {
+        title: "Second",
+        content: "second active quota document",
+        metadata: {}
+      })
+    ).rejects.toThrow("maxDocumentsPerGoal");
+    await fixture.service.deleteDocument(first.document.id, {
+      actor: "human_operator",
+      reason: "free quota",
+      hardDelete: false
+    });
+    const second = await fixture.service.addDocument(source.id, {
+      title: "Second",
+      content: "second active quota document",
+      metadata: {}
+    });
+
+    expect(second.document.title).toBe("Second");
+  });
+
+  it("rejects max chunks per document and records quota audit", async () => {
+    const fixture = createContextFixture({
+      includeRetention: true,
+      policy: { maxChunksPerDocument: 1 }
+    });
+    const source = await fixture.service.createSource(goal.id, {
+      name: "Chunk quota source",
+      type: "manual_text",
+      metadata: {}
+    });
+
+    await expect(
+      fixture.service.addDocument(source.id, {
+        title: "Chunky",
+        content: "approval ".repeat(300),
+        metadata: {}
+      })
+    ).rejects.toThrow("maxChunksPerDocument");
+    expect(fixture.auditEventRepository.events[0]).toMatchObject({
+      eventType: "context_quota_rejected",
+      reason: "max_chunks_per_document_exceeded"
+    });
+  });
+
+  it("soft deletes, restores, excludes deleted documents from search and records audit", async () => {
+    const fixture = createContextFixture({ includeRetention: true, includeEmbeddings: true });
+    const source = await fixture.service.createSource(goal.id, {
+      name: "Delete source",
+      type: "manual_text",
+      metadata: {}
+    });
+    const result = await fixture.service.addDocument(source.id, {
+      title: "Deleted context",
+      content: "deletion searchable phrase",
+      metadata: {}
+    });
+    await fixture.seedEmbeddings(result.chunks.map((chunk) => ({
+      chunkId: chunk.id,
+      content: chunk.content
+    })));
+
+    const deleted = await fixture.service.deleteDocument(result.document.id, {
+      actor: "human_operator",
+      reason: "cleanup",
+      hardDelete: false
+    });
+    const deletedSearch = await fixture.service.search(goal.id, {
+      query: "searchable phrase",
+      limit: 5,
+      mode: "lexical"
+    });
+
+    expect(deleted?.deletedAt).not.toBeNull();
+    expect(fixture.chunkRepository.chunks.every((chunk) => chunk.deletedAt)).toBe(true);
+    expect(deletedSearch.results).toEqual([]);
+
+    const restored = await fixture.service.restoreDocument(result.document.id, {
+      actor: "human_operator",
+      reason: "restore for test"
+    });
+    const restoredSearch = await fixture.service.search(goal.id, {
+      query: "searchable phrase",
+      limit: 5,
+      mode: "lexical"
+    });
+
+    expect(restored.deletedAt).toBeNull();
+    expect(restoredSearch.results).toHaveLength(1);
+    expect(fixture.auditEventRepository.events.map((event) => event.eventType)).toEqual(
+      expect.arrayContaining(["context_document_deleted", "context_document_restored"])
+    );
+  });
 
   it("returns not found for unknown goals", async () => {
     const fixture = createContextFixture({ includeGoal: false });
@@ -414,7 +552,12 @@ describe("ContextEngineService", () => {
   });
 });
 
-function createContextFixture(options: { includeGoal?: boolean; includeEmbeddings?: boolean } = {}) {
+function createContextFixture(options: {
+  includeGoal?: boolean;
+  includeEmbeddings?: boolean;
+  includeRetention?: boolean;
+  policy?: Partial<ContextRetentionPolicy>;
+} = {}) {
   const goalsRepository = new InMemoryGoalsRepository(options.includeGoal ?? true);
   const sourceRepository = new InMemoryContextSourceRepository();
   const documentRepository = new InMemoryContextDocumentRepository();
@@ -423,7 +566,27 @@ function createContextFixture(options: { includeGoal?: boolean; includeEmbedding
   const embeddingModelRepository = new InMemoryEmbeddingModelRepository();
   const chunkEmbeddingRepository = new InMemoryChunkEmbeddingRepository();
   const embeddingAdapter = new MockEmbeddingAdapter();
+  const auditEventRepository = new InMemoryContextAuditEventRepository();
+  const defaultPolicy = new ContextRetentionPolicyService(
+    goalsRepository,
+    sourceRepository,
+    documentRepository,
+    retrievalRepository,
+    auditEventRepository
+  ).getDefaultPolicy();
+  const retentionPolicyService = options.includeRetention
+    ? new ContextRetentionPolicyService(
+        goalsRepository,
+        sourceRepository,
+        documentRepository,
+        retrievalRepository,
+        auditEventRepository,
+        { ...defaultPolicy, ...options.policy }
+      )
+    : undefined;
   return {
+    auditEventRepository,
+    chunkRepository,
     seedEmbeddings: async (chunks: { chunkId: string; content: string }[]) => {
       const model = await embeddingModelRepository.getOrCreateMockModel();
       for (const chunk of chunks) {
@@ -451,7 +614,10 @@ function createContextFixture(options: { includeGoal?: boolean; includeEmbedding
       undefined,
       options.includeEmbeddings ? embeddingModelRepository : undefined,
       options.includeEmbeddings ? chunkEmbeddingRepository : undefined,
-      embeddingAdapter
+      embeddingAdapter,
+      undefined,
+      retentionPolicyService,
+      auditEventRepository
     )
   };
 }
@@ -468,6 +634,8 @@ function contextCandidate(input: {
       name: input.sourceName,
       type: "manual_text",
       metadata: {},
+      deletedAt: null,
+      deletedReason: null,
       createdAt: now,
       updatedAt: now
     },
@@ -480,6 +648,9 @@ function contextCandidate(input: {
       redactionStatus: "clean",
       sensitiveFindings: [],
       redactedContentHash: null,
+      contentSize: input.content.length,
+      deletedAt: null,
+      deletedReason: null,
       metadata: {},
       createdAt: now,
       updatedAt: now
@@ -491,6 +662,9 @@ function contextCandidate(input: {
       content: input.content,
       tokenEstimate: 4,
       redactionStatus: "clean",
+      contentSize: input.content.length,
+      deletedAt: null,
+      deletedReason: null,
       metadata: {},
       createdAt: now
     },
@@ -527,6 +701,8 @@ class InMemoryContextSourceRepository implements ContextSourceRepository {
       name: input.name,
       type: input.type,
       metadata: input.metadata,
+      deletedAt: null,
+      deletedReason: null,
       createdAt: now,
       updatedAt: now
     };
@@ -556,6 +732,9 @@ class InMemoryContextDocumentRepository implements ContextDocumentRepository {
       redactionStatus: input.redactionStatus,
       sensitiveFindings: input.sensitiveFindings,
       redactedContentHash: input.redactedContentHash,
+      contentSize: input.contentSize,
+      deletedAt: null,
+      deletedReason: null,
       metadata: input.metadata,
       createdAt: now,
       updatedAt: now
@@ -571,6 +750,30 @@ class InMemoryContextDocumentRepository implements ContextDocumentRepository {
   }
   async listBySource(sourceId: string) {
     return this.documents.filter((document) => document.sourceId === sourceId);
+  }
+  async countActiveByGoal() {
+    return this.documents.filter((document) => !document.deletedAt).length;
+  }
+  async softDelete(id: string, reason: string | null) {
+    const document = this.documents.find((candidate) => candidate.id === id);
+    if (!document) {
+      throw new Error("missing document");
+    }
+    const deleted = { ...document, deletedAt: now, deletedReason: reason, updatedAt: now };
+    this.documents = this.documents.map((candidate) => candidate.id === id ? deleted : candidate);
+    return deleted;
+  }
+  async restore(id: string, reason: string | null) {
+    const document = this.documents.find((candidate) => candidate.id === id);
+    if (!document) {
+      throw new Error("missing document");
+    }
+    const restored = { ...document, deletedAt: null, deletedReason: reason, updatedAt: now };
+    this.documents = this.documents.map((candidate) => candidate.id === id ? restored : candidate);
+    return restored;
+  }
+  async hardDelete(id: string) {
+    this.documents = this.documents.filter((document) => document.id !== id);
   }
 }
 
@@ -589,6 +792,9 @@ class InMemoryContextChunkRepository implements ContextChunkRepository {
         content: input.content,
         tokenEstimate: input.tokenEstimate,
         redactionStatus: input.redactionStatus ?? "not_scanned",
+        contentSize: input.contentSize,
+        deletedAt: null,
+        deletedReason: null,
         metadata: input.metadata ?? {},
         createdAt: now
       };
@@ -604,7 +810,7 @@ class InMemoryContextChunkRepository implements ContextChunkRepository {
     return this.chunks.flatMap((chunk) => {
       const document = this.documents.documents.find((candidate) => candidate.id === chunk.documentId);
       const source = document ? this.sources.sources.find((candidate) => candidate.id === document.sourceId) : null;
-      if (!document || !source || source.goalId !== goalId) {
+      if (!document || !source || source.goalId !== goalId || document.deletedAt || source.deletedAt || chunk.deletedAt) {
         return [];
       }
       return [{
@@ -620,6 +826,16 @@ class InMemoryContextChunkRepository implements ContextChunkRepository {
         fallbackReason: null
       }];
     });
+  }
+  async softDeleteByDocument(documentId: string, reason: string | null) {
+    this.chunks = this.chunks.map((chunk) => (
+      chunk.documentId === documentId ? { ...chunk, deletedAt: now, deletedReason: reason } : chunk
+    ));
+  }
+  async restoreByDocument(documentId: string) {
+    this.chunks = this.chunks.map((chunk) => (
+      chunk.documentId === documentId ? { ...chunk, deletedAt: null, deletedReason: null } : chunk
+    ));
   }
 }
 
@@ -642,6 +858,32 @@ class InMemoryContextRetrievalRepository implements ContextRetrievalRepository {
   }
   async listByGoal(goalId: string) {
     return this.retrievals.filter((retrieval) => retrieval.goalId === goalId);
+  }
+  async countByGoal(goalId: string) {
+    return this.retrievals.filter((retrieval) => retrieval.goalId === goalId).length;
+  }
+}
+
+class InMemoryContextAuditEventRepository implements ContextAuditEventRepository {
+  events: ContextAuditEvent[] = [];
+  async create(input: CreateContextAuditEventInput): Promise<ContextAuditEvent> {
+    const event: ContextAuditEvent = {
+      id: `00000000-0000-4000-8000-${String(this.events.length + 500).padStart(12, "0")}`,
+      goalId: input.goalId ?? null,
+      sourceId: input.sourceId ?? null,
+      documentId: input.documentId ?? null,
+      chunkId: input.chunkId ?? null,
+      eventType: input.eventType,
+      actor: input.actor ?? "system",
+      reason: input.reason ?? null,
+      payload: input.payload ?? {},
+      createdAt: now
+    };
+    this.events.push(event);
+    return event;
+  }
+  async listByGoal(goalId: string) {
+    return this.events.filter((event) => event.goalId === goalId);
   }
 }
 
@@ -682,4 +924,6 @@ class InMemoryChunkEmbeddingRepository implements ChunkEmbeddingRepository {
   async listChunkEmbeddings() {
     return this.embeddings;
   }
+  async softDeleteByDocument() {}
+  async restoreByDocument() {}
 }
