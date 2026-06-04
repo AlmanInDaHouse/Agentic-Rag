@@ -191,7 +191,7 @@ export const EmbeddingModelSchema = z.object({
   updatedAt: z.string().datetime()
 });
 
-export const EmbeddingVectorSchema = z.array(z.number()).length(32);
+export const EmbeddingVectorSchema = z.array(z.number().finite()).length(32);
 
 export const ChunkEmbeddingSchema = z.object({
   id: z.string().uuid(),
@@ -232,9 +232,11 @@ export const ContextSearchResultSchema = z.object({
   document: ContextDocumentSchema,
   chunk: ContextChunkSchema,
   score: z.number().nonnegative(),
+  finalScore: z.number().nonnegative().default(0),
   lexicalScore: z.number().nonnegative().default(0),
   vectorScore: z.number().nonnegative().nullable().default(null),
   mode: RagSearchModeSchema.default("lexical"),
+  fallbackUsed: z.boolean().default(false),
   fallbackReason: z.string().nullable().default(null)
 });
 

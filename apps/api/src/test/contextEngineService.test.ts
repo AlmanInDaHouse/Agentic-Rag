@@ -210,6 +210,7 @@ describe("ContextEngineService", () => {
 
     expect(retrieval.results[0]).toMatchObject({
       mode: "lexical",
+      fallbackUsed: true,
       fallbackReason: "mock_embeddings_unavailable"
     });
   });
@@ -245,9 +246,38 @@ describe("ContextEngineService", () => {
     expect(first.results.length).toBeGreaterThan(0);
     expect(first.results[0].mode).toBe("hybrid");
     expect(first.results[0].vectorScore).not.toBeNull();
+    expect(first.results[0].fallbackUsed).toBe(false);
+    expect(first.results[0].finalScore).toBe(first.results[0].score);
     expect(first.results.map((item) => item.chunk.id)).toEqual(
       second.results.map((item) => item.chunk.id)
     );
+  });
+
+  it("respects limit for hybrid ranking with embeddings", async () => {
+    const fixture = createContextFixture({ includeEmbeddings: true });
+    const source = await fixture.service.createSource(goal.id, {
+      name: "Hybrid limit source",
+      type: "manual_text",
+      metadata: {}
+    });
+    const result = await fixture.service.addDocument(source.id, {
+      title: "Hybrid limit context",
+      content: "approval context alpha\n\napproval context beta\n\napproval context gamma",
+      metadata: {}
+    });
+    await fixture.seedEmbeddings(result.chunks.map((chunk) => ({
+      chunkId: chunk.id,
+      content: chunk.content
+    })));
+
+    const retrieval = await fixture.service.search(goal.id, {
+      query: "approval context",
+      limit: 1,
+      mode: "hybrid"
+    });
+
+    expect(retrieval.results).toHaveLength(1);
+    expect(retrieval.results[0].mode).toBe("hybrid");
   });
 
   it("does not return chunks from other goals", async () => {
@@ -283,6 +313,46 @@ describe("ContextEngineService", () => {
     expect(retrieval.results[0].source.goalId).toBe(goal.id);
     expect(retrieval.results[0].chunk.content).toContain("goal one");
   });
+
+  it("does not use embeddings from other goals in hybrid search", async () => {
+    const fixture = createContextFixture({ includeEmbeddings: true });
+    const firstSource = await fixture.service.createSource(goal.id, {
+      name: "Hybrid goal one source",
+      type: "manual_text",
+      metadata: {}
+    });
+    const secondSource = await fixture.service.createSource(otherGoalId, {
+      name: "Hybrid goal two source",
+      type: "manual_text",
+      metadata: {}
+    });
+    const first = await fixture.service.addDocument(firstSource.id, {
+      title: "Goal one hybrid context",
+      content: "shared hybrid phrase from goal one",
+      metadata: {}
+    });
+    const second = await fixture.service.addDocument(secondSource.id, {
+      title: "Goal two hybrid context",
+      content: "shared hybrid phrase from goal two",
+      metadata: {}
+    });
+    await fixture.seedEmbeddings([
+      ...first.chunks.map((chunk) => ({ chunkId: chunk.id, content: chunk.content })),
+      ...second.chunks.map((chunk) => ({ chunkId: chunk.id, content: chunk.content }))
+    ]);
+
+    const retrieval = await fixture.service.search(goal.id, {
+      query: "shared hybrid phrase",
+      limit: 10,
+      mode: "hybrid"
+    });
+
+    expect(retrieval.results).toHaveLength(1);
+    expect(retrieval.results[0].source.goalId).toBe(goal.id);
+    expect(retrieval.results[0].chunk.content).toContain("goal one");
+    expect(retrieval.results[0].chunk.content).not.toContain("goal two");
+  });
+
 
   it("returns not found for unknown goals", async () => {
     const fixture = createContextFixture({ includeGoal: false });
@@ -367,9 +437,11 @@ function contextCandidate(input: {
       createdAt: now
     },
     score: 0,
+    finalScore: 0,
     lexicalScore: 0,
     vectorScore: null,
     mode: "lexical",
+    fallbackUsed: false,
     fallbackReason: null
   };
 }
@@ -477,9 +549,11 @@ class InMemoryContextChunkRepository implements ContextChunkRepository {
         document,
         chunk,
         score: 0,
+        finalScore: 0,
         lexicalScore: 0,
         vectorScore: null,
         mode: "lexical" as const,
+        fallbackUsed: false,
         fallbackReason: null
       }];
     });

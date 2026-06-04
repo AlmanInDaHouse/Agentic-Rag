@@ -116,7 +116,7 @@ hybrid
 0.4 * lexical_score + 0.6 * vector_score
 ```
 
-If mock embeddings are unavailable, `mock_vector` and `hybrid` fall back to lexical retrieval and record `fallbackReason` in result snapshots. This is not real semantic retrieval; mock vectors are deterministic hashes used to prove adapter boundaries, persistence and ranking behavior.
+If mock embeddings are unavailable, `mock_vector` and `hybrid` fall back to lexical retrieval and record `fallbackUsed` plus `fallbackReason` in result snapshots. This is not real semantic retrieval; mock vectors are deterministic hashes used to prove adapter boundaries, persistence and ranking behavior.
 
 ## Mock Embeddings
 

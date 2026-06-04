@@ -338,7 +338,7 @@ Listar retrievals:
 curl http://127.0.0.1:3001/api/goals/<goal-id>/context/retrievals
 ```
 
-Si `mock_vector` o `hybrid` no encuentran embeddings, la API hace fallback a `lexical` y deja `fallbackReason` en los resultados persistidos. Cuando un run avanza por `load_context`, el runtime sigue usando `lexical` por defecto, guarda `retrievalId`, `query` y `results` en el output del step y registra `context_retrieval_created` en timeline. Si no hay resultados, el step continua con `results: []`.
+Si `mock_vector` o `hybrid` no encuentran embeddings, la API hace fallback a `lexical` y deja `fallbackUsed`/`fallbackReason` en los resultados persistidos. Cuando un run avanza por `load_context`, el runtime sigue usando `lexical` por defecto, guarda `retrievalId`, `query` y `results` en el output del step y registra `context_retrieval_created` en timeline. Si no hay resultados, el step continua con `results: []`.
 
 Limitaciones actuales:
 

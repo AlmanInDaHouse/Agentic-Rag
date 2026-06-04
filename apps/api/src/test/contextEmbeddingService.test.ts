@@ -43,6 +43,45 @@ describe("ContextEmbeddingService", () => {
     expect(new Set(coverage.embeddings.map((embedding) => embedding.chunkId)).size).toBe(2);
   });
 
+  it("generates source embeddings idempotently", async () => {
+    const fixture = createEmbeddingFixture();
+
+    const first = await fixture.service.generateEmbeddingsForSource(fixture.source.id);
+    const second = await fixture.service.generateEmbeddingsForSource(fixture.source.id);
+
+    expect(first.generatedCount).toBe(2);
+    expect(second.generatedCount).toBe(0);
+    expect(second.skippedCount).toBe(2);
+    expect(fixture.chunkEmbeddingRepository.embeddings).toHaveLength(2);
+  });
+
+  it("does not duplicate chunk/model rows when forced", async () => {
+    const fixture = createEmbeddingFixture();
+
+    await fixture.service.generateEmbeddingsForDocument(fixture.document.id);
+    const forced = await fixture.service.generateEmbeddingsForDocument(fixture.document.id, {
+      force: true
+    });
+
+    expect(forced.generatedCount).toBe(2);
+    expect(fixture.chunkEmbeddingRepository.embeddings).toHaveLength(2);
+    expect(new Set(fixture.chunkEmbeddingRepository.embeddings.map((embedding) => embedding.chunkId)).size).toBe(2);
+  });
+
+  it("handles documents without chunks", async () => {
+    const fixture = createEmbeddingFixture({ seedChunks: false });
+
+    const result = await fixture.service.generateEmbeddingsForDocument(fixture.document.id);
+    const coverage = await fixture.service.getEmbeddingCoverageForDocument(fixture.document.id);
+
+    expect(result.generatedCount).toBe(0);
+    expect(result.skippedCount).toBe(0);
+    expect(result.embeddings).toEqual([]);
+    expect(coverage.chunkCount).toBe(0);
+    expect(coverage.embeddedChunkCount).toBe(0);
+    expect(coverage.coverage).toBe(1);
+  });
+
   it("returns not found for a missing document", async () => {
     const fixture = createEmbeddingFixture();
 
@@ -50,9 +89,17 @@ describe("ContextEmbeddingService", () => {
       fixture.service.generateEmbeddingsForDocument("00000000-0000-4000-8000-000000000999")
     ).rejects.toBeInstanceOf(NotFoundError);
   });
+
+  it("returns not found for a missing source", async () => {
+    const fixture = createEmbeddingFixture();
+
+    await expect(
+      fixture.service.generateEmbeddingsForSource("00000000-0000-4000-8000-000000000999")
+    ).rejects.toBeInstanceOf(NotFoundError);
+  });
 });
 
-function createEmbeddingFixture() {
+function createEmbeddingFixture(options: { seedChunks?: boolean } = {}) {
   const sourceRepository = new InMemorySourceRepository();
   const documentRepository = new InMemoryDocumentRepository();
   const chunkRepository = new InMemoryChunkRepository();
@@ -60,10 +107,14 @@ function createEmbeddingFixture() {
   const chunkEmbeddingRepository = new InMemoryChunkEmbeddingRepository();
   const source = sourceRepository.seed();
   const document = documentRepository.seed(source.id);
-  chunkRepository.seed(document.id);
+  if (options.seedChunks ?? true) {
+    chunkRepository.seed(document.id);
+  }
 
   return {
+    source,
     document,
+    chunkEmbeddingRepository,
     service: new ContextEmbeddingService(
       sourceRepository,
       documentRepository,

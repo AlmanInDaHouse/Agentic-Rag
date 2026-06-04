@@ -138,6 +138,7 @@ export class ContextEngineService {
       return sortResults(
         lexicalRanked.map((candidate) => ({
           ...candidate,
+          fallbackUsed: true,
           fallbackReason: vectorScored?.fallbackReason ?? "mock_embeddings_unavailable"
         })),
         "lexical"
@@ -163,6 +164,7 @@ export class ContextEngineService {
           return {
             ...candidate,
             score: 0.4 * normalizedLexicalScore + 0.6 * vectorScore,
+            finalScore: 0.4 * normalizedLexicalScore + 0.6 * vectorScore,
             mode: "hybrid" as RagSearchMode
           };
         })
@@ -224,7 +226,9 @@ export class ContextEngineService {
         lexicalScore: lexical,
         vectorScore,
         score: vectorScore ?? 0,
+        finalScore: vectorScore ?? 0,
         mode: "mock_vector" as RagSearchMode,
+        fallbackUsed: false,
         fallbackReason: null
       };
     });
@@ -297,9 +301,11 @@ function withLexicalScore(
   return {
     ...candidate,
     score,
+    finalScore: score,
     lexicalScore: score,
     vectorScore: null,
     mode: "lexical",
+    fallbackUsed: false,
     fallbackReason: null
   };
 }
@@ -311,6 +317,7 @@ function sortResults(
   return candidates
     .map((candidate) => ({
       ...candidate,
+      finalScore: candidate.score,
       mode
     }))
     .sort((left, right) => {

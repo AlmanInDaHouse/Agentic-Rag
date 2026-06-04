@@ -163,6 +163,9 @@ type RagSearchResult = {
   lexicalScore: number;
   vectorScore: number | null;
   score: number;
+  finalScore: number;
+  fallbackUsed: boolean;
+  fallbackReason: string | null;
   metadata: Record<string, unknown>;
 };
 ```
@@ -249,7 +252,7 @@ Fallback rules:
 
 - If no chunk embeddings exist, use lexical-only retrieval and record a fallback reason.
 - If query embedding fails, use lexical-only retrieval and record a warning/fallback reason.
-- Fallback metadata is stored in persisted retrieval result snapshots.
+- Fallback metadata is stored in persisted retrieval result snapshots as `fallbackUsed` and `fallbackReason`.
 - Runtime `load_context` remains lexical by default.
 
 ## Phased Roadmap
@@ -299,7 +302,7 @@ Fallback rules:
 - `mock_vector` search works when mock embeddings exist.
 - `hybrid` search combines lexical and mock vector scores with 0.4/0.6 weights.
 - `mock_vector` and `hybrid` fall back to lexical when embeddings are unavailable.
-- Retrieval result snapshots record mode, scores and fallback reason.
+- Retrieval result snapshots record mode, scores, `finalScore`, `fallbackUsed` and `fallbackReason`.
 - Runtime `load_context` remains lexical by default.
 - Harness validates deterministic mock embeddings before pgvector is introduced.
 - CI remains reproducible without external model access.
