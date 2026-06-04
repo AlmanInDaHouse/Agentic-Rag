@@ -117,6 +117,10 @@ type ContextDocumentRow = {
   source_id: string;
   title: string;
   content_hash: string;
+  classification?: ContextDocument["classification"];
+  redaction_status?: ContextDocument["redactionStatus"];
+  sensitive_findings?: unknown;
+  redacted_content_hash?: string | null;
   metadata: Record<string, unknown>;
   created_at: Date;
   updated_at: Date;
@@ -128,6 +132,7 @@ type ContextChunkRow = {
   chunk_index: number;
   content: string;
   token_estimate: number;
+  redaction_status?: ContextChunk["redactionStatus"];
   metadata: Record<string, unknown>;
   created_at: Date;
 };
@@ -277,6 +282,10 @@ export const mapContextDocument = (row: ContextDocumentRow): ContextDocument => 
   sourceId: row.source_id,
   title: row.title,
   contentHash: row.content_hash,
+  classification: row.classification ?? "internal",
+  redactionStatus: row.redaction_status ?? "not_scanned",
+  sensitiveFindings: parseSensitiveFindings(row.sensitive_findings),
+  redactedContentHash: row.redacted_content_hash ?? null,
   metadata: row.metadata,
   createdAt: iso(row.created_at),
   updatedAt: iso(row.updated_at)
@@ -288,6 +297,7 @@ export const mapContextChunk = (row: ContextChunkRow): ContextChunk => ({
   chunkIndex: row.chunk_index,
   content: row.content,
   tokenEstimate: row.token_estimate,
+  redactionStatus: row.redaction_status ?? "not_scanned",
   metadata: row.metadata,
   createdAt: iso(row.created_at)
 });
@@ -326,4 +336,11 @@ function parseEmbeddingVector(value: unknown): number[] {
     return [];
   }
   return value.map(Number);
+}
+
+function parseSensitiveFindings(value: unknown): ContextDocument["sensitiveFindings"] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value as ContextDocument["sensitiveFindings"];
 }

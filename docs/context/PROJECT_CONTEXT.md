@@ -6,7 +6,7 @@ TriForge Agentic Lab is an experimental platform for coordinating AI agents thro
 
 ## Current Architecture
 
-- `apps/api`: Fastify ESM API, PostgreSQL repositories, migrations, mock debate runtime, mock agent runtime state machine, safe execution policy, Context Engine, mock embedding boundary and tests.
+- `apps/api`: Fastify ESM API, PostgreSQL repositories, migrations, mock debate runtime, mock agent runtime state machine, safe execution policy, Context Engine, basic context redaction policy, mock embedding boundary and tests.
 - `apps/web`: React + Vite dashboard.
 - `packages/shared`: Zod contracts and shared TypeScript types.
 - `infra/docker`: local PostgreSQL compose setup.
@@ -40,7 +40,7 @@ TriForge Agentic Lab is an experimental platform for coordinating AI agents thro
 
 ## Current State
 
-The MVP supports goal creation/listing, debate round creation, latest round retrieval, mock agents, mock judge, persisted proposals, timeline events and basic dashboard. Milestone 1.3.1 adds a persisted mock agent runtime state machine with approval gate workflows, a safe execution policy, transactional advance locking and approval hardening. Milestone 1.4 adds Context Engine v0 with manual/project/artifact sources, deterministic chunking, lexical retrieval and runtime `load_context` integration. The runtime remains mock-only and does not execute real commands, modify code, install dependencies, run migrations or call real adapters.
+The MVP supports goal creation/listing, debate round creation, latest round retrieval, mock agents, mock judge, persisted proposals, timeline events and basic dashboard. Milestone 1.3.1 adds a persisted mock agent runtime state machine with approval gate workflows, a safe execution policy, transactional advance locking and approval hardening. Milestone 1.4 adds Context Engine v0 with manual/project/artifact sources, deterministic chunking, lexical retrieval and runtime `load_context` integration. Milestone 1.5C-A adds deterministic regex redaction and context data policy metadata before future real embedding work. The runtime remains mock-only and does not execute real commands, modify code, install dependencies, run migrations or call real adapters.
 
 ## Decisions Taken
 
@@ -53,13 +53,14 @@ The MVP supports goal creation/listing, debate round creation, latest round retr
 - Approval gates use simulated actor roles until real auth is introduced.
 - Context Engine uses lexical retrieval by default.
 - RAG v1 now has deterministic mock embeddings and mock/hybrid search modes without pgvector or external embeddings.
+- Context ingestion applies basic local regex redaction before chunk persistence.
 
 ## Next Steps
 
 - Consider database-per-run harness isolation only if schema isolation becomes insufficient.
 - Add adapter specs before implementing real agent bridges.
 - Keep the runtime mock-only until adapter sandboxing, subprocess limits and authorization exist.
-- Add pgvector and real local embeddings only after the mock embedding boundary, harness behavior and data policy are stable.
+- Add pgvector and real local embeddings only after the mock embedding boundary, harness behavior and stronger data policy are stable.
 
 ## Development Rules
 
@@ -129,7 +130,7 @@ tooling/harness
 - Dashboard has no live updates.
 - API route schemas are manually wired instead of using Fastify schema integration.
 - Approval gates are exposed for mock runtime actions and enforce simulated actor roles, but are not yet backed by authentication or real role binding.
-- Context retrieval is lexical only and has no retention/redaction policy yet.
+- Context retrieval is lexical by default and has basic regex redaction, but no full DLP or retention policy yet.
 - RAG v1 has deterministic mock embeddings and hybrid/mock-vector modes, but no real semantic embeddings or pgvector yet.
 
 ## Definition of Done

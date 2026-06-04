@@ -97,6 +97,19 @@ describe("ContextEmbeddingService", () => {
       fixture.service.generateEmbeddingsForSource("00000000-0000-4000-8000-000000000999")
     ).rejects.toBeInstanceOf(NotFoundError);
   });
+
+  it("does not generate embeddings for blocked documents", async () => {
+    const fixture = createEmbeddingFixture();
+    fixture.documentRepository.documents = fixture.documentRepository.documents.map((document) => ({
+      ...document,
+      classification: "restricted",
+      redactionStatus: "blocked"
+    }));
+
+    await expect(
+      fixture.service.generateEmbeddingsForDocument(fixture.document.id)
+    ).rejects.toThrow("blocked by data policy");
+  });
 });
 
 function createEmbeddingFixture(options: { seedChunks?: boolean } = {}) {
@@ -114,6 +127,7 @@ function createEmbeddingFixture(options: { seedChunks?: boolean } = {}) {
   return {
     source,
     document,
+    documentRepository,
     chunkEmbeddingRepository,
     service: new ContextEmbeddingService(
       sourceRepository,
@@ -162,6 +176,10 @@ class InMemoryDocumentRepository implements ContextDocumentRepository {
       sourceId,
       title: "Embedding document",
       contentHash: "hash",
+      classification: "internal",
+      redactionStatus: "clean",
+      sensitiveFindings: [],
+      redactedContentHash: null,
       metadata: {},
       createdAt: now,
       updatedAt: now
@@ -195,6 +213,7 @@ class InMemoryChunkRepository implements ContextChunkRepository {
         chunkIndex: 0,
         content: "first chunk",
         tokenEstimate: 3,
+        redactionStatus: "clean",
         metadata: {},
         createdAt: now
       },
@@ -204,6 +223,7 @@ class InMemoryChunkRepository implements ContextChunkRepository {
         chunkIndex: 1,
         content: "second chunk",
         tokenEstimate: 3,
+        redactionStatus: "clean",
         metadata: {},
         createdAt: now
       }
@@ -216,6 +236,7 @@ class InMemoryChunkRepository implements ContextChunkRepository {
       chunkIndex: input.chunkIndex,
       content: input.content,
       tokenEstimate: input.tokenEstimate,
+      redactionStatus: input.redactionStatus ?? "not_scanned",
       metadata: input.metadata ?? {},
       createdAt: now
     }));

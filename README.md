@@ -258,7 +258,7 @@ Todavia no esta implementado: RAG, GraphRAG, Code Graph, adapters reales de Code
 
 ## Context Engine and Mock Embeddings
 
-El Context Engine permite registrar contexto manual, recuperarlo con busqueda lexical y, desde Milestone 1.5B, generar embeddings mock deterministas. No usa pgvector, modelos reales, crawlers web, lectores del filesystem ni adapters externos.
+El Context Engine permite registrar contexto manual, aplicar redaccion regex local, recuperarlo con busqueda lexical y generar embeddings mock deterministas. No usa pgvector, modelos reales, crawlers web, lectores del filesystem ni adapters externos.
 
 Tipos de source permitidos:
 
@@ -283,6 +283,18 @@ curl -X POST http://127.0.0.1:3001/api/context/sources/<source-id>/documents \
   -H "content-type: application/json" \
   -d '{"title":"Approval notes","content":"The load_context step retrieves lexical chunks.","metadata":{}}'
 ```
+
+Previsualizar redaccion sin persistir:
+
+```bash
+curl -X POST http://127.0.0.1:3001/api/context/redact/preview \
+  -H "content-type: application/json" \
+  -d '{"content":"Contact ops@example.com with token=abcdef1234567890."}'
+```
+
+Antes de guardar un documento, la API escanea el texto normalizado. Si detecta datos sensibles, guarda metadata de `classification`, `redactionStatus` y `sensitiveFindings`, y crea chunks con contenido redacted. Los findings no incluyen el valor secreto original. Si detecta contenido `restricted`, como private keys, el documento se bloquea con `409`.
+
+La politica de duplicados sigue usando el hash del contenido original normalizado. Si hubo redaccion, `redactedContentHash` describe el texto usado para chunking/search/embeddings.
 
 Listar chunks de un documento:
 
@@ -345,6 +357,8 @@ Limitaciones actuales:
 - `mock_embedding_v1` produce vectores de 32 dimensiones con hashing determinista.
 - Es reproducible para CI/harness, pero no representa semantica real.
 - Los vectores se guardan en JSONB solo para este milestone; no es un indice vectorial productivo.
+- La redaccion actual es regex basica y no es DLP completo.
+- No hay politica tenant-level de retention, cuota o borrado.
 - No se envia contexto a providers externos.
 
 ## RAG roadmap
@@ -352,6 +366,7 @@ Limitaciones actuales:
 Estado actual:
 
 - Context Engine usa retrieval lexical por defecto.
+- Context ingestion aplica redaccion regex local antes de persistir chunks.
 - Hay embeddings mock deterministas para probar boundary, persistencia y harness.
 - No hay embeddings reales.
 - No hay pgvector.
@@ -363,7 +378,8 @@ Roadmap propuesto:
 ```text
 v1A: spec y ADR de estrategia RAG/embeddings.
 v1B: interfaces de embeddings y mock embeddings deterministas.
-v1C: pgvector y embeddings locales opcionales.
+v1C-A: data policy y redaccion regex local.
+v1C: pgvector y embeddings locales opcionales, despues de endurecer data policy.
 v1D: retrieval hibrido lexical + vectorial.
 ```
 

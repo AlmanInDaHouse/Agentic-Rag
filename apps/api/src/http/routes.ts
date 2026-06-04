@@ -15,6 +15,8 @@ import {
   CreateContextSourceSchema,
   EmbeddingModelSchema,
   GenerateEmbeddingsRequestSchema,
+  RedactionPreviewRequestSchema,
+  RedactionResultSchema,
   ResolveApprovalGateSchema,
   createGoalRequestSchema,
   debateRoundWithProposalsSchema,
@@ -128,6 +130,10 @@ export async function registerRoutes(
       } catch (error) {
         if (error instanceof NotFoundError) {
           reply.status(404).send({ error: "not_found", message: error.message });
+          return;
+        }
+        if (error instanceof ConflictError) {
+          reply.status(409).send({ error: "conflict", message: error.message });
           return;
         }
         throw error;
@@ -316,6 +322,21 @@ export async function registerRoutes(
   });
 
   app.post(
+    "/api/context/redact/preview",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const parsedBody = RedactionPreviewRequestSchema.safeParse(request.body);
+      if (!parsedBody.success) {
+        sendZodError(reply, parsedBody.error);
+        return;
+      }
+
+      reply.send(RedactionResultSchema.parse(
+        contextEngineService.previewRedaction(parsedBody.data.content)
+      ));
+    }
+  );
+
+  app.post(
     "/api/context/documents/:documentId/embeddings/mock",
     async (request: FastifyRequest, reply: FastifyReply) => {
       const parsedParams = documentParamsSchema.safeParse(request.params);
@@ -340,6 +361,10 @@ export async function registerRoutes(
           reply.status(404).send({ error: "not_found", message: error.message });
           return;
         }
+        if (error instanceof ConflictError) {
+          reply.status(409).send({ error: "conflict", message: error.message });
+          return;
+        }
         throw error;
       }
     }
@@ -362,6 +387,10 @@ export async function registerRoutes(
       } catch (error) {
         if (error instanceof NotFoundError) {
           reply.status(404).send({ error: "not_found", message: error.message });
+          return;
+        }
+        if (error instanceof ConflictError) {
+          reply.status(409).send({ error: "conflict", message: error.message });
           return;
         }
         throw error;
@@ -392,6 +421,10 @@ export async function registerRoutes(
       } catch (error) {
         if (error instanceof NotFoundError) {
           reply.status(404).send({ error: "not_found", message: error.message });
+          return;
+        }
+        if (error instanceof ConflictError) {
+          reply.status(409).send({ error: "conflict", message: error.message });
           return;
         }
         throw error;

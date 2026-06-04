@@ -6,6 +6,7 @@ import type {
   ContextSearch,
   ContextSearchResult,
   RagSearchMode,
+  RedactionResult,
   ContextSource,
   CreateContextDocument,
   CreateContextSource
@@ -27,6 +28,7 @@ import {
   MockEmbeddingAdapter,
   normalizeCosineScore
 } from "./embeddings/mockEmbeddingAdapter.js";
+import { ContextRedactionService } from "./contextRedactionService.js";
 
 const candidateLimit = 500;
 
@@ -40,7 +42,8 @@ export class ContextEngineService {
     private readonly chunkingService = new ContextChunkingService(),
     private readonly embeddingModelRepository?: EmbeddingModelRepository,
     private readonly chunkEmbeddingRepository?: ChunkEmbeddingRepository,
-    private readonly embeddingAdapter: EmbeddingAdapter = new MockEmbeddingAdapter()
+    private readonly embeddingAdapter: EmbeddingAdapter = new MockEmbeddingAdapter(),
+    private readonly contextRedactionService = new ContextRedactionService()
   ) {}
 
   async createSource(
@@ -70,24 +73,49 @@ export class ContextEngineService {
     if (existing) {
       throw new ConflictError("Context document already exists for this source");
     }
+    const redaction = this.contextRedactionService.redactText(normalizedContent);
+    if (redaction.classification === "restricted" || redaction.redactionStatus === "blocked") {
+      throw new ConflictError("Context document contains restricted data and was blocked by policy");
+    }
+    const contentForChunks =
+      redaction.redactionStatus === "redacted"
+        ? normalizeText(redaction.redactedContent)
+        : normalizedContent;
+    const redactedContentHash =
+      redaction.redactionStatus === "redacted"
+        ? stableContentHash(contentForChunks)
+        : null;
 
     const document = await this.contextDocumentRepository.create({
       sourceId: source.id,
       title: input.title,
       contentHash,
+      classification: redaction.classification,
+      redactionStatus: redaction.redactionStatus,
+      sensitiveFindings: redaction.findings,
+      redactedContentHash,
       metadata: input.metadata
     });
-    const drafts = this.chunkingService.chunk(normalizedContent);
+    const drafts = this.chunkingService.chunk(contentForChunks);
     const chunks = await this.contextChunkRepository.createMany(
       drafts.map((chunk) => ({
         documentId: document.id,
         chunkIndex: chunk.chunkIndex,
         content: chunk.content,
         tokenEstimate: chunk.tokenEstimate,
-        metadata: { sourceType: source.type }
+        redactionStatus: redaction.redactionStatus,
+        metadata: {
+          sourceType: source.type,
+          classification: redaction.classification,
+          redactionStatus: redaction.redactionStatus
+        }
       }))
     );
     return { document, chunks };
+  }
+
+  previewRedaction(content: string): RedactionResult {
+    return this.contextRedactionService.redactText(normalizeText(content));
   }
 
   async listDocuments(sourceId: string): Promise<ContextDocument[]> {

@@ -48,13 +48,13 @@ Status: open.
 
 Target resolution: design embeddings and vector storage after lexical retrieval contracts, dashboard and harness flows are stable.
 
-## CONTEXT-002: Context retention and redaction are undefined
+## CONTEXT-002: Context retention is undefined
 
-Context chunks and retrieval snapshots are persisted without a retention, quota or redaction policy. This is acceptable for local MVP usage with manual/project/artifact sources only.
+Context chunks and retrieval snapshots are persisted without a retention or quota policy. This is acceptable for local MVP usage with manual/project/artifact sources only.
 
 Status: open.
 
-Target resolution: add retention and redaction requirements before external source adapters or sensitive data ingestion.
+Target resolution: add retention and quota requirements before external source adapters or sensitive data ingestion.
 
 ## RAG-001: Semantic retrieval is still not real
 
@@ -64,13 +64,13 @@ Status: open.
 
 Target resolution: add a real local embedding adapter and semantic/vector storage after redaction, adapter policy and pgvector migration design are accepted.
 
-## RAG-002: No embedding redaction policy
+## RAG-002: Embedding redaction policy is basic regex only
 
-There is no policy yet for redacting context before embedding generation. This matters before local models process sensitive data and is mandatory before external embedding providers are considered.
+Context ingestion now applies deterministic regex redaction before chunk persistence, and mock embeddings run over persisted chunks. This is a minimum boundary, not complete DLP, and it is not sufficient to approve external embedding providers.
 
 Status: open.
 
-Target resolution: define redaction and data handling policy in the embedding implementation milestone.
+Target resolution: strengthen redaction, data handling, audit logging and review policy before real local models or external embedding providers are considered.
 
 ## RAG-003: No vector index or pgvector support yet
 
@@ -95,3 +95,27 @@ External embedding providers are not approved. Sending persisted context to a pr
 Status: open.
 
 Target resolution: add external provider policy only after local/mock embedding paths are stable.
+
+## DATA-001: Regex redaction is not complete DLP
+
+The current redaction service uses deterministic regex patterns for common secrets and identifiers. It can miss sensitive values and can redact benign text.
+
+Status: open.
+
+Target resolution: evaluate stronger local classification and human-review workflows before real providers or external sources.
+
+## DATA-002: No tenant-level retention or quota policy
+
+Context chunks, findings and retrieval snapshots do not yet have tenant-level retention, quota, deletion or archival rules.
+
+Status: open.
+
+Target resolution: define retention/quota policy before expanding context sources or production storage.
+
+## DATA-003: Original content storage policy is local-only
+
+The API no longer stores a separate full document body, but original submitted text exists transiently in request memory and duplicate hashes are derived from original normalized content. The policy assumes local-only operation.
+
+Status: open.
+
+Target resolution: add request logging guarantees, stronger data handling rules and audit policy before real adapters or external providers.
