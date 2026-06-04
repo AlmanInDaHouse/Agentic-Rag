@@ -13,6 +13,8 @@ import {
   CreateContextSourceSchema,
   EmbeddingModelSchema,
   GenerateEmbeddingsRequestSchema,
+  RedactionPreviewRequestSchema,
+  RedactionResultSchema,
   ResolveApprovalGateSchema,
   createGoalRequestSchema,
   debateRoundWithProposalsSchema,
@@ -35,6 +37,8 @@ import {
   type EmbeddingModel,
   type GenerateEmbeddingsRequest,
   type Goal,
+  type RedactionPreviewRequest,
+  type RedactionResult,
   type TimelineEvent
 } from "@triforge/shared";
 
@@ -262,6 +266,24 @@ export class HarnessApiClient {
   async listContextRetrievals(goalId: string): Promise<ContextRetrieval[]> {
     const body = await this.request(`/api/goals/${goalId}/context/retrievals`);
     return ContextRetrievalSchema.array().parse(body);
+  }
+
+  async previewContextRedaction(input: RedactionPreviewRequest): Promise<RedactionResult> {
+    const parsed = RedactionPreviewRequestSchema.parse(input);
+    const body = await this.request("/api/context/redact/preview", {
+      method: "POST",
+      body: JSON.stringify(parsed)
+    });
+    return RedactionResultSchema.parse(body);
+  }
+
+  async previewContextRedactionStatus(body: unknown): Promise<number> {
+    const response = await this.rawRequest("/api/context/redact/preview", {
+      method: "POST",
+      body: JSON.stringify(body)
+    });
+    await response.text();
+    return response.status;
   }
 
   async listEmbeddingModels(): Promise<EmbeddingModel[]> {

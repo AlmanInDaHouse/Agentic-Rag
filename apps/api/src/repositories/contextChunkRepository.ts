@@ -23,9 +23,10 @@ export class PgContextChunkRepository implements ContextChunkRepository {
             chunk_index,
             content,
             token_estimate,
+            redaction_status,
             metadata
           )
-          VALUES ($1, $2, $3, $4, $5)
+          VALUES ($1, $2, $3, $4, $5, $6)
           RETURNING *
         `,
         [
@@ -33,6 +34,7 @@ export class PgContextChunkRepository implements ContextChunkRepository {
           chunk.chunkIndex,
           chunk.content,
           chunk.tokenEstimate,
+          chunk.redactionStatus ?? "not_scanned",
           JSON.stringify(chunk.metadata ?? {})
         ]
       );
@@ -63,12 +65,17 @@ export class PgContextChunkRepository implements ContextChunkRepository {
           c.chunk_index,
           c.content,
           c.token_estimate,
+          c.redaction_status AS chunk_redaction_status,
           c.metadata AS chunk_metadata,
           c.created_at AS chunk_created_at,
           d.id AS document_id_value,
           d.source_id,
           d.title,
           d.content_hash,
+          d.classification,
+          d.redaction_status AS document_redaction_status,
+          d.sensitive_findings,
+          d.redacted_content_hash,
           d.metadata AS document_metadata,
           d.created_at AS document_created_at,
           d.updated_at AS document_updated_at,
@@ -104,6 +111,10 @@ export class PgContextChunkRepository implements ContextChunkRepository {
         source_id: row.source_id,
         title: row.title,
         content_hash: row.content_hash,
+        classification: row.classification,
+        redaction_status: row.document_redaction_status,
+        sensitive_findings: row.sensitive_findings,
+        redacted_content_hash: row.redacted_content_hash,
         metadata: row.document_metadata,
         created_at: row.document_created_at,
         updated_at: row.document_updated_at
@@ -114,6 +125,7 @@ export class PgContextChunkRepository implements ContextChunkRepository {
         chunk_index: row.chunk_index,
         content: row.content,
         token_estimate: row.token_estimate,
+        redaction_status: row.chunk_redaction_status,
         metadata: row.chunk_metadata,
         created_at: row.chunk_created_at
       }),

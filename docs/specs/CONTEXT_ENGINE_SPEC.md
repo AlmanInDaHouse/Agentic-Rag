@@ -19,6 +19,8 @@ Milestone 1.4 supports:
 
 Milestone 1.5B extends the context layer with deterministic mock embeddings and search mode selection while preserving lexical retrieval as the default.
 
+Milestone 1.5C-A adds a basic deterministic context data policy and regex redaction layer before future pgvector or real embedding work.
+
 ## Out of Scope
 
 - GraphRAG.
@@ -42,6 +44,9 @@ Milestone 1.5B extends the context layer with deterministic mock embeddings and 
 - `context_retrievals`: persisted retrieval trace containing query and selected results.
 - `embedding_models`: registered embedding model/provider metadata.
 - `context_chunk_embeddings`: deterministic mock vectors per chunk/model.
+- `classification`: document data classification.
+- `redaction_status`: document/chunk scan state.
+- `sensitive_findings`: metadata-only sensitive finding list without matched values.
 
 ## Source Types
 
@@ -71,6 +76,7 @@ Context Engine v0 uses PostgreSQL tables in migration `0006_context_engine.sql`.
 
 - Documents store `content_hash`, not a second full document copy.
 - Chunks store the retrievable text.
+- When sensitive findings exist, chunks store redacted text.
 - Retrievals store selected results as JSONB for traceability.
 - The schema keeps source/document/chunk boundaries compatible with future embeddings, but no vector extension is required.
 
@@ -87,6 +93,14 @@ Chunking is deterministic:
 7. Estimate tokens with `Math.ceil(content.length / 4)`.
 
 Empty chunks are never emitted. `chunk_index` is stable for the same normalized content and chunking options.
+
+## Data Policy and Redaction
+
+Context ingestion runs deterministic local regex scanning before document persistence. Clean text is classified as `internal`. Sensitive findings can classify content as `confidential` or `secret`; such content is allowed locally with metadata and chunks are created from redacted content. `restricted` content is blocked by default.
+
+Duplicate detection remains based on the original normalized content hash. `redacted_content_hash` is stored when redaction changes the chunking input.
+
+Initial finding types and rules are defined in `docs/specs/CONTEXT_DATA_POLICY_SPEC.md`. The policy is not full DLP and does not allow external providers.
 
 ## Retrieval
 
@@ -163,6 +177,7 @@ The runtime remains mock-only and does not read files, call networks or invoke r
 - `GET /api/context/documents/:documentId/chunks`
 - `POST /api/goals/:goalId/context/search`
 - `GET /api/goals/:goalId/context/retrievals`
+- `POST /api/context/redact/preview`
 - `GET /api/embedding-models`
 - `POST /api/context/documents/:documentId/embeddings/mock`
 - `GET /api/context/documents/:documentId/embeddings`
@@ -184,6 +199,13 @@ Shared Zod contracts live in `packages/shared/src/index.ts`:
 - `CreateContextDocumentSchema`
 - `ContextDocumentSchema`
 - `ContextChunkSchema`
+- `DataClassificationSchema`
+- `RedactionStatusSchema`
+- `SensitiveFindingTypeSchema`
+- `SensitiveFindingSchema`
+- `RedactionResultSchema`
+- `ContextDataPolicySchema`
+- `RedactionPreviewRequestSchema`
 - `ContextSearchSchema`
 - `ContextSearchResultSchema`
 - `ContextRetrievalSchema`
@@ -203,7 +225,10 @@ All input schemas are strict.
 - A source can be created for a goal.
 - Sources can be listed for a goal.
 - A plain text document can be added to a source.
+- Document ingestion scans and redacts sensitive data before chunk persistence.
+- Restricted content is blocked by policy.
 - Ingestion creates deterministic chunks.
+- Sensitive chunks do not expose original detected values.
 - Chunks can be listed for a document.
 - Context search returns relevant chunks by lexical scoring.
 - Context search accepts `lexical`, `mock_vector` and `hybrid` modes.
@@ -221,7 +246,8 @@ All input schemas are strict.
 ## Risks
 
 - Lexical ranking is intentionally basic and may miss semantically relevant context.
-- There is no retention or redaction policy yet.
+- Regex redaction is basic and not complete DLP.
+- There is no tenant-level retention or quota policy yet.
 - Chunks can grow storage over time.
 - Retrieval result JSONB snapshots may become large if limits increase.
 - Future external sources need approval and adapter specs before implementation.

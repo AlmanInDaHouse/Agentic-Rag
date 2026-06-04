@@ -12,6 +12,7 @@ import type {
   EmbeddingModel,
   Goal,
   RagSearchMode,
+  RedactionResult,
   TimelineEvent
 } from "@triforge/shared";
 import {
@@ -35,6 +36,7 @@ import {
   listContextSources,
   listGoals,
   listRuns,
+  previewContextRedaction,
   rejectGate,
   runDebate,
   searchContext,
@@ -89,6 +91,7 @@ export function App() {
     useState<ContextSourceType>("manual_text");
   const [contextDocumentTitle, setContextDocumentTitle] = useState("");
   const [contextDocumentContent, setContextDocumentContent] = useState("");
+  const [redactionPreview, setRedactionPreview] = useState<RedactionResult | null>(null);
   const [contextSearchQuery, setContextSearchQuery] = useState("");
   const [contextSearchMode, setContextSearchMode] = useState<RagSearchMode>("lexical");
   const [approvalActorRole, setApprovalActorRole] =
@@ -405,12 +408,29 @@ export function App() {
       });
       setContextDocumentTitle("");
       setContextDocumentContent("");
+      setRedactionPreview(null);
       setSelectedDocumentId(result.document.id);
       await refreshSourceDocuments(selectedSource.id);
       await refreshDocumentChunks(result.document.id);
       await refreshGoalContext(selectedGoal.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to add context document");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handlePreviewRedaction() {
+    if (contextDocumentContent.trim().length === 0) {
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      const preview = await previewContextRedaction({ content: contextDocumentContent });
+      setRedactionPreview(preview);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to preview redaction");
     } finally {
       setIsLoading(false);
     }
@@ -730,6 +750,26 @@ export function App() {
                         disabled={!selectedSource}
                       />
                     </label>
+                    <div className="button-row">
+                      <button
+                        type="button"
+                        className="secondary"
+                        onClick={handlePreviewRedaction}
+                        disabled={isLoading || contextDocumentContent.trim().length === 0}
+                      >
+                        Preview redaction
+                      </button>
+                    </div>
+                    {redactionPreview ? (
+                      <div className="policy-preview">
+                        <small>
+                          {redactionPreview.classification} / {redactionPreview.redactionStatus} / {redactionPreview.findings.length} finding(s)
+                        </small>
+                        {redactionPreview.redactionStatus === "redacted" || redactionPreview.redactionStatus === "blocked" ? (
+                          <p>{redactionPreview.redactedContent}</p>
+                        ) : null}
+                      </div>
+                    ) : null}
                     <button
                       disabled={
                         isLoading ||
@@ -843,6 +883,9 @@ export function App() {
                         onClick={() => setSelectedDocumentId(document.id)}
                       >
                         <span>{document.title}</span>
+                        <small>
+                          {document.classification} / {document.redactionStatus} / {document.sensitiveFindings.length} finding(s)
+                        </small>
                         <small>{document.contentHash.slice(0, 12)}</small>
                       </button>
                     ))}
@@ -854,7 +897,7 @@ export function App() {
                       <div key={chunk.id} className="chunk-item">
                         <strong>#{chunk.chunkIndex}</strong>
                         <p>{chunk.content}</p>
-                        <small>{chunk.tokenEstimate} estimated tokens</small>
+                        <small>{chunk.tokenEstimate} estimated tokens / {chunk.redactionStatus}</small>
                       </div>
                     ))}
                   </div>

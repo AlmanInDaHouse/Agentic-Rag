@@ -17,7 +17,8 @@ RAG v1 should support, in phases:
 - persisted retrieval traces,
 - runtime `load_context` integration,
 - reproducible harness coverage,
-- lexical fallback when embeddings are unavailable.
+- lexical fallback when embeddings are unavailable,
+- context data policy enforcement before real embeddings.
 
 ## Out of Scope
 
@@ -272,8 +273,17 @@ Fallback rules:
 - Avoid pgvector until CI/database implications are settled.
 - Persist mock vectors as JSONB to prove lifecycle and ranking determinism.
 
+### Milestone 1.5C-A: Context Data Policy and Redaction
+
+- Add deterministic regex scanning/redaction.
+- Store classification and redaction metadata.
+- Block restricted context by default.
+- Use redacted chunks for search and mock embeddings.
+- Do not add pgvector, local models or external providers.
+
 ### Milestone 1.5C: pgvector and Local Embeddings
 
+- Implement only after Milestone 1.5C-A data policy is accepted.
 - Add pgvector migration and database support if operationally acceptable.
 - Add optional local embedding model path, preferably Ollama.
 - Keep external providers out of default runtime.
@@ -288,8 +298,10 @@ Fallback rules:
 ## Safe Execution and Data Policy
 
 - Embedding text already persisted from `manual_text`, `project_note` or `artifact` sources is medium risk when processed by an approved local/mock embedding adapter.
+- Sensitive context must be scanned before persistence and redacted before chunking when findings are detected.
+- Restricted context must be blocked by default.
 - External embedding providers are `external_adapter_call` and require future approval policy.
-- Sensitive context must not be sent to an external provider until redaction and data handling policy exists.
+- Sensitive context must not be sent to an external provider. Basic regex redaction is not enough to approve external providers.
 - Filesystem, web, GitHub, Gmail and Calendar sources remain out of scope.
 
 ## Acceptance Criteria for Milestone 1.5B
@@ -315,3 +327,4 @@ Fallback rules:
 - Local embedding models add runtime resource and reproducibility concerns.
 - External providers introduce data handling, approval and privacy risks.
 - Hybrid scoring can become hard to reason about without clear normalization.
+- Regex redaction is not complete DLP and does not eliminate the need for stronger data governance before real providers.

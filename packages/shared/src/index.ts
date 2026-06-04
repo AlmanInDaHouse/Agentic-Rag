@@ -136,6 +136,58 @@ export const CreateAgentRunSchema = z.object({
 
 export const ContextSourceTypeSchema = z.enum(["manual_text", "project_note", "artifact"]);
 
+export const DataClassificationSchema = z.enum([
+  "public",
+  "internal",
+  "confidential",
+  "secret",
+  "restricted"
+]);
+
+export const RedactionStatusSchema = z.enum([
+  "not_scanned",
+  "clean",
+  "redacted",
+  "blocked"
+]);
+
+export const SensitiveFindingTypeSchema = z.enum([
+  "email",
+  "phone",
+  "dni_nie",
+  "iban",
+  "credit_card_like",
+  "api_key_like",
+  "jwt_like",
+  "private_key_like",
+  "password_like",
+  "secret_token_like",
+  "url_with_token"
+]);
+
+export const SensitiveFindingSchema = z.object({
+  type: SensitiveFindingTypeSchema,
+  start: z.number().int().nonnegative(),
+  end: z.number().int().nonnegative(),
+  replacement: z.string(),
+  severity: z.enum(["low", "medium", "high", "critical"])
+});
+
+export const RedactionResultSchema = z.object({
+  classification: DataClassificationSchema,
+  redactionStatus: RedactionStatusSchema,
+  findings: z.array(SensitiveFindingSchema),
+  redactedContent: z.string()
+});
+
+export const ContextDataPolicySchema = z.object({
+  public: z.literal("allowed"),
+  internal: z.literal("local_allowed"),
+  confidential: z.literal("local_allowed_with_metadata"),
+  secret: z.literal("redact_before_embedding_or_search"),
+  restricted: z.literal("blocked_by_default")
+});
+
 export const CreateContextSourceSchema = z.object({
   name: z.string().trim().min(1).max(160),
   type: ContextSourceTypeSchema,
@@ -163,6 +215,10 @@ export const ContextDocumentSchema = z.object({
   sourceId: z.string().uuid(),
   title: z.string(),
   contentHash: z.string(),
+  classification: DataClassificationSchema.default("internal"),
+  redactionStatus: RedactionStatusSchema.default("not_scanned"),
+  sensitiveFindings: z.array(SensitiveFindingSchema).default([]),
+  redactedContentHash: z.string().nullable().default(null),
   metadata: z.record(z.unknown()),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime()
@@ -174,9 +230,14 @@ export const ContextChunkSchema = z.object({
   chunkIndex: z.number().int().nonnegative(),
   content: z.string(),
   tokenEstimate: z.number().int().nonnegative(),
+  redactionStatus: RedactionStatusSchema.default("not_scanned"),
   metadata: z.record(z.unknown()),
   createdAt: z.string().datetime()
 });
+
+export const RedactionPreviewRequestSchema = z.object({
+  content: z.string().min(1).max(100_000)
+}).strict();
 
 export const EmbeddingProviderSchema = z.enum(["mock"]);
 
@@ -374,11 +435,18 @@ export type StopCondition = z.infer<typeof StopConditionSchema>;
 export type RunBudget = z.infer<typeof RunBudgetSchema>;
 export type CreateAgentRun = z.infer<typeof CreateAgentRunSchema>;
 export type ContextSourceType = z.infer<typeof ContextSourceTypeSchema>;
+export type DataClassification = z.infer<typeof DataClassificationSchema>;
+export type RedactionStatus = z.infer<typeof RedactionStatusSchema>;
+export type SensitiveFindingType = z.infer<typeof SensitiveFindingTypeSchema>;
+export type SensitiveFinding = z.infer<typeof SensitiveFindingSchema>;
+export type RedactionResult = z.infer<typeof RedactionResultSchema>;
+export type ContextDataPolicy = z.infer<typeof ContextDataPolicySchema>;
 export type CreateContextSource = z.infer<typeof CreateContextSourceSchema>;
 export type ContextSource = z.infer<typeof ContextSourceSchema>;
 export type CreateContextDocument = z.infer<typeof CreateContextDocumentSchema>;
 export type ContextDocument = z.infer<typeof ContextDocumentSchema>;
 export type ContextChunk = z.infer<typeof ContextChunkSchema>;
+export type RedactionPreviewRequest = z.infer<typeof RedactionPreviewRequestSchema>;
 export type EmbeddingProvider = z.infer<typeof EmbeddingProviderSchema>;
 export type EmbeddingModel = z.infer<typeof EmbeddingModelSchema>;
 export type EmbeddingVector = z.infer<typeof EmbeddingVectorSchema>;

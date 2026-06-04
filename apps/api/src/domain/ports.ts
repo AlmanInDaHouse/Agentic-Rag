@@ -16,9 +16,12 @@ import type {
   ContextSource,
   CreateContextDocument,
   CreateContextSource,
+  DataClassification,
   EmbeddingModel,
   CreateApprovalGate,
   CreateGoalRequest,
+  RedactionStatus,
+  SensitiveFinding,
   DebateRound,
   DebateRoundWithProposals,
   Goal,
@@ -156,6 +159,10 @@ export type CreateContextSourceInput = CreateContextSource & {
 export type CreateContextDocumentInput = Omit<CreateContextDocument, "content"> & {
   sourceId: string;
   contentHash: string;
+  classification: DataClassification;
+  redactionStatus: RedactionStatus;
+  sensitiveFindings: SensitiveFinding[];
+  redactedContentHash: string | null;
 };
 
 export type CreateContextChunkInput = {
@@ -163,6 +170,7 @@ export type CreateContextChunkInput = {
   chunkIndex: number;
   content: string;
   tokenEstimate: number;
+  redactionStatus?: RedactionStatus;
   metadata?: Record<string, unknown>;
 };
 

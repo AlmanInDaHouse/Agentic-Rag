@@ -14,14 +14,27 @@ export class PgContextDocumentRepository implements ContextDocumentRepository {
     try {
       const result = await this.db.query(
         `
-          INSERT INTO context_documents (source_id, title, content_hash, metadata)
-          VALUES ($1, $2, $3, $4)
+          INSERT INTO context_documents (
+            source_id,
+            title,
+            content_hash,
+            classification,
+            redaction_status,
+            sensitive_findings,
+            redacted_content_hash,
+            metadata
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
           RETURNING *
         `,
         [
           input.sourceId,
           input.title,
           input.contentHash,
+          input.classification,
+          input.redactionStatus,
+          JSON.stringify(input.sensitiveFindings),
+          input.redactedContentHash,
           JSON.stringify(input.metadata)
         ]
       );

@@ -152,6 +152,59 @@ describe("ContextEngineService", () => {
     expect(second.document.sourceId).toBe(secondSource.id);
   });
 
+  it("redacts sensitive content before chunking and keeps original duplicate hash policy", async () => {
+    const fixture = createContextFixture();
+    const source = await fixture.service.createSource(goal.id, {
+      name: "Sensitive source",
+      type: "manual_text",
+      metadata: {}
+    });
+    const input = {
+      title: "Sensitive document",
+      content: "Contact manuel@example.com with token=abcdef1234567890 for approval.",
+      metadata: {}
+    };
+
+    const result = await fixture.service.addDocument(source.id, input);
+
+    expect(result.document.classification).toBe("secret");
+    expect(result.document.redactionStatus).toBe("redacted");
+    expect(result.document.sensitiveFindings.length).toBeGreaterThanOrEqual(2);
+    expect(result.document.redactedContentHash).not.toBeNull();
+    expect(result.chunks[0].content).toContain("[REDACTED_EMAIL]");
+    expect(result.chunks[0].content).toContain("[REDACTED_TOKEN]");
+    expect(result.chunks[0].content).not.toContain("manuel@example.com");
+    await expect(fixture.service.addDocument(source.id, input)).rejects.toBeInstanceOf(ConflictError);
+  });
+
+  it("blocks restricted private key content", async () => {
+    const fixture = createContextFixture();
+    const source = await fixture.service.createSource(goal.id, {
+      name: "Restricted source",
+      type: "manual_text",
+      metadata: {}
+    });
+
+    await expect(
+      fixture.service.addDocument(source.id, {
+        title: "Private key",
+        content: "-----BEGIN PRIVATE KEY-----\nabc123\n-----END PRIVATE KEY-----",
+        metadata: {}
+      })
+    ).rejects.toBeInstanceOf(ConflictError);
+  });
+
+  it("previews redaction without persistence", () => {
+    const fixture = createContextFixture();
+
+    const preview = fixture.service.previewRedaction("Reach ops@example.com with api_key=sk_1234567890abcdef.");
+
+    expect(preview.classification).toBe("secret");
+    expect(preview.redactionStatus).toBe("redacted");
+    expect(preview.redactedContent).toContain("[REDACTED_EMAIL]");
+    expect(preview.redactedContent).not.toContain("ops@example.com");
+  });
+
   it("persists search with no results", async () => {
     const fixture = createContextFixture();
 
@@ -423,6 +476,10 @@ function contextCandidate(input: {
       sourceId: "00000000-0000-4000-8000-000000000010",
       title: input.title,
       contentHash: "hash",
+      classification: "internal",
+      redactionStatus: "clean",
+      sensitiveFindings: [],
+      redactedContentHash: null,
       metadata: {},
       createdAt: now,
       updatedAt: now
@@ -433,6 +490,7 @@ function contextCandidate(input: {
       chunkIndex: 0,
       content: input.content,
       tokenEstimate: 4,
+      redactionStatus: "clean",
       metadata: {},
       createdAt: now
     },
@@ -494,6 +552,10 @@ class InMemoryContextDocumentRepository implements ContextDocumentRepository {
       sourceId: input.sourceId,
       title: input.title,
       contentHash: input.contentHash,
+      classification: input.classification,
+      redactionStatus: input.redactionStatus,
+      sensitiveFindings: input.sensitiveFindings,
+      redactedContentHash: input.redactedContentHash,
       metadata: input.metadata,
       createdAt: now,
       updatedAt: now
@@ -526,6 +588,7 @@ class InMemoryContextChunkRepository implements ContextChunkRepository {
         chunkIndex: input.chunkIndex,
         content: input.content,
         tokenEstimate: input.tokenEstimate,
+        redactionStatus: input.redactionStatus ?? "not_scanned",
         metadata: input.metadata ?? {},
         createdAt: now
       };

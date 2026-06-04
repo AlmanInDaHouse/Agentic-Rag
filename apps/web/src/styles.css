@@ -331,7 +331,8 @@ textarea {
 
 .chunk-item,
 .retrieval-item,
-.embedding-item {
+.embedding-item,
+.policy-preview {
   background: #f7f8f4;
   border: 1px solid #dce2d6;
   border-radius: 8px;
@@ -342,9 +343,11 @@ textarea {
 }
 
 .chunk-item p,
-.retrieval-item p {
+.retrieval-item p,
+.policy-preview p {
   margin: 0;
   overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
 .retrieval-result {

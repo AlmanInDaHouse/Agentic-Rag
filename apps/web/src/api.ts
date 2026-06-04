@@ -13,6 +13,8 @@ import {
   CreateContextSourceSchema,
   EmbeddingModelSchema,
   GenerateEmbeddingsRequestSchema,
+  RedactionPreviewRequestSchema,
+  RedactionResultSchema,
   ResolveApprovalGateSchema,
   createGoalRequestSchema,
   debateRoundWithProposalsSchema,
@@ -35,6 +37,8 @@ import {
   type EmbeddingModel,
   type GenerateEmbeddingsRequest,
   type Goal,
+  type RedactionPreviewRequest,
+  type RedactionResult,
   type TimelineEvent
 } from "@triforge/shared";
 import { z } from "zod";
@@ -229,6 +233,17 @@ export async function searchContext(
 export async function listContextRetrievals(goalId: string): Promise<ContextRetrieval[]> {
   const body = await request<unknown>(`/api/goals/${goalId}/context/retrievals`);
   return z.array(ContextRetrievalSchema).parse(body);
+}
+
+export async function previewContextRedaction(
+  input: RedactionPreviewRequest
+): Promise<RedactionResult> {
+  const parsed = RedactionPreviewRequestSchema.parse(input);
+  const body = await request<unknown>("/api/context/redact/preview", {
+    method: "POST",
+    body: JSON.stringify(parsed)
+  });
+  return RedactionResultSchema.parse(body);
 }
 
 export async function listEmbeddingModels(): Promise<EmbeddingModel[]> {

@@ -10,7 +10,7 @@ Milestone 1.3.1 implements classification, approval gates, simulated actor-role 
 
 Context Engine v0 is limited to user-provided text through `manual_text`, `project_note` and `artifact` sources. Filesystem, web, GitHub, Gmail and Calendar context sources are out of scope and require future approval policy and adapter specs.
 
-RAG v1 planning treats embeddings over already persisted manual/project/artifact text as medium risk when handled by an approved local or mock embedding adapter. Calls to external embedding providers are `external_adapter_call` and require future approval, redaction and data handling policy. Local model adapters must be explicitly registered before use. Context must not be sent to an external provider by default.
+Context data policy now scans and redacts manual/project/artifact text before chunk persistence. RAG v1 planning treats embeddings over already persisted redacted chunks as medium risk when handled by an approved local or mock embedding adapter. Calls to external embedding providers are `external_adapter_call` and require future approval, stronger redaction/data handling policy and audit logging. Local model adapters must be explicitly registered before use. Context must not be sent to an external provider by default.
 
 ## Action Types
 

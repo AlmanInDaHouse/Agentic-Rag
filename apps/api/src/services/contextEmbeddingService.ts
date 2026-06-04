@@ -1,5 +1,5 @@
 import type { ChunkEmbedding, ContextDocument, EmbeddingModel } from "@triforge/shared";
-import { NotFoundError } from "../domain/errors.js";
+import { ConflictError, NotFoundError } from "../domain/errors.js";
 import type {
   ChunkEmbeddingRepository,
   ContextChunkRepository,
@@ -118,6 +118,9 @@ export class ContextEmbeddingService {
     options: GenerateEmbeddingsOptions,
     existingModel?: EmbeddingModel
   ): Promise<EmbeddingGenerationResult> {
+    if (document.redactionStatus === "blocked" || document.classification === "restricted") {
+      throw new ConflictError(`Context document ${document.id} is blocked by data policy`);
+    }
     const model = existingModel ?? (await this.embeddingModelRepository.getOrCreateMockModel());
     const chunks = await this.contextChunkRepository.listByDocument(document.id);
     const existingEmbeddings = await this.chunkEmbeddingRepository.getEmbeddingsByChunkIds(
