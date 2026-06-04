@@ -4,6 +4,7 @@ import {
   AgentRunSchema,
   AgentRunWithDetailsSchema,
   ApprovalGateSchema,
+  ChunkEmbeddingSchema,
   ContextChunkSchema,
   ContextDocumentSchema,
   ContextRetrievalSchema,
@@ -12,6 +13,8 @@ import {
   CreateAgentRunSchema,
   CreateContextDocumentSchema,
   CreateContextSourceSchema,
+  EmbeddingModelSchema,
+  GenerateEmbeddingsRequestSchema,
   ResolveApprovalGateSchema,
   createGoalRequestSchema,
   debateRoundWithProposalsSchema,
@@ -26,6 +29,7 @@ import type {
 } from "../domain/ports.js";
 import type { DebateService } from "../services/debateService.js";
 import type { AgentRuntimeService } from "../services/agentRuntimeService.js";
+import type { ContextEmbeddingService } from "../services/contextEmbeddingService.js";
 import type { ContextEngineService } from "../services/contextEngineService.js";
 
 const goalParamsSchema = z.object({
@@ -50,6 +54,24 @@ const documentParamsSchema = z.object({
 
 const emptyBodySchema = z.union([z.undefined(), z.object({}).strict()]);
 
+const embeddingGenerationResponseSchema = z.object({
+  model: EmbeddingModelSchema,
+  documentId: z.string().uuid().optional(),
+  sourceId: z.string().uuid().optional(),
+  generatedCount: z.number().int().nonnegative(),
+  skippedCount: z.number().int().nonnegative(),
+  embeddings: z.array(ChunkEmbeddingSchema)
+});
+
+const documentEmbeddingCoverageResponseSchema = z.object({
+  documentId: z.string().uuid(),
+  model: EmbeddingModelSchema,
+  chunkCount: z.number().int().nonnegative(),
+  embeddedChunkCount: z.number().int().nonnegative(),
+  coverage: z.number().min(0).max(1),
+  embeddings: z.array(ChunkEmbeddingSchema)
+});
+
 function sendZodError(reply: FastifyReply, error: z.ZodError): void {
   reply.status(400).send({
     error: "bad_request",
@@ -64,7 +86,8 @@ export async function registerRoutes(
   timelineEventsRepository: TimelineEventsRepository,
   debateService: DebateService,
   agentRuntimeService: AgentRuntimeService,
-  contextEngineService: ContextEngineService
+  contextEngineService: ContextEngineService,
+  contextEmbeddingService: ContextEmbeddingService
 ): Promise<void> {
   app.get("/health", async () => ({ status: "ok" }));
 
@@ -277,6 +300,95 @@ export async function registerRoutes(
       try {
         const chunks = await contextEngineService.listChunks(parsedParams.data.documentId);
         reply.send(z.array(ContextChunkSchema).parse(chunks));
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          reply.status(404).send({ error: "not_found", message: error.message });
+          return;
+        }
+        throw error;
+      }
+    }
+  );
+
+  app.get("/api/embedding-models", async () => {
+    const models = await contextEmbeddingService.listEmbeddingModels();
+    return z.array(EmbeddingModelSchema).parse(models);
+  });
+
+  app.post(
+    "/api/context/documents/:documentId/embeddings/mock",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const parsedParams = documentParamsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        sendZodError(reply, parsedParams.error);
+        return;
+      }
+      const parsedBody = GenerateEmbeddingsRequestSchema.safeParse(request.body ?? {});
+      if (!parsedBody.success) {
+        sendZodError(reply, parsedBody.error);
+        return;
+      }
+
+      try {
+        const result = await contextEmbeddingService.generateEmbeddingsForDocument(
+          parsedParams.data.documentId,
+          parsedBody.data
+        );
+        reply.status(201).send(embeddingGenerationResponseSchema.parse(result));
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          reply.status(404).send({ error: "not_found", message: error.message });
+          return;
+        }
+        throw error;
+      }
+    }
+  );
+
+  app.get(
+    "/api/context/documents/:documentId/embeddings",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const parsedParams = documentParamsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        sendZodError(reply, parsedParams.error);
+        return;
+      }
+
+      try {
+        const coverage = await contextEmbeddingService.getEmbeddingCoverageForDocument(
+          parsedParams.data.documentId
+        );
+        reply.send(documentEmbeddingCoverageResponseSchema.parse(coverage));
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          reply.status(404).send({ error: "not_found", message: error.message });
+          return;
+        }
+        throw error;
+      }
+    }
+  );
+
+  app.post(
+    "/api/context/sources/:sourceId/embeddings/mock",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const parsedParams = sourceParamsSchema.safeParse(request.params);
+      if (!parsedParams.success) {
+        sendZodError(reply, parsedParams.error);
+        return;
+      }
+      const parsedBody = GenerateEmbeddingsRequestSchema.safeParse(request.body ?? {});
+      if (!parsedBody.success) {
+        sendZodError(reply, parsedBody.error);
+        return;
+      }
+
+      try {
+        const result = await contextEmbeddingService.generateEmbeddingsForSource(
+          parsedParams.data.sourceId,
+          parsedBody.data
+        );
+        reply.status(201).send(embeddingGenerationResponseSchema.parse(result));
       } catch (error) {
         if (error instanceof NotFoundError) {
           reply.status(404).send({ error: "not_found", message: error.message });

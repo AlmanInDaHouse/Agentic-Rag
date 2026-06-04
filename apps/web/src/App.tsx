@@ -9,7 +9,9 @@ import type {
   ContextSource,
   ContextSourceType,
   DebateRoundWithProposals,
+  EmbeddingModel,
   Goal,
+  RagSearchMode,
   TimelineEvent
 } from "@triforge/shared";
 import {
@@ -20,9 +22,13 @@ import {
   cancelRun,
   createGoal,
   createRun,
+  generateDocumentMockEmbeddings,
+  generateSourceMockEmbeddings,
+  getDocumentEmbeddingCoverage,
   getLatestDebate,
   getRun,
   getTimeline,
+  listEmbeddingModels,
   listContextChunks,
   listContextDocuments,
   listContextRetrievals,
@@ -32,7 +38,8 @@ import {
   rejectGate,
   runDebate,
   searchContext,
-  startRun
+  startRun,
+  type DocumentEmbeddingCoverageResponse
 } from "./api.js";
 
 type DebateByGoal = Record<string, DebateRoundWithProposals>;
@@ -43,6 +50,7 @@ type ContextSourcesByGoal = Record<string, ContextSource[]>;
 type ContextDocumentsBySource = Record<string, ContextDocument[]>;
 type ContextChunksByDocument = Record<string, ContextChunk[]>;
 type ContextRetrievalsByGoal = Record<string, ContextRetrieval[]>;
+type EmbeddingCoverageByDocument = Record<string, DocumentEmbeddingCoverageResponse>;
 type ApprovalActorRole = "human_operator" | "admin" | "system";
 
 const agentLabels: Record<string, string> = {
@@ -70,6 +78,8 @@ export function App() {
   const [contextDocuments, setContextDocuments] = useState<ContextDocumentsBySource>({});
   const [contextChunks, setContextChunks] = useState<ContextChunksByDocument>({});
   const [contextRetrievals, setContextRetrievals] = useState<ContextRetrievalsByGoal>({});
+  const [embeddingModels, setEmbeddingModels] = useState<EmbeddingModel[]>([]);
+  const [embeddingCoverage, setEmbeddingCoverage] = useState<EmbeddingCoverageByDocument>({});
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
@@ -80,6 +90,7 @@ export function App() {
   const [contextDocumentTitle, setContextDocumentTitle] = useState("");
   const [contextDocumentContent, setContextDocumentContent] = useState("");
   const [contextSearchQuery, setContextSearchQuery] = useState("");
+  const [contextSearchMode, setContextSearchMode] = useState<RagSearchMode>("lexical");
   const [approvalActorRole, setApprovalActorRole] =
     useState<ApprovalActorRole>("human_operator");
   const [isLoading, setIsLoading] = useState(false);
@@ -105,6 +116,7 @@ export function App() {
     null;
   const selectedChunks = selectedDocument ? contextChunks[selectedDocument.id] ?? [] : [];
   const selectedRetrievals = selectedGoal ? contextRetrievals[selectedGoal.id] ?? [] : [];
+  const selectedEmbeddingCoverage = selectedDocument ? embeddingCoverage[selectedDocument.id] : null;
   const selectedRunHasPendingGate =
     selectedRun?.approvalGates.some((gate) => gate.status === "pending") ?? false;
 
@@ -157,6 +169,16 @@ export function App() {
     setContextChunks((current) => ({ ...current, [documentId]: chunks }));
   }
 
+  async function refreshEmbeddingModels() {
+    const models = await listEmbeddingModels();
+    setEmbeddingModels(models);
+  }
+
+  async function refreshDocumentEmbeddingCoverage(documentId: string) {
+    const coverage = await getDocumentEmbeddingCoverage(documentId);
+    setEmbeddingCoverage((current) => ({ ...current, [documentId]: coverage }));
+  }
+
   function storeRun(run: AgentRunWithDetails) {
     setRunDetails((current) => ({ ...current, [run.id]: run }));
     setRunsByGoal((current) => {
@@ -172,6 +194,9 @@ export function App() {
   useEffect(() => {
     refreshGoals().catch((err: unknown) => {
       setError(err instanceof Error ? err.message : "Failed to load goals");
+    });
+    refreshEmbeddingModels().catch((err: unknown) => {
+      setError(err instanceof Error ? err.message : "Failed to load embedding models");
     });
   }, []);
 
@@ -223,6 +248,16 @@ export function App() {
       setError(err instanceof Error ? err.message : "Failed to load context chunks");
     });
   }, [contextChunks, selectedDocument]);
+
+  useEffect(() => {
+    if (!selectedDocument || embeddingCoverage[selectedDocument.id]) {
+      return;
+    }
+
+    refreshDocumentEmbeddingCoverage(selectedDocument.id).catch((err: unknown) => {
+      setError(err instanceof Error ? err.message : "Failed to load embedding coverage");
+    });
+  }, [embeddingCoverage, selectedDocument]);
 
   useEffect(() => {
     if (!selectedRunId || runDetails[selectedRunId]) {
@@ -391,11 +426,46 @@ export function App() {
     try {
       await searchContext(selectedGoal.id, {
         query: contextSearchQuery,
-        limit: 5
+        limit: 5,
+        mode: contextSearchMode
       });
       await refreshGoalContext(selectedGoal.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to search context");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleGenerateDocumentEmbeddings() {
+    if (!selectedDocument) {
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      await generateDocumentMockEmbeddings(selectedDocument.id);
+      await refreshEmbeddingModels();
+      await refreshDocumentEmbeddingCoverage(selectedDocument.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to generate document embeddings");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleGenerateSourceEmbeddings() {
+    if (!selectedSource || !selectedDocument) {
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      await generateSourceMockEmbeddings(selectedSource.id);
+      await refreshEmbeddingModels();
+      await refreshDocumentEmbeddingCoverage(selectedDocument.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to generate source embeddings");
     } finally {
       setIsLoading(false);
     }
@@ -680,10 +750,66 @@ export function App() {
                         onChange={(event) => setContextSearchQuery(event.target.value)}
                       />
                     </label>
+                    <label>
+                      Mode
+                      <select
+                        value={contextSearchMode}
+                        onChange={(event) =>
+                          setContextSearchMode(event.target.value as RagSearchMode)
+                        }
+                      >
+                        <option value="lexical">lexical</option>
+                        <option value="mock_vector">mock_vector</option>
+                        <option value="hybrid">hybrid</option>
+                      </select>
+                    </label>
                     <button disabled={isLoading || contextSearchQuery.trim().length === 0}>
                       Search context
                     </button>
                   </form>
+                </div>
+
+                <div className="embedding-panel">
+                  <div>
+                    <h4>Embedding models</h4>
+                    {embeddingModels.length === 0 ? (
+                      <p className="muted">No embedding models registered.</p>
+                    ) : null}
+                    {embeddingModels.map((model) => (
+                      <div key={model.id} className="embedding-item">
+                        <span>{model.name}</span>
+                        <small>
+                          {model.provider} / {model.dimension}d / {model.isActive ? "active" : "inactive"}
+                        </small>
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <h4>Mock embeddings</h4>
+                    <div className="button-row">
+                      <button
+                        className="secondary"
+                        onClick={handleGenerateDocumentEmbeddings}
+                        disabled={isLoading || !selectedDocument}
+                      >
+                        Generate document
+                      </button>
+                      <button
+                        className="secondary"
+                        onClick={handleGenerateSourceEmbeddings}
+                        disabled={isLoading || !selectedSource}
+                      >
+                        Generate source
+                      </button>
+                    </div>
+                    {selectedEmbeddingCoverage ? (
+                      <p className="muted">
+                        {selectedEmbeddingCoverage.embeddedChunkCount}/{selectedEmbeddingCoverage.chunkCount} chunks embedded
+                      </p>
+                    ) : (
+                      <p className="muted">Select a document to view coverage.</p>
+                    )}
+                  </div>
                 </div>
 
                 <div className="context-lists">
@@ -744,9 +870,14 @@ export function App() {
                       <strong>{retrieval.query}</strong>
                       <small>{new Date(retrieval.createdAt).toLocaleString()}</small>
                       {retrieval.results.map((result) => (
-                        <p key={result.chunk.id}>
-                          {result.document.title}: {result.chunk.content}
-                        </p>
+                        <div key={result.chunk.id} className="retrieval-result">
+                          <p>{result.document.title}: {result.chunk.content}</p>
+                          <small>
+                            {result.mode} score {result.score.toFixed(3)}
+                            {result.vectorScore !== null ? ` / vector ${result.vectorScore.toFixed(3)}` : ""}
+                            {result.fallbackReason ? ` / fallback ${result.fallbackReason}` : ""}
+                          </small>
+                        </div>
                       ))}
                     </div>
                   ))}

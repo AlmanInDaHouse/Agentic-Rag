@@ -117,7 +117,13 @@ export class PgContextChunkRepository implements ContextChunkRepository {
         metadata: row.chunk_metadata,
         created_at: row.chunk_created_at
       }),
-      score: 0
+      score: 0,
+      finalScore: 0,
+      lexicalScore: 0,
+      vectorScore: null,
+      mode: "lexical",
+      fallbackUsed: false,
+      fallbackReason: null
     }));
   }
 }

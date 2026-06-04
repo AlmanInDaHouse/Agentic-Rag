@@ -2,6 +2,7 @@ import {
   AgentRunSchema,
   AgentRunWithDetailsSchema,
   ApprovalGateSchema,
+  ChunkEmbeddingSchema,
   ContextChunkSchema,
   ContextDocumentSchema,
   ContextRetrievalSchema,
@@ -10,6 +11,8 @@ import {
   CreateAgentRunSchema,
   CreateContextDocumentSchema,
   CreateContextSourceSchema,
+  EmbeddingModelSchema,
+  GenerateEmbeddingsRequestSchema,
   ResolveApprovalGateSchema,
   createGoalRequestSchema,
   debateRoundWithProposalsSchema,
@@ -18,6 +21,7 @@ import {
   type AgentRun,
   type AgentRunWithDetails,
   type ApprovalGate,
+  type ChunkEmbedding,
   type ContextChunk,
   type ContextDocument,
   type ContextRetrieval,
@@ -28,6 +32,8 @@ import {
   type CreateContextSource,
   type CreateGoalRequest,
   type DebateRoundWithProposals,
+  type EmbeddingModel,
+  type GenerateEmbeddingsRequest,
   type Goal,
   type TimelineEvent
 } from "@triforge/shared";
@@ -258,6 +264,55 @@ export class HarnessApiClient {
     return ContextRetrievalSchema.array().parse(body);
   }
 
+  async listEmbeddingModels(): Promise<EmbeddingModel[]> {
+    const body = await this.request("/api/embedding-models");
+    return EmbeddingModelSchema.array().parse(body);
+  }
+
+  async generateDocumentMockEmbeddings(
+    documentId: string,
+    input: GenerateEmbeddingsRequest = { force: false }
+  ): Promise<EmbeddingGenerationResponse> {
+    const parsed = GenerateEmbeddingsRequestSchema.parse(input);
+    const body = await this.request(`/api/context/documents/${documentId}/embeddings/mock`, {
+      method: "POST",
+      body: JSON.stringify(parsed)
+    });
+    return parseEmbeddingGenerationResponse(body);
+  }
+
+  async generateSourceMockEmbeddings(
+    sourceId: string,
+    input: GenerateEmbeddingsRequest = { force: false }
+  ): Promise<EmbeddingGenerationResponse> {
+    const parsed = GenerateEmbeddingsRequestSchema.parse(input);
+    const body = await this.request(`/api/context/sources/${sourceId}/embeddings/mock`, {
+      method: "POST",
+      body: JSON.stringify(parsed)
+    });
+    return parseEmbeddingGenerationResponse(body);
+  }
+
+  async getDocumentEmbeddingCoverage(documentId: string): Promise<DocumentEmbeddingCoverage> {
+    const body = await this.request(`/api/context/documents/${documentId}/embeddings`);
+    const candidate = body as {
+      documentId?: unknown;
+      model?: unknown;
+      chunkCount?: unknown;
+      embeddedChunkCount?: unknown;
+      coverage?: unknown;
+      embeddings?: unknown;
+    };
+    return {
+      documentId: String(candidate.documentId),
+      model: EmbeddingModelSchema.parse(candidate.model),
+      chunkCount: Number(candidate.chunkCount),
+      embeddedChunkCount: Number(candidate.embeddedChunkCount),
+      coverage: Number(candidate.coverage),
+      embeddings: ChunkEmbeddingSchema.array().parse(candidate.embeddings)
+    };
+  }
+
   private async request(path: string, init?: RequestInit): Promise<unknown> {
     const response = await this.rawRequest(path, init);
 
@@ -278,4 +333,41 @@ export class HarnessApiClient {
       }
     });
   }
+}
+
+export type EmbeddingGenerationResponse = {
+  model: EmbeddingModel;
+  documentId?: string;
+  sourceId?: string;
+  generatedCount: number;
+  skippedCount: number;
+  embeddings: ChunkEmbedding[];
+};
+
+export type DocumentEmbeddingCoverage = {
+  documentId: string;
+  model: EmbeddingModel;
+  chunkCount: number;
+  embeddedChunkCount: number;
+  coverage: number;
+  embeddings: ChunkEmbedding[];
+};
+
+function parseEmbeddingGenerationResponse(body: unknown): EmbeddingGenerationResponse {
+  const candidate = body as {
+    model?: unknown;
+    documentId?: unknown;
+    sourceId?: unknown;
+    generatedCount?: unknown;
+    skippedCount?: unknown;
+    embeddings?: unknown;
+  };
+  return {
+    model: EmbeddingModelSchema.parse(candidate.model),
+    documentId: typeof candidate.documentId === "string" ? candidate.documentId : undefined,
+    sourceId: typeof candidate.sourceId === "string" ? candidate.sourceId : undefined,
+    generatedCount: Number(candidate.generatedCount),
+    skippedCount: Number(candidate.skippedCount),
+    embeddings: ChunkEmbeddingSchema.array().parse(candidate.embeddings)
+  };
 }

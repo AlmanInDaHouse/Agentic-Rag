@@ -133,6 +133,10 @@ See:
 - `POST /api/context/sources/:sourceId/documents`
 - `GET /api/context/sources/:sourceId/documents`
 - `GET /api/context/documents/:documentId/chunks`
+- `GET /api/embedding-models`
+- `POST /api/context/documents/:documentId/embeddings/mock`
+- `GET /api/context/documents/:documentId/embeddings`
+- `POST /api/context/sources/:sourceId/embeddings/mock`
 - `POST /api/goals/:goalId/context/search`
 - `GET /api/goals/:goalId/context/retrievals`
 
@@ -252,9 +256,9 @@ install_dependency without dependency review
 
 Todavia no esta implementado: RAG, GraphRAG, Code Graph, adapters reales de Codex/Claude/Gemini/Ollama, colas de workers, auth para approval gates ni ejecucion autonoma multi-ciclo.
 
-## Context Engine v0
+## Context Engine and Mock Embeddings
 
-El Context Engine v0 permite registrar contexto manual y recuperarlo con busqueda lexical. No usa embeddings, pgvector, crawlers web, lectores del filesystem ni adapters externos.
+El Context Engine permite registrar contexto manual, recuperarlo con busqueda lexical y, desde Milestone 1.5B, generar embeddings mock deterministas. No usa pgvector, modelos reales, crawlers web, lectores del filesystem ni adapters externos.
 
 Tipos de source permitidos:
 
@@ -291,7 +295,41 @@ Buscar contexto:
 ```bash
 curl -X POST http://127.0.0.1:3001/api/goals/<goal-id>/context/search \
   -H "content-type: application/json" \
-  -d '{"query":"approval lexical chunks","limit":5}'
+  -d '{"query":"approval lexical chunks","limit":5,"mode":"lexical"}'
+```
+
+Generar embeddings mock para un documento:
+
+```bash
+curl -X POST http://127.0.0.1:3001/api/context/documents/<document-id>/embeddings/mock \
+  -H "content-type: application/json" \
+  -d '{}'
+```
+
+Generar embeddings mock para todos los documentos de un source:
+
+```bash
+curl -X POST http://127.0.0.1:3001/api/context/sources/<source-id>/embeddings/mock \
+  -H "content-type: application/json" \
+  -d '{}'
+```
+
+Ver cobertura de embeddings para un documento:
+
+```bash
+curl http://127.0.0.1:3001/api/context/documents/<document-id>/embeddings
+```
+
+Buscar con mock vector o hibrido:
+
+```bash
+curl -X POST http://127.0.0.1:3001/api/goals/<goal-id>/context/search \
+  -H "content-type: application/json" \
+  -d '{"query":"approval lexical chunks","limit":5,"mode":"mock_vector"}'
+
+curl -X POST http://127.0.0.1:3001/api/goals/<goal-id>/context/search \
+  -H "content-type: application/json" \
+  -d '{"query":"approval lexical chunks","limit":5,"mode":"hybrid"}'
 ```
 
 Listar retrievals:
@@ -300,13 +338,21 @@ Listar retrievals:
 curl http://127.0.0.1:3001/api/goals/<goal-id>/context/retrievals
 ```
 
-Cuando un run avanza por `load_context`, el runtime usa `run.objective` como query, guarda `retrievalId`, `query` y `results` en el output del step y registra `context_retrieval_created` en timeline. Si no hay resultados, el step continua con `results: []`.
+Si `mock_vector` o `hybrid` no encuentran embeddings, la API hace fallback a `lexical` y deja `fallbackUsed`/`fallbackReason` en los resultados persistidos. Cuando un run avanza por `load_context`, el runtime sigue usando `lexical` por defecto, guarda `retrievalId`, `query` y `results` en el output del step y registra `context_retrieval_created` en timeline. Si no hay resultados, el step continua con `results: []`.
+
+Limitaciones actuales:
+
+- `mock_embedding_v1` produce vectores de 32 dimensiones con hashing determinista.
+- Es reproducible para CI/harness, pero no representa semantica real.
+- Los vectores se guardan en JSONB solo para este milestone; no es un indice vectorial productivo.
+- No se envia contexto a providers externos.
 
 ## RAG roadmap
 
 Estado actual:
 
-- Context Engine v0 usa retrieval lexical.
+- Context Engine usa retrieval lexical por defecto.
+- Hay embeddings mock deterministas para probar boundary, persistencia y harness.
 - No hay embeddings reales.
 - No hay pgvector.
 - No hay GraphRAG ni Code Graph.

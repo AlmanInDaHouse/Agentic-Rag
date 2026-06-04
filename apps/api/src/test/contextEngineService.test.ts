@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type {
   ContextChunk,
+  ChunkEmbedding,
   ContextDocument,
   ContextRetrieval,
   ContextSearchResult,
   ContextSource,
+  EmbeddingModel,
   Goal
 } from "@triforge/shared";
 import { ConflictError, NotFoundError } from "../domain/errors.js";
@@ -13,9 +15,12 @@ import type {
   ContextDocumentRepository,
   ContextRetrievalRepository,
   ContextSourceRepository,
+  ChunkEmbeddingRepository,
   CreateContextChunkInput,
   CreateContextDocumentInput,
   CreateContextSourceInput,
+  EmbeddingModelRepository,
+  UpsertChunkEmbeddingInput,
   GoalsRepository
 } from "../domain/ports.js";
 import {
@@ -23,6 +28,7 @@ import {
   lexicalScore,
   stableContentHash
 } from "../services/contextEngineService.js";
+import { MockEmbeddingAdapter, embeddingHash } from "../services/embeddings/mockEmbeddingAdapter.js";
 
 const now = new Date("2026-01-01T00:00:00.000Z").toISOString();
 const goal: Goal = {
@@ -34,6 +40,16 @@ const goal: Goal = {
   updatedAt: now
 };
 const otherGoalId = "00000000-0000-4000-8000-000000000002";
+const embeddingModel: EmbeddingModel = {
+  id: "00000000-0000-4000-8000-000000000900",
+  name: "mock_embedding_v1",
+  provider: "mock",
+  dimension: 32,
+  isActive: true,
+  metadata: {},
+  createdAt: now,
+  updatedAt: now
+};
 
 describe("ContextEngineService", () => {
   it("uses stable hashes for normalized content", () => {
@@ -141,7 +157,8 @@ describe("ContextEngineService", () => {
 
     const retrieval = await fixture.service.search(goal.id, {
       query: "missing term",
-      limit: 5
+      limit: 5,
+      mode: "lexical"
     });
 
     expect(retrieval.results).toEqual([]);
@@ -163,12 +180,104 @@ describe("ContextEngineService", () => {
 
     const retrieval = await fixture.service.search(goal.id, {
       query: "approval gate",
-      limit: 3
+      limit: 3,
+      mode: "lexical"
     });
 
     expect(retrieval.results).toHaveLength(1);
     expect(retrieval.results[0].chunk.content).toContain("approval gate");
     expect(retrieval.results[0].score).toBeGreaterThan(0);
+  });
+
+  it("falls back to lexical ranking for hybrid search without embeddings", async () => {
+    const fixture = createContextFixture({ includeEmbeddings: true });
+    const source = await fixture.service.createSource(goal.id, {
+      name: "Fallback source",
+      type: "manual_text",
+      metadata: {}
+    });
+    await fixture.service.addDocument(source.id, {
+      title: "Fallback context",
+      content: "approval fallback context",
+      metadata: {}
+    });
+
+    const retrieval = await fixture.service.search(goal.id, {
+      query: "approval",
+      limit: 3,
+      mode: "hybrid"
+    });
+
+    expect(retrieval.results[0]).toMatchObject({
+      mode: "lexical",
+      fallbackUsed: true,
+      fallbackReason: "mock_embeddings_unavailable"
+    });
+  });
+
+  it("returns stable hybrid ranking when mock embeddings exist", async () => {
+    const fixture = createContextFixture({ includeEmbeddings: true });
+    const source = await fixture.service.createSource(goal.id, {
+      name: "Hybrid source",
+      type: "manual_text",
+      metadata: {}
+    });
+    const result = await fixture.service.addDocument(source.id, {
+      title: "Hybrid context",
+      content: "approval gate context\n\nruntime summary",
+      metadata: {}
+    });
+    await fixture.seedEmbeddings(result.chunks.map((chunk) => ({
+      chunkId: chunk.id,
+      content: chunk.content
+    })));
+
+    const first = await fixture.service.search(goal.id, {
+      query: "approval context",
+      limit: 3,
+      mode: "hybrid"
+    });
+    const second = await fixture.service.search(goal.id, {
+      query: "approval context",
+      limit: 3,
+      mode: "hybrid"
+    });
+
+    expect(first.results.length).toBeGreaterThan(0);
+    expect(first.results[0].mode).toBe("hybrid");
+    expect(first.results[0].vectorScore).not.toBeNull();
+    expect(first.results[0].fallbackUsed).toBe(false);
+    expect(first.results[0].finalScore).toBe(first.results[0].score);
+    expect(first.results.map((item) => item.chunk.id)).toEqual(
+      second.results.map((item) => item.chunk.id)
+    );
+  });
+
+  it("respects limit for hybrid ranking with embeddings", async () => {
+    const fixture = createContextFixture({ includeEmbeddings: true });
+    const source = await fixture.service.createSource(goal.id, {
+      name: "Hybrid limit source",
+      type: "manual_text",
+      metadata: {}
+    });
+    const result = await fixture.service.addDocument(source.id, {
+      title: "Hybrid limit context",
+      content: "approval context alpha\n\napproval context beta\n\napproval context gamma",
+      metadata: {}
+    });
+    await fixture.seedEmbeddings(result.chunks.map((chunk) => ({
+      chunkId: chunk.id,
+      content: chunk.content
+    })));
+
+    const retrieval = await fixture.service.search(goal.id, {
+      query: "approval context",
+      limit: 1,
+      mode: "hybrid"
+    });
+
+    expect(retrieval.results).toHaveLength(1);
+    expect(retrieval.results[0].mode).toBe("hybrid");
   });
 
   it("does not return chunks from other goals", async () => {
@@ -196,13 +305,54 @@ describe("ContextEngineService", () => {
 
     const retrieval = await fixture.service.search(goal.id, {
       query: "shared retrieval phrase",
-      limit: 10
+      limit: 10,
+      mode: "lexical"
     });
 
     expect(retrieval.results).toHaveLength(1);
     expect(retrieval.results[0].source.goalId).toBe(goal.id);
     expect(retrieval.results[0].chunk.content).toContain("goal one");
   });
+
+  it("does not use embeddings from other goals in hybrid search", async () => {
+    const fixture = createContextFixture({ includeEmbeddings: true });
+    const firstSource = await fixture.service.createSource(goal.id, {
+      name: "Hybrid goal one source",
+      type: "manual_text",
+      metadata: {}
+    });
+    const secondSource = await fixture.service.createSource(otherGoalId, {
+      name: "Hybrid goal two source",
+      type: "manual_text",
+      metadata: {}
+    });
+    const first = await fixture.service.addDocument(firstSource.id, {
+      title: "Goal one hybrid context",
+      content: "shared hybrid phrase from goal one",
+      metadata: {}
+    });
+    const second = await fixture.service.addDocument(secondSource.id, {
+      title: "Goal two hybrid context",
+      content: "shared hybrid phrase from goal two",
+      metadata: {}
+    });
+    await fixture.seedEmbeddings([
+      ...first.chunks.map((chunk) => ({ chunkId: chunk.id, content: chunk.content })),
+      ...second.chunks.map((chunk) => ({ chunkId: chunk.id, content: chunk.content }))
+    ]);
+
+    const retrieval = await fixture.service.search(goal.id, {
+      query: "shared hybrid phrase",
+      limit: 10,
+      mode: "hybrid"
+    });
+
+    expect(retrieval.results).toHaveLength(1);
+    expect(retrieval.results[0].source.goalId).toBe(goal.id);
+    expect(retrieval.results[0].chunk.content).toContain("goal one");
+    expect(retrieval.results[0].chunk.content).not.toContain("goal two");
+  });
+
 
   it("returns not found for unknown goals", async () => {
     const fixture = createContextFixture({ includeGoal: false });
@@ -211,19 +361,44 @@ describe("ContextEngineService", () => {
   });
 });
 
-function createContextFixture(options: { includeGoal?: boolean } = {}) {
+function createContextFixture(options: { includeGoal?: boolean; includeEmbeddings?: boolean } = {}) {
   const goalsRepository = new InMemoryGoalsRepository(options.includeGoal ?? true);
   const sourceRepository = new InMemoryContextSourceRepository();
   const documentRepository = new InMemoryContextDocumentRepository();
   const chunkRepository = new InMemoryContextChunkRepository(documentRepository, sourceRepository);
   const retrievalRepository = new InMemoryContextRetrievalRepository();
+  const embeddingModelRepository = new InMemoryEmbeddingModelRepository();
+  const chunkEmbeddingRepository = new InMemoryChunkEmbeddingRepository();
+  const embeddingAdapter = new MockEmbeddingAdapter();
   return {
+    seedEmbeddings: async (chunks: { chunkId: string; content: string }[]) => {
+      const model = await embeddingModelRepository.getOrCreateMockModel();
+      for (const chunk of chunks) {
+        const embedding = await embeddingAdapter.embedText(chunk.content);
+        await chunkEmbeddingRepository.upsertChunkEmbedding({
+          chunkId: chunk.chunkId,
+          modelId: model.id,
+          embedding,
+          embeddingHash: embeddingHash({
+            modelName: embeddingAdapter.name,
+            provider: embeddingAdapter.provider,
+            dimension: embeddingAdapter.dimension,
+            text: chunk.content,
+            embedding
+          })
+        });
+      }
+    },
     service: new ContextEngineService(
       goalsRepository,
       sourceRepository,
       documentRepository,
       chunkRepository,
-      retrievalRepository
+      retrievalRepository,
+      undefined,
+      options.includeEmbeddings ? embeddingModelRepository : undefined,
+      options.includeEmbeddings ? chunkEmbeddingRepository : undefined,
+      embeddingAdapter
     )
   };
 }
@@ -261,7 +436,13 @@ function contextCandidate(input: {
       metadata: {},
       createdAt: now
     },
-    score: 0
+    score: 0,
+    finalScore: 0,
+    lexicalScore: 0,
+    vectorScore: null,
+    mode: "lexical",
+    fallbackUsed: false,
+    fallbackReason: null
   };
 }
 
@@ -363,7 +544,18 @@ class InMemoryContextChunkRepository implements ContextChunkRepository {
       if (!document || !source || source.goalId !== goalId) {
         return [];
       }
-      return [{ source, document, chunk, score: 0 }];
+      return [{
+        source,
+        document,
+        chunk,
+        score: 0,
+        finalScore: 0,
+        lexicalScore: 0,
+        vectorScore: null,
+        mode: "lexical" as const,
+        fallbackUsed: false,
+        fallbackReason: null
+      }];
     });
   }
 }
@@ -387,5 +579,44 @@ class InMemoryContextRetrievalRepository implements ContextRetrievalRepository {
   }
   async listByGoal(goalId: string) {
     return this.retrievals.filter((retrieval) => retrieval.goalId === goalId);
+  }
+}
+
+class InMemoryEmbeddingModelRepository implements EmbeddingModelRepository {
+  async getOrCreateMockModel() {
+    return embeddingModel;
+  }
+  async listEmbeddingModels() {
+    return [embeddingModel];
+  }
+}
+
+class InMemoryChunkEmbeddingRepository implements ChunkEmbeddingRepository {
+  embeddings: ChunkEmbedding[] = [];
+  async upsertChunkEmbedding(input: UpsertChunkEmbeddingInput): Promise<ChunkEmbedding> {
+    const existing = this.embeddings.find(
+      (embedding) => embedding.chunkId === input.chunkId && embedding.modelId === input.modelId
+    );
+    const next: ChunkEmbedding = {
+      id: existing?.id ?? `00000000-0000-4000-8000-${String(this.embeddings.length + 900).padStart(12, "0")}`,
+      chunkId: input.chunkId,
+      modelId: input.modelId,
+      embedding: input.embedding,
+      embeddingHash: input.embeddingHash,
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now
+    };
+    if (existing) {
+      this.embeddings = this.embeddings.map((embedding) => embedding.id === existing.id ? next : embedding);
+    } else {
+      this.embeddings.push(next);
+    }
+    return next;
+  }
+  async getEmbeddingsByChunkIds(chunkIds: string[], modelId: string) {
+    return this.embeddings.filter((embedding) => chunkIds.includes(embedding.chunkId) && embedding.modelId === modelId);
+  }
+  async listChunkEmbeddings() {
+    return this.embeddings;
   }
 }

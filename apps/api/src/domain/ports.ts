@@ -9,12 +9,14 @@ import type {
   AgentStepType,
   ApprovalGate,
   ContextChunk,
+  ChunkEmbedding,
   ContextDocument,
   ContextRetrieval,
   ContextSearchResult,
   ContextSource,
   CreateContextDocument,
   CreateContextSource,
+  EmbeddingModel,
   CreateApprovalGate,
   CreateGoalRequest,
   DebateRound,
@@ -192,4 +194,22 @@ export interface ContextRetrievalRepository {
     results: ContextSearchResult[];
   }): Promise<ContextRetrieval>;
   listByGoal(goalId: string): Promise<ContextRetrieval[]>;
+}
+
+export type UpsertChunkEmbeddingInput = {
+  chunkId: string;
+  modelId: string;
+  embedding: number[];
+  embeddingHash: string;
+};
+
+export interface EmbeddingModelRepository {
+  getOrCreateMockModel(): Promise<EmbeddingModel>;
+  listEmbeddingModels(): Promise<EmbeddingModel[]>;
+}
+
+export interface ChunkEmbeddingRepository {
+  upsertChunkEmbedding(input: UpsertChunkEmbeddingInput): Promise<ChunkEmbedding>;
+  getEmbeddingsByChunkIds(chunkIds: string[], modelId: string): Promise<ChunkEmbedding[]>;
+  listChunkEmbeddings(documentId: string): Promise<ChunkEmbedding[]>;
 }

@@ -47,9 +47,9 @@ Context Engine v0 already provides:
 
 RAG v1 must build on those entities rather than replacing them.
 
-## Candidate Future Entities
+## Implemented Mock Embedding Entities
 
-These entities are proposed for a future migration. They are not implemented in Milestone 1.5A.
+Milestone 1.5B implements the first embedding persistence boundary without pgvector.
 
 ### `embedding_models`
 
@@ -61,6 +61,8 @@ dimension INTEGER NOT NULL
 is_active BOOLEAN NOT NULL DEFAULT true
 metadata JSONB NOT NULL DEFAULT '{}'
 created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+UNIQUE(name, provider)
 ```
 
 Purpose:
@@ -75,19 +77,20 @@ Purpose:
 ```sql
 id UUID PRIMARY KEY
 chunk_id UUID NOT NULL REFERENCES context_chunks(id) ON DELETE CASCADE
-model_id UUID NOT NULL REFERENCES embedding_models(id)
-embedding VECTOR(...)
+model_id UUID NOT NULL REFERENCES embedding_models(id) ON DELETE CASCADE
+embedding JSONB NOT NULL
 embedding_hash TEXT NOT NULL
 created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 UNIQUE(chunk_id, model_id)
 ```
 
 Notes:
 
-- If pgvector is used, `VECTOR(dimension)` requires a fixed dimension.
-- The migration should choose one dimension per model family or use separate tables/columns per supported dimension if needed.
+- Milestone 1.5B stores deterministic mock vectors as JSONB.
+- JSONB is not the final production semantic search path.
+- Future pgvector work must introduce a separate migration and extension plan.
 - `embedding_hash` should be derived from normalized chunk content, model id and adapter version so re-embedding decisions are traceable.
-- If pgvector is postponed, deterministic mock embeddings can be represented in test-only service objects or in JSONB during a narrow interface milestone, but JSONB should not become the production semantic search path.
 
 ### `rag_retrieval_runs`
 
@@ -111,15 +114,15 @@ Purpose:
 - record fallback reasons,
 - preserve result snapshots for dashboard and runtime observability.
 
-## Conceptual Contracts
+## Contracts
 
-These are conceptual contracts for future implementation. They should not be added to `packages/shared` until runtime/API code needs them.
+Milestone 1.5B adds these contracts to `packages/shared` because API, dashboard and harness now use them.
 
 ```ts
 type EmbeddingModel = {
   id: string;
   name: string;
-  provider: "mock_embedding" | "local_ollama_embedding" | "local_python_embedding" | "openai_embedding_optional" | "gemini_embedding_optional";
+  provider: "mock";
   dimension: number;
   isActive: boolean;
   metadata: Record<string, unknown>;
@@ -128,12 +131,12 @@ type EmbeddingModel = {
 type EmbeddingVector = number[];
 
 type EmbeddingRequest = {
-  modelId: string;
   input: string;
 };
 
 type EmbeddingResult = {
   modelId: string;
+  provider: "mock";
   dimension: number;
   embedding: EmbeddingVector;
   embeddingHash: string;
@@ -148,9 +151,8 @@ type RagSearchRequest = {
   goalId: string;
   query: string;
   limit: number;
-  mode: "lexical" | "vector" | "hybrid";
+  mode: "lexical" | "mock_vector" | "hybrid";
   weights: HybridSearchWeights;
-  modelId?: string;
 };
 
 type RagSearchResult = {
@@ -161,22 +163,38 @@ type RagSearchResult = {
   lexicalScore: number;
   vectorScore: number | null;
   score: number;
+  finalScore: number;
+  fallbackUsed: boolean;
+  fallbackReason: string | null;
   metadata: Record<string, unknown>;
 };
 ```
 
 ## Embedding Adapter Boundary
 
-Future implementations should use a small adapter interface:
+Implementations use a small adapter interface:
 
 ```ts
 interface EmbeddingAdapter {
   name: string;
+  provider: string;
   dimension: number;
   embedText(input: string): Promise<number[]>;
   embedBatch(inputs: string[]): Promise<number[][]>;
 }
 ```
+
+`mock_embedding_v1` is the initial adapter:
+
+- provider: `mock`,
+- dimension: `32`,
+- deterministic SHA-256 based vector generation,
+- normalized input before hashing,
+- no model downloads,
+- no network calls,
+- no random values.
+
+Mock embeddings are generated for persisted context chunks only. Generation skips chunks that already have an embedding for the active mock model unless `force` is requested. Recalculation rewrites the existing `(chunk_id, model_id)` row through an upsert and produces the same vector/hash for the same normalized chunk content.
 
 Planned adapters:
 
@@ -194,15 +212,28 @@ Preferred path for this project:
 2. `local_ollama_embedding` later after adapter policy is accepted.
 3. External providers only after explicit approval, redaction and data handling policy.
 
-## Hybrid Retrieval
+## Retrieval Modes
 
-Hybrid retrieval should combine lexical and vector signals:
+Initial modes:
+
+```text
+lexical
+mock_vector
+hybrid
+```
+
+`lexical` remains the default and keeps Context Engine v0 behavior.
+
+`mock_vector` embeds the query with `mock_embedding_v1`, reads stored mock chunk embeddings and ranks by normalized cosine similarity. It does not prove semantic quality because the vectors come from deterministic hashing, not a trained embedding model.
+
+`hybrid` combines lexical and mock vector signals:
+
 
 ```text
 score = lexical_weight * lexical_score + vector_weight * vector_score
 ```
 
-Initial proposed weights:
+Initial weights:
 
 ```text
 lexical_weight = 0.4
@@ -221,7 +252,8 @@ Fallback rules:
 
 - If no chunk embeddings exist, use lexical-only retrieval and record a fallback reason.
 - If query embedding fails, use lexical-only retrieval and record a warning/fallback reason.
-- If the selected embedding model is inactive, reject the request or fall back according to API policy defined in the implementation milestone.
+- Fallback metadata is stored in persisted retrieval result snapshots as `fallbackUsed` and `fallbackReason`.
+- Runtime `load_context` remains lexical by default.
 
 ## Phased Roadmap
 
@@ -238,6 +270,7 @@ Fallback rules:
 - Add unit tests and harness coverage.
 - Keep lexical fallback.
 - Avoid pgvector until CI/database implications are settled.
+- Persist mock vectors as JSONB to prove lifecycle and ranking determinism.
 
 ### Milestone 1.5C: pgvector and Local Embeddings
 
@@ -259,11 +292,18 @@ Fallback rules:
 - Sensitive context must not be sent to an external provider until redaction and data handling policy exists.
 - Filesystem, web, GitHub, Gmail and Calendar sources remain out of scope.
 
-## Acceptance Criteria for Future Implementation
+## Acceptance Criteria for Milestone 1.5B
 
 - Existing lexical retrieval keeps working.
-- Semantic retrieval can be disabled without breaking `load_context`.
-- Hybrid retrieval records mode, scores, weights and fallback reason.
+- Shared Zod contracts define embedding models, vectors, chunk embeddings and search modes.
+- `mock_embedding_v1` is deterministic, 32-dimensional and local-only.
+- Mock embeddings can be generated for a document or source.
+- Generation is idempotent and does not duplicate chunk/model rows.
+- `mock_vector` search works when mock embeddings exist.
+- `hybrid` search combines lexical and mock vector scores with 0.4/0.6 weights.
+- `mock_vector` and `hybrid` fall back to lexical when embeddings are unavailable.
+- Retrieval result snapshots record mode, scores, `finalScore`, `fallbackUsed` and `fallbackReason`.
+- Runtime `load_context` remains lexical by default.
 - Harness validates deterministic mock embeddings before pgvector is introduced.
 - CI remains reproducible without external model access.
 - No external context source or provider is enabled by default.

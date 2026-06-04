@@ -12,8 +12,12 @@ import { PgContextChunkRepository } from "./repositories/contextChunkRepository.
 import { PgContextDocumentRepository } from "./repositories/contextDocumentRepository.js";
 import { PgContextRetrievalRepository } from "./repositories/contextRetrievalRepository.js";
 import { PgContextSourceRepository } from "./repositories/contextSourceRepository.js";
+import { PgChunkEmbeddingRepository } from "./repositories/chunkEmbeddingRepository.js";
+import { PgEmbeddingModelRepository } from "./repositories/embeddingModelRepository.js";
 import { AgentRuntimeService } from "./services/agentRuntimeService.js";
+import { ContextEmbeddingService } from "./services/contextEmbeddingService.js";
 import { ContextEngineService } from "./services/contextEngineService.js";
+import { MockEmbeddingAdapter } from "./services/embeddings/mockEmbeddingAdapter.js";
 import { DebateService } from "./services/debateService.js";
 import { createMockAgents } from "./services/mockAgents.js";
 import { HighestConfidenceJudge } from "./services/mockJudge.js";
@@ -39,13 +43,28 @@ export async function buildApp() {
   const contextDocumentRepository = new PgContextDocumentRepository(pool);
   const contextChunkRepository = new PgContextChunkRepository(pool);
   const contextRetrievalRepository = new PgContextRetrievalRepository(pool);
+  const embeddingModelRepository = new PgEmbeddingModelRepository(pool);
+  const chunkEmbeddingRepository = new PgChunkEmbeddingRepository(pool);
   const agentRuntimeTransactionManager = new PgAgentRuntimeTransactionManager(pool);
+  const mockEmbeddingAdapter = new MockEmbeddingAdapter();
   const contextEngineService = new ContextEngineService(
     goalsRepository,
     contextSourceRepository,
     contextDocumentRepository,
     contextChunkRepository,
-    contextRetrievalRepository
+    contextRetrievalRepository,
+    undefined,
+    embeddingModelRepository,
+    chunkEmbeddingRepository,
+    mockEmbeddingAdapter
+  );
+  const contextEmbeddingService = new ContextEmbeddingService(
+    contextSourceRepository,
+    contextDocumentRepository,
+    contextChunkRepository,
+    embeddingModelRepository,
+    chunkEmbeddingRepository,
+    mockEmbeddingAdapter
   );
   const debateService = new DebateService(
     goalsRepository,
@@ -73,7 +92,8 @@ export async function buildApp() {
     timelineEventsRepository,
     debateService,
     agentRuntimeService,
-    contextEngineService
+    contextEngineService,
+    contextEmbeddingService
   );
   return app;
 }
