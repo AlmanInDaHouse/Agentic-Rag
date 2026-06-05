@@ -22,17 +22,19 @@ export class PgContextChunkRepository implements ContextChunkRepository {
             document_id,
             chunk_index,
             content,
+            content_size,
             token_estimate,
             redaction_status,
             metadata
           )
-          VALUES ($1, $2, $3, $4, $5, $6)
+          VALUES ($1, $2, $3, $4, $5, $6, $7)
           RETURNING *
         `,
         [
           chunk.documentId,
           chunk.chunkIndex,
           chunk.content,
+          chunk.contentSize,
           chunk.tokenEstimate,
           chunk.redactionStatus ?? "not_scanned",
           JSON.stringify(chunk.metadata ?? {})
@@ -64,8 +66,11 @@ export class PgContextChunkRepository implements ContextChunkRepository {
           c.document_id,
           c.chunk_index,
           c.content,
+          c.content_size AS chunk_content_size,
           c.token_estimate,
           c.redaction_status AS chunk_redaction_status,
+          c.deleted_at AS chunk_deleted_at,
+          c.deleted_reason AS chunk_deleted_reason,
           c.metadata AS chunk_metadata,
           c.created_at AS chunk_created_at,
           d.id AS document_id_value,
@@ -76,6 +81,9 @@ export class PgContextChunkRepository implements ContextChunkRepository {
           d.redaction_status AS document_redaction_status,
           d.sensitive_findings,
           d.redacted_content_hash,
+          d.content_size AS document_content_size,
+          d.deleted_at AS document_deleted_at,
+          d.deleted_reason AS document_deleted_reason,
           d.metadata AS document_metadata,
           d.created_at AS document_created_at,
           d.updated_at AS document_updated_at,
@@ -83,6 +91,8 @@ export class PgContextChunkRepository implements ContextChunkRepository {
           s.goal_id,
           s.name,
           s.type,
+          s.deleted_at AS source_deleted_at,
+          s.deleted_reason AS source_deleted_reason,
           s.metadata AS source_metadata,
           s.created_at AS source_created_at,
           s.updated_at AS source_updated_at
@@ -90,6 +100,9 @@ export class PgContextChunkRepository implements ContextChunkRepository {
         INNER JOIN context_documents d ON d.id = c.document_id
         INNER JOIN context_sources s ON s.id = d.source_id
         WHERE s.goal_id = $1
+          AND s.deleted_at IS NULL
+          AND d.deleted_at IS NULL
+          AND c.deleted_at IS NULL
         ORDER BY c.created_at DESC
         LIMIT $2
       `,
@@ -103,6 +116,8 @@ export class PgContextChunkRepository implements ContextChunkRepository {
         name: row.name,
         type: row.type,
         metadata: row.source_metadata,
+        deleted_at: row.source_deleted_at,
+        deleted_reason: row.source_deleted_reason,
         created_at: row.source_created_at,
         updated_at: row.source_updated_at
       }),
@@ -115,6 +130,9 @@ export class PgContextChunkRepository implements ContextChunkRepository {
         redaction_status: row.document_redaction_status,
         sensitive_findings: row.sensitive_findings,
         redacted_content_hash: row.redacted_content_hash,
+        content_size: row.document_content_size,
+        deleted_at: row.document_deleted_at,
+        deleted_reason: row.document_deleted_reason,
         metadata: row.document_metadata,
         created_at: row.document_created_at,
         updated_at: row.document_updated_at
@@ -124,8 +142,11 @@ export class PgContextChunkRepository implements ContextChunkRepository {
         document_id: row.document_id,
         chunk_index: row.chunk_index,
         content: row.content,
+        content_size: row.chunk_content_size,
         token_estimate: row.token_estimate,
         redaction_status: row.chunk_redaction_status,
+        deleted_at: row.chunk_deleted_at,
+        deleted_reason: row.chunk_deleted_reason,
         metadata: row.chunk_metadata,
         created_at: row.chunk_created_at
       }),
@@ -137,5 +158,29 @@ export class PgContextChunkRepository implements ContextChunkRepository {
       fallbackUsed: false,
       fallbackReason: null
     }));
+  }
+
+  async softDeleteByDocument(documentId: string, reason: string | null): Promise<void> {
+    await this.db.query(
+      `
+        UPDATE context_chunks
+        SET deleted_at = now(),
+            deleted_reason = $2
+        WHERE document_id = $1
+      `,
+      [documentId, reason]
+    );
+  }
+
+  async restoreByDocument(documentId: string): Promise<void> {
+    await this.db.query(
+      `
+        UPDATE context_chunks
+        SET deleted_at = NULL,
+            deleted_reason = NULL
+        WHERE document_id = $1
+      `,
+      [documentId]
+    );
   }
 }

@@ -200,13 +200,15 @@ export const ContextSourceSchema = z.object({
   name: z.string(),
   type: ContextSourceTypeSchema,
   metadata: z.record(z.unknown()),
+  deletedAt: z.string().datetime().nullable().default(null),
+  deletedReason: z.string().nullable().default(null),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime()
 });
 
 export const CreateContextDocumentSchema = z.object({
   title: z.string().trim().min(1).max(240),
-  content: z.string().trim().min(1).max(100_000),
+  content: z.string().trim().min(1).max(250_000),
   metadata: z.record(z.unknown()).default({})
 }).strict();
 
@@ -219,6 +221,9 @@ export const ContextDocumentSchema = z.object({
   redactionStatus: RedactionStatusSchema.default("not_scanned"),
   sensitiveFindings: z.array(SensitiveFindingSchema).default([]),
   redactedContentHash: z.string().nullable().default(null),
+  contentSize: z.number().int().nonnegative().default(0),
+  deletedAt: z.string().datetime().nullable().default(null),
+  deletedReason: z.string().nullable().default(null),
   metadata: z.record(z.unknown()),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime()
@@ -231,6 +236,9 @@ export const ContextChunkSchema = z.object({
   content: z.string(),
   tokenEstimate: z.number().int().nonnegative(),
   redactionStatus: RedactionStatusSchema.default("not_scanned"),
+  contentSize: z.number().int().nonnegative().default(0),
+  deletedAt: z.string().datetime().nullable().default(null),
+  deletedReason: z.string().nullable().default(null),
   metadata: z.record(z.unknown()),
   createdAt: z.string().datetime()
 });
@@ -238,6 +246,61 @@ export const ContextChunkSchema = z.object({
 export const RedactionPreviewRequestSchema = z.object({
   content: z.string().min(1).max(100_000)
 }).strict();
+
+export const ContextRetentionPolicySchema = z.object({
+  maxDocumentsPerGoal: z.number().int().positive().default(100),
+  maxDocumentCharacters: z.number().int().positive().default(200_000),
+  maxChunksPerDocument: z.number().int().positive().default(500),
+  maxChunkCharacters: z.number().int().positive().default(2_000),
+  maxRetrievalsPerGoal: z.number().int().positive().default(1_000),
+  maxEmbeddingRowsPerDocument: z.number().int().positive().default(500),
+  hardDeleteAllowed: z.boolean().default(false),
+  softDeleteDefault: z.boolean().default(true)
+}).strict();
+
+export const ContextAuditEventTypeSchema = z.enum([
+  "context_source_deleted",
+  "context_document_deleted",
+  "context_document_restored",
+  "context_quota_rejected",
+  "context_retention_pruned",
+  "context_hard_deleted"
+]);
+
+export const ContextAuditEventSchema = z.object({
+  id: z.string().uuid(),
+  goalId: z.string().uuid().nullable(),
+  sourceId: z.string().uuid().nullable(),
+  documentId: z.string().uuid().nullable(),
+  chunkId: z.string().uuid().nullable(),
+  eventType: ContextAuditEventTypeSchema,
+  actor: z.string(),
+  reason: z.string().nullable(),
+  payload: z.record(z.unknown()),
+  createdAt: z.string().datetime()
+});
+
+export const DeleteContextDocumentSchema = z.object({
+  actor: z.string().trim().min(1).max(160),
+  reason: z.string().trim().min(1).max(1000).optional(),
+  hardDelete: z.boolean().default(false)
+}).strict();
+
+export const RestoreContextDocumentSchema = z.object({
+  actor: z.string().trim().min(1).max(160),
+  reason: z.string().trim().min(1).max(1000).optional()
+}).strict();
+
+export const ContextQuotaStatusSchema = z.object({
+  goalId: z.string().uuid(),
+  policy: ContextRetentionPolicySchema,
+  activeDocuments: z.number().int().nonnegative(),
+  maxDocumentsPerGoal: z.number().int().positive(),
+  remainingDocuments: z.number().int().nonnegative(),
+  retrievals: z.number().int().nonnegative(),
+  maxRetrievalsPerGoal: z.number().int().positive(),
+  shouldPruneRetrievals: z.boolean()
+});
 
 export const EmbeddingProviderSchema = z.enum(["mock"]);
 
@@ -458,6 +521,12 @@ export type RagSearchMode = z.infer<typeof RagSearchModeSchema>;
 export type ContextSearch = z.infer<typeof ContextSearchSchema>;
 export type ContextSearchResult = z.infer<typeof ContextSearchResultSchema>;
 export type ContextRetrieval = z.infer<typeof ContextRetrievalSchema>;
+export type ContextRetentionPolicy = z.infer<typeof ContextRetentionPolicySchema>;
+export type ContextAuditEventType = z.infer<typeof ContextAuditEventTypeSchema>;
+export type ContextAuditEvent = z.infer<typeof ContextAuditEventSchema>;
+export type DeleteContextDocument = z.infer<typeof DeleteContextDocumentSchema>;
+export type RestoreContextDocument = z.infer<typeof RestoreContextDocumentSchema>;
+export type ContextQuotaStatus = z.infer<typeof ContextQuotaStatusSchema>;
 export type CreateGoalRequest = z.infer<typeof createGoalRequestSchema>;
 export type Goal = z.infer<typeof goalSchema>;
 export type AgentProposal = z.infer<typeof agentProposalSchema>;

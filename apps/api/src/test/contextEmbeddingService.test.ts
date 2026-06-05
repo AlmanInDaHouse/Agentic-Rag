@@ -110,6 +110,32 @@ describe("ContextEmbeddingService", () => {
       fixture.service.generateEmbeddingsForDocument(fixture.document.id)
     ).rejects.toThrow("blocked by data policy");
   });
+
+  it("does not generate embeddings for deleted documents", async () => {
+    const fixture = createEmbeddingFixture();
+    fixture.documentRepository.documents = fixture.documentRepository.documents.map((document) => ({
+      ...document,
+      deletedAt: now,
+      deletedReason: "cleanup"
+    }));
+
+    await expect(
+      fixture.service.generateEmbeddingsForDocument(fixture.document.id)
+    ).rejects.toThrow("is deleted");
+  });
+
+  it("does not generate embeddings for deleted sources", async () => {
+    const fixture = createEmbeddingFixture();
+    fixture.sourceRepository.sources = fixture.sourceRepository.sources.map((source) => ({
+      ...source,
+      deletedAt: now,
+      deletedReason: "cleanup"
+    }));
+
+    await expect(
+      fixture.service.generateEmbeddingsForSource(fixture.source.id)
+    ).rejects.toThrow("is deleted");
+  });
 });
 
 function createEmbeddingFixture(options: { seedChunks?: boolean } = {}) {
@@ -128,6 +154,7 @@ function createEmbeddingFixture(options: { seedChunks?: boolean } = {}) {
     source,
     document,
     documentRepository,
+    sourceRepository,
     chunkEmbeddingRepository,
     service: new ContextEmbeddingService(
       sourceRepository,
@@ -149,6 +176,8 @@ class InMemorySourceRepository implements ContextSourceRepository {
       name: "Embedding source",
       type: "manual_text",
       metadata: {},
+      deletedAt: null,
+      deletedReason: null,
       createdAt: now,
       updatedAt: now
     };
@@ -180,6 +209,9 @@ class InMemoryDocumentRepository implements ContextDocumentRepository {
       redactionStatus: "clean",
       sensitiveFindings: [],
       redactedContentHash: null,
+      contentSize: 11,
+      deletedAt: null,
+      deletedReason: null,
       metadata: {},
       createdAt: now,
       updatedAt: now
@@ -201,6 +233,30 @@ class InMemoryDocumentRepository implements ContextDocumentRepository {
   async listBySource(sourceId: string) {
     return this.documents.filter((document) => document.sourceId === sourceId);
   }
+  async countActiveByGoal() {
+    return this.documents.filter((document) => !document.deletedAt).length;
+  }
+  async softDelete(id: string, reason: string | null) {
+    const document = this.documents.find((candidate) => candidate.id === id);
+    if (!document) {
+      throw new Error("missing document");
+    }
+    const deleted = { ...document, deletedAt: now, deletedReason: reason, updatedAt: now };
+    this.documents = this.documents.map((candidate) => candidate.id === id ? deleted : candidate);
+    return deleted;
+  }
+  async restore(id: string, reason: string | null) {
+    const document = this.documents.find((candidate) => candidate.id === id);
+    if (!document) {
+      throw new Error("missing document");
+    }
+    const restored = { ...document, deletedAt: null, deletedReason: reason, updatedAt: now };
+    this.documents = this.documents.map((candidate) => candidate.id === id ? restored : candidate);
+    return restored;
+  }
+  async hardDelete(id: string) {
+    this.documents = this.documents.filter((document) => document.id !== id);
+  }
 }
 
 class InMemoryChunkRepository implements ContextChunkRepository {
@@ -214,6 +270,9 @@ class InMemoryChunkRepository implements ContextChunkRepository {
         content: "first chunk",
         tokenEstimate: 3,
         redactionStatus: "clean",
+        contentSize: "first chunk".length,
+        deletedAt: null,
+        deletedReason: null,
         metadata: {},
         createdAt: now
       },
@@ -224,6 +283,9 @@ class InMemoryChunkRepository implements ContextChunkRepository {
         content: "second chunk",
         tokenEstimate: 3,
         redactionStatus: "clean",
+        contentSize: "second chunk".length,
+        deletedAt: null,
+        deletedReason: null,
         metadata: {},
         createdAt: now
       }
@@ -237,6 +299,9 @@ class InMemoryChunkRepository implements ContextChunkRepository {
       content: input.content,
       tokenEstimate: input.tokenEstimate,
       redactionStatus: input.redactionStatus ?? "not_scanned",
+      contentSize: input.contentSize,
+      deletedAt: null,
+      deletedReason: null,
       metadata: input.metadata ?? {},
       createdAt: now
     }));
@@ -248,6 +313,16 @@ class InMemoryChunkRepository implements ContextChunkRepository {
   }
   async listCandidatesByGoal() {
     return [];
+  }
+  async softDeleteByDocument(documentId: string, reason: string | null) {
+    this.chunks = this.chunks.map((chunk) => (
+      chunk.documentId === documentId ? { ...chunk, deletedAt: now, deletedReason: reason } : chunk
+    ));
+  }
+  async restoreByDocument(documentId: string) {
+    this.chunks = this.chunks.map((chunk) => (
+      chunk.documentId === documentId ? { ...chunk, deletedAt: null, deletedReason: null } : chunk
+    ));
   }
 }
 
@@ -288,4 +363,6 @@ class InMemoryChunkEmbeddingRepository implements ChunkEmbeddingRepository {
   async listChunkEmbeddings(documentId: string) {
     return this.embeddings.filter((embedding) => embedding.chunkId.startsWith(documentId));
   }
+  async softDeleteByDocument() {}
+  async restoreByDocument() {}
 }

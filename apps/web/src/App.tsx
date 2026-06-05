@@ -3,8 +3,10 @@ import type {
   AgentRun,
   AgentRunStatus,
   AgentRunWithDetails,
+  ContextAuditEvent,
   ContextChunk,
   ContextDocument,
+  ContextQuotaStatus,
   ContextRetrieval,
   ContextSource,
   ContextSourceType,
@@ -23,14 +25,17 @@ import {
   cancelRun,
   createGoal,
   createRun,
+  deleteContextDocument,
   generateDocumentMockEmbeddings,
   generateSourceMockEmbeddings,
+  getContextQuota,
   getDocumentEmbeddingCoverage,
   getLatestDebate,
   getRun,
   getTimeline,
   listEmbeddingModels,
   listContextChunks,
+  listContextAuditEvents,
   listContextDocuments,
   listContextRetrievals,
   listContextSources,
@@ -38,6 +43,7 @@ import {
   listRuns,
   previewContextRedaction,
   rejectGate,
+  restoreContextDocument,
   runDebate,
   searchContext,
   startRun,
@@ -52,6 +58,8 @@ type ContextSourcesByGoal = Record<string, ContextSource[]>;
 type ContextDocumentsBySource = Record<string, ContextDocument[]>;
 type ContextChunksByDocument = Record<string, ContextChunk[]>;
 type ContextRetrievalsByGoal = Record<string, ContextRetrieval[]>;
+type ContextAuditEventsByGoal = Record<string, ContextAuditEvent[]>;
+type ContextQuotaByGoal = Record<string, ContextQuotaStatus>;
 type EmbeddingCoverageByDocument = Record<string, DocumentEmbeddingCoverageResponse>;
 type ApprovalActorRole = "human_operator" | "admin" | "system";
 
@@ -80,6 +88,8 @@ export function App() {
   const [contextDocuments, setContextDocuments] = useState<ContextDocumentsBySource>({});
   const [contextChunks, setContextChunks] = useState<ContextChunksByDocument>({});
   const [contextRetrievals, setContextRetrievals] = useState<ContextRetrievalsByGoal>({});
+  const [contextAuditEvents, setContextAuditEvents] = useState<ContextAuditEventsByGoal>({});
+  const [contextQuota, setContextQuota] = useState<ContextQuotaByGoal>({});
   const [embeddingModels, setEmbeddingModels] = useState<EmbeddingModel[]>([]);
   const [embeddingCoverage, setEmbeddingCoverage] = useState<EmbeddingCoverageByDocument>({});
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
@@ -119,6 +129,8 @@ export function App() {
     null;
   const selectedChunks = selectedDocument ? contextChunks[selectedDocument.id] ?? [] : [];
   const selectedRetrievals = selectedGoal ? contextRetrievals[selectedGoal.id] ?? [] : [];
+  const selectedAuditEvents = selectedGoal ? contextAuditEvents[selectedGoal.id] ?? [] : [];
+  const selectedQuota = selectedGoal ? contextQuota[selectedGoal.id] : null;
   const selectedEmbeddingCoverage = selectedDocument ? embeddingCoverage[selectedDocument.id] : null;
   const selectedRunHasPendingGate =
     selectedRun?.approvalGates.some((gate) => gate.status === "pending") ?? false;
@@ -142,12 +154,16 @@ export function App() {
   }
 
   async function refreshGoalContext(goalId: string) {
-    const [sources, retrievals] = await Promise.all([
+    const [sources, retrievals, quota, auditEvents] = await Promise.all([
       listContextSources(goalId),
-      listContextRetrievals(goalId)
+      listContextRetrievals(goalId),
+      getContextQuota(goalId),
+      listContextAuditEvents(goalId)
     ]);
     setContextSources((current) => ({ ...current, [goalId]: sources }));
     setContextRetrievals((current) => ({ ...current, [goalId]: retrievals }));
+    setContextQuota((current) => ({ ...current, [goalId]: quota }));
+    setContextAuditEvents((current) => ({ ...current, [goalId]: auditEvents }));
     setSelectedSourceId((current) => {
       if (current && sources.some((source) => source.id === current)) {
         return current;
@@ -457,6 +473,49 @@ export function App() {
     }
   }
 
+  async function handleDeleteContextDocument() {
+    if (!selectedGoal || !selectedSource || !selectedDocument) {
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      await deleteContextDocument(selectedDocument.id, {
+        actor: "human_operator",
+        reason: "dashboard cleanup",
+        hardDelete: false
+      });
+      await refreshSourceDocuments(selectedSource.id);
+      await refreshDocumentChunks(selectedDocument.id);
+      await refreshGoalContext(selectedGoal.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete context document");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleRestoreContextDocument() {
+    if (!selectedGoal || !selectedSource || !selectedDocument) {
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    try {
+      await restoreContextDocument(selectedDocument.id, {
+        actor: "human_operator",
+        reason: "dashboard restore"
+      });
+      await refreshSourceDocuments(selectedSource.id);
+      await refreshDocumentChunks(selectedDocument.id);
+      await refreshGoalContext(selectedGoal.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to restore context document");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   async function handleGenerateDocumentEmbeddings() {
     if (!selectedDocument) {
       return;
@@ -705,6 +764,27 @@ export function App() {
                   <p className="eyebrow">Context</p>
                   <h3>Sources and retrievals</h3>
                 </div>
+                {selectedQuota ? (
+                  <div className="quota-panel">
+                    <div>
+                      <strong>Quota</strong>
+                      <small>
+                        {selectedQuota.activeDocuments}/{selectedQuota.maxDocumentsPerGoal} active documents
+                      </small>
+                    </div>
+                    <div>
+                      <strong>Retrieval history</strong>
+                      <small>
+                        {selectedQuota.retrievals}/{selectedQuota.maxRetrievalsPerGoal}
+                        {selectedQuota.shouldPruneRetrievals ? " / prune recommended" : ""}
+                      </small>
+                    </div>
+                    <div>
+                      <strong>Document size</strong>
+                      <small>{selectedQuota.policy.maxDocumentCharacters} characters max</small>
+                    </div>
+                  </div>
+                ) : null}
                 <div className="context-grid">
                   <form onSubmit={handleCreateContextSource} className="context-form">
                     <label>
@@ -830,7 +910,7 @@ export function App() {
                       <button
                         className="secondary"
                         onClick={handleGenerateDocumentEmbeddings}
-                        disabled={isLoading || !selectedDocument}
+                        disabled={isLoading || !selectedDocument || Boolean(selectedDocument.deletedAt)}
                       >
                         Generate document
                       </button>
@@ -886,18 +966,52 @@ export function App() {
                         <small>
                           {document.classification} / {document.redactionStatus} / {document.sensitiveFindings.length} finding(s)
                         </small>
+                        {document.deletedAt ? <small>deleted / {document.deletedReason ?? "no reason"}</small> : null}
+                        <small>{document.contentSize} characters</small>
                         <small>{document.contentHash.slice(0, 12)}</small>
                       </button>
                     ))}
                   </div>
                   <div>
                     <h4>Chunks</h4>
+                    {selectedDocument ? (
+                      <div className="document-actions">
+                        <div>
+                          <strong>{selectedDocument.deletedAt ? "Deleted" : "Active"}</strong>
+                          <small>
+                            {selectedDocument.deletedAt
+                              ? new Date(selectedDocument.deletedAt).toLocaleString()
+                              : `${selectedDocument.contentSize} characters`}
+                          </small>
+                        </div>
+                        {selectedDocument.deletedAt ? (
+                          <button
+                            className="secondary"
+                            onClick={handleRestoreContextDocument}
+                            disabled={isLoading}
+                          >
+                            Restore
+                          </button>
+                        ) : (
+                          <button
+                            className="secondary danger"
+                            onClick={handleDeleteContextDocument}
+                            disabled={isLoading}
+                          >
+                            Soft delete
+                          </button>
+                        )}
+                      </div>
+                    ) : null}
                     {selectedChunks.length === 0 ? <p className="muted">No chunks selected.</p> : null}
                     {selectedChunks.map((chunk) => (
                       <div key={chunk.id} className="chunk-item">
                         <strong>#{chunk.chunkIndex}</strong>
                         <p>{chunk.content}</p>
-                        <small>{chunk.tokenEstimate} estimated tokens / {chunk.redactionStatus}</small>
+                        <small>
+                          {chunk.tokenEstimate} estimated tokens / {chunk.redactionStatus} / {chunk.contentSize} chars
+                          {chunk.deletedAt ? ` / deleted ${chunk.deletedReason ?? ""}` : ""}
+                        </small>
                       </div>
                     ))}
                   </div>
@@ -922,6 +1036,21 @@ export function App() {
                           </small>
                         </div>
                       ))}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="audit-list">
+                  <h4>Audit events</h4>
+                  {selectedAuditEvents.length === 0 ? (
+                    <p className="muted">No context audit events.</p>
+                  ) : null}
+                  {selectedAuditEvents.map((event) => (
+                    <div key={event.id} className="audit-item">
+                      <strong>{event.eventType}</strong>
+                      <small>
+                        {event.actor} / {event.reason ?? "no reason"} / {new Date(event.createdAt).toLocaleString()}
+                      </small>
                     </div>
                   ))}
                 </div>

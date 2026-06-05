@@ -3,19 +3,23 @@ import {
   AgentRunWithDetailsSchema,
   ApprovalGateSchema,
   ChunkEmbeddingSchema,
+  ContextAuditEventSchema,
   ContextChunkSchema,
   ContextDocumentSchema,
+  ContextQuotaStatusSchema,
   ContextRetrievalSchema,
   ContextSearchSchema,
   ContextSourceSchema,
   CreateAgentRunSchema,
   CreateContextDocumentSchema,
   CreateContextSourceSchema,
+  DeleteContextDocumentSchema,
   EmbeddingModelSchema,
   GenerateEmbeddingsRequestSchema,
   RedactionPreviewRequestSchema,
   RedactionResultSchema,
   ResolveApprovalGateSchema,
+  RestoreContextDocumentSchema,
   createGoalRequestSchema,
   debateRoundWithProposalsSchema,
   goalSchema,
@@ -24,13 +28,16 @@ import {
   type AgentRunWithDetails,
   type ApprovalGate,
   type ChunkEmbedding,
+  type ContextAuditEvent,
   type ContextChunk,
   type ContextDocument,
+  type ContextQuotaStatus,
   type ContextRetrieval,
   type ContextSearch,
   type ContextSource,
   type CreateContextDocument,
   type CreateContextSource,
+  type DeleteContextDocument,
   type CreateAgentRun,
   type CreateGoalRequest,
   type DebateRoundWithProposals,
@@ -39,6 +46,7 @@ import {
   type Goal,
   type RedactionPreviewRequest,
   type RedactionResult,
+  type RestoreContextDocument,
   type TimelineEvent
 } from "@triforge/shared";
 import { z } from "zod";
@@ -233,6 +241,43 @@ export async function searchContext(
 export async function listContextRetrievals(goalId: string): Promise<ContextRetrieval[]> {
   const body = await request<unknown>(`/api/goals/${goalId}/context/retrievals`);
   return z.array(ContextRetrievalSchema).parse(body);
+}
+
+export async function getContextQuota(goalId: string): Promise<ContextQuotaStatus> {
+  const body = await request<unknown>(`/api/goals/${goalId}/context/quota`);
+  return ContextQuotaStatusSchema.parse(body);
+}
+
+export async function listContextAuditEvents(goalId: string): Promise<ContextAuditEvent[]> {
+  const body = await request<unknown>(`/api/goals/${goalId}/context/audit-events`);
+  return z.array(ContextAuditEventSchema).parse(body);
+}
+
+export async function deleteContextDocument(
+  documentId: string,
+  input: DeleteContextDocument
+): Promise<{ hardDeleted: boolean; document: ContextDocument | null }> {
+  const parsed = DeleteContextDocumentSchema.parse(input);
+  const body = await request<unknown>(`/api/context/documents/${documentId}`, {
+    method: "DELETE",
+    body: JSON.stringify(parsed)
+  });
+  return z.object({
+    hardDeleted: z.boolean(),
+    document: ContextDocumentSchema.nullable()
+  }).parse(body);
+}
+
+export async function restoreContextDocument(
+  documentId: string,
+  input: RestoreContextDocument
+): Promise<ContextDocument> {
+  const parsed = RestoreContextDocumentSchema.parse(input);
+  const body = await request<unknown>(`/api/context/documents/${documentId}/restore`, {
+    method: "POST",
+    body: JSON.stringify(parsed)
+  });
+  return ContextDocumentSchema.parse(body);
 }
 
 export async function previewContextRedaction(

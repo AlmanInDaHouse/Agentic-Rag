@@ -48,13 +48,13 @@ Status: open.
 
 Target resolution: design embeddings and vector storage after lexical retrieval contracts, dashboard and harness flows are stable.
 
-## CONTEXT-002: Context retention is undefined
+## CONTEXT-002: Basic context retention policy exists
 
-Context chunks and retrieval snapshots are persisted without a retention or quota policy. This is acceptable for local MVP usage with manual/project/artifact sources only.
+Context documents now have basic service-layer quota checks, soft delete/restore and audit events. Retrieval snapshots are still retained as historical logs.
 
-Status: open.
+Status: resolved.
 
-Target resolution: add retention and quota requirements before external source adapters or sensitive data ingestion.
+Resolution: Milestone 1.5C-B adds retention/quota contracts, migration `0009_context_retention_deletion.sql`, document lifecycle endpoints and harness coverage.
 
 ## RAG-001: Semantic retrieval is still not real
 
@@ -104,13 +104,13 @@ Status: open.
 
 Target resolution: evaluate stronger local classification and human-review workflows before real providers or external sources.
 
-## DATA-002: No tenant-level retention or quota policy
+## DATA-002: Basic retention/quota/deletion policy is not tenant-specific
 
-Context chunks, findings and retrieval snapshots do not yet have tenant-level retention, quota, deletion or archival rules.
+Context documents now have basic quota, soft delete/restore and audit events. The policy is static and service-layer only; it is not configured per tenant, project or goal.
 
 Status: open.
 
-Target resolution: define retention/quota policy before expanding context sources or production storage.
+Target resolution: add tenant/project-specific quota configuration only after auth and tenancy boundaries are defined.
 
 ## DATA-003: Original content storage policy is local-only
 
@@ -119,3 +119,27 @@ The API no longer stores a separate full document body, but original submitted t
 Status: open.
 
 Target resolution: add request logging guarantees, stronger data handling rules and audit policy before real adapters or external providers.
+
+## DATA-004: No background retention worker yet
+
+Retention policy reports when retrieval history should be pruned, but there is no background worker or scheduled cleanup process.
+
+Status: open.
+
+Target resolution: add a worker/queue design after runtime worker requirements are accepted.
+
+## DATA-005: Hard delete audit is best-effort before cascade
+
+Hard delete writes `context_hard_deleted` before deleting the document. Existing foreign keys use `ON DELETE SET NULL` for audit references, so the audit row can lose the document reference after cascade.
+
+Status: open.
+
+Target resolution: add immutable audit payload snapshots if hard delete becomes part of normal production workflows.
+
+## DATA-006: No tenant-specific quota config yet
+
+Initial retention quotas are static defaults in the service layer. They cannot yet vary by tenant, user, project or goal.
+
+Status: open.
+
+Target resolution: define auth/tenancy first, then add persisted quota configuration.

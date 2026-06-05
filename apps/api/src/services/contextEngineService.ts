@@ -5,7 +5,11 @@ import type {
   ContextRetrieval,
   ContextSearch,
   ContextSearchResult,
+  ContextQuotaStatus,
+  ContextAuditEvent,
+  DeleteContextDocument,
   RagSearchMode,
+  RestoreContextDocument,
   RedactionResult,
   ContextSource,
   CreateContextDocument,
@@ -13,6 +17,7 @@ import type {
 } from "@triforge/shared";
 import { ConflictError, NotFoundError } from "../domain/errors.js";
 import type {
+  ContextAuditEventRepository,
   ContextChunkRepository,
   ContextDocumentRepository,
   ContextRetrievalRepository,
@@ -29,6 +34,7 @@ import {
   normalizeCosineScore
 } from "./embeddings/mockEmbeddingAdapter.js";
 import { ContextRedactionService } from "./contextRedactionService.js";
+import { ContextRetentionPolicyService } from "./contextRetentionPolicyService.js";
 
 const candidateLimit = 500;
 
@@ -43,7 +49,9 @@ export class ContextEngineService {
     private readonly embeddingModelRepository?: EmbeddingModelRepository,
     private readonly chunkEmbeddingRepository?: ChunkEmbeddingRepository,
     private readonly embeddingAdapter: EmbeddingAdapter = new MockEmbeddingAdapter(),
-    private readonly contextRedactionService = new ContextRedactionService()
+    private readonly contextRedactionService = new ContextRedactionService(),
+    private readonly contextRetentionPolicyService?: ContextRetentionPolicyService,
+    private readonly contextAuditEventRepository?: ContextAuditEventRepository
   ) {}
 
   async createSource(
@@ -67,7 +75,17 @@ export class ContextEngineService {
     input: CreateContextDocument
   ): Promise<{ document: ContextDocument; chunks: ContextChunk[] }> {
     const source = await this.requiredSource(sourceId);
+    if (source.deletedAt) {
+      throw new ConflictError(`Context source ${source.id} is deleted`);
+    }
+    if (!source.goalId) {
+      throw new ConflictError(`Context source ${source.id} is detached from a goal`);
+    }
     const normalizedContent = normalizeText(input.content);
+    await this.contextRetentionPolicyService?.validateDocumentIngestion(
+      source.goalId,
+      normalizedContent
+    );
     const contentHash = stableContentHash(normalizedContent);
     const existing = await this.contextDocumentRepository.findBySourceAndHash(source.id, contentHash);
     if (existing) {
@@ -81,6 +99,8 @@ export class ContextEngineService {
       redaction.redactionStatus === "redacted"
         ? normalizeText(redaction.redactedContent)
         : normalizedContent;
+    const drafts = this.chunkingService.chunk(contentForChunks);
+    await this.contextRetentionPolicyService?.validateChunkingForSource(source.id, drafts);
     const redactedContentHash =
       redaction.redactionStatus === "redacted"
         ? stableContentHash(contentForChunks)
@@ -94,14 +114,15 @@ export class ContextEngineService {
       redactionStatus: redaction.redactionStatus,
       sensitiveFindings: redaction.findings,
       redactedContentHash,
+      contentSize: normalizedContent.length,
       metadata: input.metadata
     });
-    const drafts = this.chunkingService.chunk(contentForChunks);
     const chunks = await this.contextChunkRepository.createMany(
       drafts.map((chunk) => ({
         documentId: document.id,
         chunkIndex: chunk.chunkIndex,
         content: chunk.content,
+        contentSize: chunk.content.length,
         tokenEstimate: chunk.tokenEstimate,
         redactionStatus: redaction.redactionStatus,
         metadata: {
@@ -118,6 +139,20 @@ export class ContextEngineService {
     return this.contextRedactionService.redactText(normalizeText(content));
   }
 
+  async getQuotaStatus(goalId: string): Promise<ContextQuotaStatus> {
+    if (!this.contextRetentionPolicyService) {
+      throw new ConflictError("Context retention policy service is unavailable");
+    }
+    return this.contextRetentionPolicyService.getQuotaStatus(goalId);
+  }
+
+  async listAuditEvents(goalId: string): Promise<ContextAuditEvent[]> {
+    if (!this.contextRetentionPolicyService) {
+      throw new ConflictError("Context retention policy service is unavailable");
+    }
+    return this.contextRetentionPolicyService.listAuditEvents(goalId);
+  }
+
   async listDocuments(sourceId: string): Promise<ContextDocument[]> {
     await this.requiredSource(sourceId);
     return this.contextDocumentRepository.listBySource(sourceId);
@@ -129,6 +164,92 @@ export class ContextEngineService {
       throw new NotFoundError(`Context document ${documentId} was not found`);
     }
     return this.contextChunkRepository.listByDocument(document.id);
+  }
+
+  async deleteDocument(
+    documentId: string,
+    input: DeleteContextDocument
+  ): Promise<ContextDocument | null> {
+    const document = await this.contextDocumentRepository.findById(documentId);
+    if (!document) {
+      throw new NotFoundError(`Context document ${documentId} was not found`);
+    }
+    const source = await this.requiredSource(document.sourceId);
+    if (input.hardDelete) {
+      const policy = this.contextRetentionPolicyService?.getDefaultPolicy();
+      if (!policy?.hardDeleteAllowed) {
+        throw new ConflictError("Hard delete is not allowed by the active retention policy");
+      }
+      await this.contextAuditEventRepository?.create({
+        goalId: source.goalId,
+        sourceId: source.id,
+        documentId: document.id,
+        eventType: "context_hard_deleted",
+        actor: input.actor,
+        reason: input.reason ?? null,
+        payload: {
+          title: document.title,
+          contentSize: document.contentSize
+        }
+      });
+      await this.contextDocumentRepository.hardDelete(document.id);
+      return null;
+    }
+    if (document.deletedAt) {
+      throw new ConflictError(`Context document ${document.id} is already deleted`);
+    }
+    const reason = input.reason ?? null;
+    await this.contextChunkRepository.softDeleteByDocument(document.id, reason);
+    await this.chunkEmbeddingRepository?.softDeleteByDocument(document.id);
+    const deleted = await this.contextDocumentRepository.softDelete(document.id, reason);
+    await this.contextAuditEventRepository?.create({
+      goalId: source.goalId,
+      sourceId: source.id,
+      documentId: document.id,
+      eventType: "context_document_deleted",
+      actor: input.actor,
+      reason,
+      payload: {
+        hardDelete: false,
+        title: document.title,
+        contentSize: document.contentSize
+      }
+    });
+    return deleted;
+  }
+
+  async restoreDocument(
+    documentId: string,
+    input: RestoreContextDocument
+  ): Promise<ContextDocument> {
+    const document = await this.contextDocumentRepository.findById(documentId);
+    if (!document) {
+      throw new NotFoundError(`Context document ${documentId} was not found`);
+    }
+    if (!document.deletedAt) {
+      throw new ConflictError(`Context document ${document.id} is not deleted`);
+    }
+    const source = await this.requiredSource(document.sourceId);
+    if (source.deletedAt) {
+      throw new ConflictError(`Context source ${source.id} is deleted`);
+    }
+    const reason = input.reason ?? null;
+    await this.contextChunkRepository.restoreByDocument(document.id);
+    await this.chunkEmbeddingRepository?.restoreByDocument(document.id);
+    const restored = await this.contextDocumentRepository.restore(document.id, reason);
+    await this.contextAuditEventRepository?.create({
+      goalId: source.goalId,
+      sourceId: source.id,
+      documentId: document.id,
+      eventType: "context_document_restored",
+      actor: input.actor,
+      reason,
+      payload: {
+        title: document.title,
+        embeddingsRestored: Boolean(this.chunkEmbeddingRepository)
+      }
+    });
+    return restored;
   }
 
   async search(goalId: string, input: ContextSearch): Promise<ContextRetrieval> {

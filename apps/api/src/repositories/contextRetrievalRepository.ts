@@ -35,4 +35,16 @@ export class PgContextRetrievalRepository implements ContextRetrievalRepository 
     );
     return result.rows.map(mapContextRetrieval);
   }
+
+  async countByGoal(goalId: string): Promise<number> {
+    const result = await this.db.query(
+      `
+        SELECT count(*)::int AS count
+        FROM context_retrievals
+        WHERE goal_id = $1
+      `,
+      [goalId]
+    );
+    return Number(result.rows[0]?.count ?? 0);
+  }
 }

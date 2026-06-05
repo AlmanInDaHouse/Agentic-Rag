@@ -22,9 +22,10 @@ export class PgContextDocumentRepository implements ContextDocumentRepository {
             redaction_status,
             sensitive_findings,
             redacted_content_hash,
+            content_size,
             metadata
           )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
           RETURNING *
         `,
         [
@@ -35,6 +36,7 @@ export class PgContextDocumentRepository implements ContextDocumentRepository {
           input.redactionStatus,
           JSON.stringify(input.sensitiveFindings),
           input.redactedContentHash,
+          input.contentSize,
           JSON.stringify(input.metadata)
         ]
       );
@@ -74,6 +76,55 @@ export class PgContextDocumentRepository implements ContextDocumentRepository {
       [sourceId]
     );
     return result.rows.map(mapContextDocument);
+  }
+
+  async countActiveByGoal(goalId: string): Promise<number> {
+    const result = await this.db.query(
+      `
+        SELECT count(*)::int AS count
+        FROM context_documents d
+        INNER JOIN context_sources s ON s.id = d.source_id
+        WHERE s.goal_id = $1
+          AND s.deleted_at IS NULL
+          AND d.deleted_at IS NULL
+      `,
+      [goalId]
+    );
+    return Number(result.rows[0]?.count ?? 0);
+  }
+
+  async softDelete(id: string, reason: string | null): Promise<ContextDocument> {
+    const result = await this.db.query(
+      `
+        UPDATE context_documents
+        SET deleted_at = now(),
+            deleted_reason = $2,
+            updated_at = now()
+        WHERE id = $1
+        RETURNING *
+      `,
+      [id, reason]
+    );
+    return mapContextDocument(result.rows[0]);
+  }
+
+  async restore(id: string, reason: string | null): Promise<ContextDocument> {
+    const result = await this.db.query(
+      `
+        UPDATE context_documents
+        SET deleted_at = NULL,
+            deleted_reason = $2,
+            updated_at = now()
+        WHERE id = $1
+        RETURNING *
+      `,
+      [id, reason]
+    );
+    return mapContextDocument(result.rows[0]);
+  }
+
+  async hardDelete(id: string): Promise<void> {
+    await this.db.query("DELETE FROM context_documents WHERE id = $1", [id]);
   }
 }
 
