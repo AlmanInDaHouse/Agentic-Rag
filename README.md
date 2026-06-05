@@ -99,7 +99,9 @@ La web queda en `http://127.0.0.1:5173`.
 pnpm build
 pnpm typecheck
 pnpm test
+pnpm test:retrieval-eval
 pnpm test:harness
+pnpm eval:retrieval
 pnpm harness:mvp
 pnpm db:migrate
 pnpm audit
@@ -428,6 +430,7 @@ Estado actual:
 - pgvector existe solo como capacidad opcional/local, no como requisito ni indice activo por defecto.
 - pgvector tiene retrieval activo opcional cuando extension/tabla existen y `TRIFORGE_EMBEDDING_STORAGE=pgvector`.
 - Local embeddings son opt-in; no hay modelo real obligatorio.
+- Hay un harness de evaluacion de retrieval con fixtures sinteticos y metricas simples.
 - No hay GraphRAG ni Code Graph.
 - No hay fuentes externas como filesystem, web, GitHub, Gmail o calendar.
 
@@ -440,9 +443,35 @@ v1C-A: data policy y redaccion regex local.
 v1C-B: retention, quota, soft delete/restore y audit.
 v1C: pgvector y embeddings locales opcionales con fallback mock/jsonb/lexical.
 v1D: retrieval hibrido lexical + vectorial con pgvector activo opcional.
+v1E: evaluation harness con fixtures sinteticos, metricas y reportes.
 ```
 
 El fallback lexical debe mantenerse durante todo el rollout. Si embeddings no existen o fallan, `load_context` debe poder seguir usando retrieval lexical y registrar el motivo.
+
+## Retrieval Evaluation
+
+El harness de evaluacion vive en `tooling/retrieval-eval`. Usa fixtures sinteticos, ingesta documentos por la API HTTP del harness, ejecuta queries en `lexical`, `mock_vector` y `hybrid`, calcula metricas y escribe reportes.
+
+Tests unitarios de metricas:
+
+```bash
+pnpm test:retrieval-eval
+```
+
+Evaluacion completa local:
+
+```bash
+pnpm eval:retrieval
+```
+
+La evaluacion completa requiere PostgreSQL local igual que `pnpm test:harness`. Los reportes runtime se generan en:
+
+```text
+reports/retrieval-eval/latest.json
+reports/retrieval-eval/latest.md
+```
+
+Estos reportes no se commitean por defecto. Las metricas sobre mock embeddings validan pipeline y ranking reproducible, no calidad semantica real. LLM-as-judge, providers externos, modelos reales obligatorios, GraphRAG y Code Graph quedan fuera de scope.
 
 ## Variables de entorno
 

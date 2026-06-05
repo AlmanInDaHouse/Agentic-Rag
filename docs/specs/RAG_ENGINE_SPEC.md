@@ -20,7 +20,8 @@ RAG v1 should support, in phases:
 - lexical fallback when embeddings are unavailable,
 - context data policy enforcement before real embeddings.
 - optional pgvector/local embedding capability reporting without making either required,
-- optional active pgvector retrieval when explicitly configured and available.
+- optional active pgvector retrieval when explicitly configured and available,
+- deterministic retrieval evaluation with synthetic fixtures and simple metrics.
 
 ## Out of Scope
 
@@ -33,6 +34,7 @@ RAG v1 should support, in phases:
 - LLM answer generation.
 - External model re-ranking.
 - External embedding providers.
+- LLM-as-judge retrieval evaluation.
 - Advanced multi-tenant controls.
 - Real authentication.
 
@@ -292,6 +294,33 @@ finalScore
 
 Active search must continue to exclude deleted sources, deleted documents, deleted chunks, deleted embeddings and blocked/restricted documents.
 
+## Retrieval Evaluation
+
+Milestone 1.5E adds a deterministic evaluation harness under:
+
+```text
+tooling/retrieval-eval
+```
+
+It uses synthetic fixtures, ingests documents through the public API, runs queries across `lexical`, `mock_vector` and `hybrid`, and writes JSON/Markdown reports. Metrics include:
+
+```text
+precision_at_k
+recall_at_k
+hit_at_k
+mean_reciprocal_rank
+expected_chunk_found
+fallback_used_rate
+```
+
+Rules:
+
+- metric unit tests run without PostgreSQL,
+- full evaluation uses the black-box harness runtime and therefore needs PostgreSQL,
+- mock embeddings validate retrieval pipeline behavior only,
+- pgvector evaluation remains opt-in and outside standard CI,
+- no LLM-as-judge or real model is required.
+
 ## Retrieval Modes
 
 Initial modes:
@@ -391,6 +420,13 @@ Fallback rules:
 - Keep standard CI and standard harness free of pgvector requirements.
 - Do not add GraphRAG, Code Graph, external providers or worker queues.
 
+### Milestone 1.5E: Retrieval Evaluation Harness
+
+- Add synthetic retrieval evaluation fixtures.
+- Add deterministic metrics and unit tests.
+- Add a black-box API runner that writes JSON and Markdown reports.
+- Keep LLM-as-judge, real local models and pgvector requirements out of standard CI.
+
 ## Safe Execution and Data Policy
 
 - Embedding text already persisted from `manual_text`, `project_note` or `artifact` sources is medium risk when processed by an approved local/mock embedding adapter.
@@ -440,6 +476,15 @@ Fallback rules:
 - `/api/rag/status` reports extension availability, table availability, configured storage, effective storage, fallback reason and vector search enabled state.
 - Standard unit tests and harness pass without pgvector.
 
+## Acceptance Criteria for Milestone 1.5E Retrieval Evaluation
+
+- Synthetic fixtures cover multiple retrieval topics.
+- Metric functions cover precision@k, recall@k, hit@k and MRR.
+- Evaluation reports include per-query metrics, fallback state and top results.
+- JSON and Markdown reports can be generated locally.
+- Metric unit tests run in standard CI without DB or model dependencies.
+- Full evaluation remains black-box through HTTP and does not use private API services.
+
 ## Risks
 
 - pgvector requires explicit extension/table setup and a fixed vector dimension.
@@ -451,3 +496,4 @@ Fallback rules:
 - Basic retention has no background pruning worker yet.
 - Existing retrieval snapshots may reference content selected before later deletion.
 - Approximate pgvector indexes and production-grade vector tuning are not configured yet.
+- Evaluation fixtures are small and synthetic, so they do not prove production semantic quality.

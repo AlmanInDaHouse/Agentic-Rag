@@ -1,0 +1,27 @@
+{
+  "name": "redacted-context-corpus",
+  "documents": [
+    {
+      "title": "Synthetic access review note",
+      "content": "During a synthetic access review, the operator contact was review-team@example.test and the temporary api_key=sk_test_1234567890abcdef was rotated immediately after the exercise. The important retrieval fact is that the temporary token was rotated after review."
+    },
+    {
+      "title": "Data minimization reminder",
+      "content": "The reminder says evaluation fixtures should use synthetic content, avoid real customer data, and prefer metadata-only sensitive finding assertions."
+    }
+  ],
+  "queries": [
+    {
+      "query": "what happened to the temporary token after review",
+      "expectedDocumentTitles": ["Synthetic access review note"],
+      "expectedChunkContains": ["temporary token was rotated after review"],
+      "k": 3
+    },
+    {
+      "query": "what kind of content should evaluation fixtures use",
+      "expectedDocumentTitles": ["Data minimization reminder"],
+      "expectedChunkContains": ["use synthetic content"],
+      "k": 3
+    }
+  ]
+}
