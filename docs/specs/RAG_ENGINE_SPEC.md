@@ -215,7 +215,7 @@ gemini_embedding_optional
 Preferred path for this project:
 
 1. `mock_embedding` first for deterministic CI and harness coverage.
-2. optional local-only embedding endpoint after adapter policy is accepted.
+2. optional localhost/loopback-only embedding endpoint after adapter policy is accepted.
 3. External providers only after explicit approval, redaction and data handling policy.
 
 ## Optional pgvector and Local Embeddings
@@ -247,7 +247,7 @@ Rules:
 - The API must keep running when the local model endpoint is absent or failing.
 - Local endpoint calls must use short timeout, no infinite retries and no full-content logging.
 - External embedding providers remain prohibited.
-- No text is sent outside the configured local endpoint.
+- No text is sent outside the configured localhost/loopback endpoint.
 
 `GET /api/rag/status` reports provider/storage configuration, availability and fallback warnings without exposing secrets or endpoint values.
 

@@ -401,7 +401,7 @@ Limitaciones actuales:
 - Es reproducible para CI/harness, pero no representa semantica real.
 - Los vectores mock se guardan en JSONB por defecto; no es un indice vectorial productivo.
 - pgvector es opcional y no se requiere para CI/harness.
-- El endpoint local de embeddings es opt-in y debe ser local-only.
+- El endpoint local de embeddings es opt-in y debe apuntar a localhost/loopback.
 - La redaccion actual es regex basica y no es DLP completo.
 - Hay policy basica de retention, quota, soft delete/restore y audit; no hay worker de retention ni cuotas tenant-specific.
 - No se envia contexto a providers externos.
@@ -446,7 +446,7 @@ TRIFORGE_LOCAL_EMBEDDING_ENDPOINT=
 TRIFORGE_LOCAL_EMBEDDING_DIMENSION=32
 ```
 
-Para probar un endpoint local, mantenerlo dentro del entorno local y no usar proveedores externos:
+Para probar un endpoint local, mantenerlo en localhost/loopback y no usar proveedores externos:
 
 ```bash
 TRIFORGE_EMBEDDING_PROVIDER=local

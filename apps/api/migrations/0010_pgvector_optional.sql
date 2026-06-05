@@ -7,6 +7,7 @@ BEGIN
     SELECT 1
     FROM pg_constraint
     WHERE conname = 'embedding_models_storage_kind_check'
+      AND conrelid = 'embedding_models'::regclass
   ) THEN
     ALTER TABLE embedding_models
       ADD CONSTRAINT embedding_models_storage_kind_check

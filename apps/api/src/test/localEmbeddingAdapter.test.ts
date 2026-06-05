@@ -14,6 +14,23 @@ describe("LocalEmbeddingAdapter", () => {
     await expect(adapter.embedText("input")).rejects.toThrow("not configured");
   });
 
+  it("treats a whitespace endpoint as unconfigured", async () => {
+    const adapter = new LocalEmbeddingAdapter({
+      endpoint: "   ",
+      dimension: 32
+    });
+
+    expect(adapter.isConfigured()).toBe(false);
+    await expect(adapter.isAvailable()).resolves.toBe(false);
+  });
+
+  it("rejects external endpoints when constructed directly", () => {
+    expect(() => new LocalEmbeddingAdapter({
+      endpoint: "https://example.com/embed",
+      dimension: 32
+    })).toThrow(/localhost or loopback/);
+  });
+
   it("returns endpoint errors without logging content", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => ({
       ok: false,
@@ -41,5 +58,30 @@ describe("LocalEmbeddingAdapter", () => {
 
     await expect(adapter.embedText("input")).resolves.toEqual(new Array(32).fill(0.1));
     await expect(adapter.isAvailable()).resolves.toBe(true);
+  });
+
+  it("rejects responses with the wrong dimension", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ embedding: [0.1, 0.2] })
+    })));
+    const adapter = new LocalEmbeddingAdapter({
+      endpoint: "http://127.0.0.1:11434/api/embed",
+      dimension: 32
+    });
+
+    await expect(adapter.embedText("input")).rejects.toThrow("dimension mismatch");
+  });
+
+  it("reports network failures as unavailable", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => {
+      throw new Error("connect ECONNREFUSED");
+    }));
+    const adapter = new LocalEmbeddingAdapter({
+      endpoint: "http://127.0.0.1:11434/api/embed",
+      dimension: 32
+    });
+
+    await expect(adapter.isAvailable()).resolves.toBe(false);
   });
 });

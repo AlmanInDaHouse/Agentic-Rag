@@ -3,7 +3,13 @@ import { validateDbSchemaName } from "../db/schema.js";
 
 const localEmbeddingEndpointSchema = z
   .preprocess(
-    (value) => value === "" ? undefined : value,
+    (value) => {
+      if (typeof value !== "string") {
+        return value;
+      }
+      const trimmed = value.trim();
+      return trimmed === "" ? undefined : trimmed;
+    },
     z.string().url().optional()
   )
   .refine(
@@ -51,7 +57,7 @@ function isLocalEndpoint(endpoint: string): boolean {
   return (
     hostname === "localhost" ||
     hostname === "::1" ||
-    hostname === "host.docker.internal" ||
+    hostname === "[::1]" ||
     hostname.startsWith("127.")
   );
 }

@@ -12,7 +12,7 @@ Context Engine v0 is limited to user-provided text through `manual_text`, `proje
 
 Context data policy now scans and redacts manual/project/artifact text before chunk persistence. RAG v1 planning treats embeddings over already persisted redacted chunks as medium risk when handled by an approved local or mock embedding adapter. Calls to external embedding providers are `external_adapter_call` and require future approval, stronger redaction/data handling policy and audit logging. Local model adapters must be explicitly registered before use. Context must not be sent to an external provider by default.
 
-Milestone 1.5C allows an optional local-only embedding endpoint through `TRIFORGE_LOCAL_EMBEDDING_ENDPOINT`. This endpoint must point to infrastructure controlled by the local operator, use short timeouts, avoid infinite retries and must not log full context content. Absence or failure of the local endpoint must fall back to mock/lexical behavior. External embedding APIs remain prohibited.
+Milestone 1.5C allows an optional local-only embedding endpoint through `TRIFORGE_LOCAL_EMBEDDING_ENDPOINT`. This endpoint must point to localhost or loopback infrastructure controlled by the local operator, use short timeouts, avoid infinite retries and must not log full context content. Absence or failure of the local endpoint must fall back to mock/lexical behavior. External embedding APIs remain prohibited.
 
 ## Action Types
 

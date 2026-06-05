@@ -15,7 +15,7 @@ export class LocalEmbeddingAdapter implements EmbeddingAdapter {
   private readonly timeoutMs: number;
 
   constructor(options: LocalEmbeddingAdapterOptions) {
-    this.endpoint = options.endpoint;
+    this.endpoint = normalizeLocalEndpoint(options.endpoint);
     this.dimension = options.dimension;
     this.timeoutMs = options.timeoutMs ?? 2_000;
   }
@@ -104,4 +104,25 @@ function parseEmbeddingResponse(body: unknown): number[] {
   }
 
   throw new Error("Local embedding endpoint response did not include an embedding");
+}
+
+function normalizeLocalEndpoint(endpoint: string | undefined): string | undefined {
+  if (endpoint === undefined) {
+    return undefined;
+  }
+  const trimmed = endpoint.trim();
+  if (trimmed === "") {
+    return undefined;
+  }
+  const parsed = new URL(trimmed);
+  const hostname = parsed.hostname.toLowerCase();
+  const isLocal =
+    hostname === "localhost" ||
+    hostname === "::1" ||
+    hostname === "[::1]" ||
+    hostname.startsWith("127.");
+  if (!isLocal) {
+    throw new Error("Local embedding endpoint must point to localhost or loopback");
+  }
+  return parsed.toString();
 }

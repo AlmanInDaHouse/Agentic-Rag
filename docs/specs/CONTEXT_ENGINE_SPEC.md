@@ -21,7 +21,7 @@ Milestone 1.5B extends the context layer with deterministic mock embeddings and 
 
 Milestone 1.5C-A adds a basic deterministic context data policy and regex redaction layer before future pgvector or real embedding work. Milestone 1.5C-B adds retention quotas, soft delete/restore and context audit events.
 
-Milestone 1.5C adds optional pgvector capability reporting and a local-only embedding adapter boundary without making either required.
+Milestone 1.5C adds optional pgvector capability reporting and a localhost/loopback-only embedding adapter boundary without making either required.
 
 ## Out of Scope
 
@@ -188,7 +188,7 @@ mock_vector
 hybrid
 ```
 
-The Context Engine does not send text to external providers. Local endpoint use is opt-in, local-only and reported through `/api/rag/status`.
+The Context Engine does not send text to external providers. Local endpoint use is opt-in, localhost/loopback-only and reported through `/api/rag/status`.
 
 ## Runtime Integration
 

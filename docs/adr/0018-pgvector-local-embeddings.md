@@ -22,7 +22,7 @@ Add optional pgvector and local embedding support:
 
 - pgvector is optional and never required by default.
 - JSONB mock embedding storage remains the standard CI/harness path.
-- local embeddings are opt-in through environment configuration.
+- local embeddings are opt-in through localhost/loopback environment configuration.
 - no context is sent to external APIs or non-local providers.
 - if pgvector is unavailable, the system reports fallback to JSONB/mock/lexical paths.
 - if the local model endpoint is unavailable, the system reports fallback to mock/lexical paths.
@@ -52,7 +52,7 @@ Rejected. Model availability, latency, resource use and dimension choices vary t
 
 ### Make local embedding model optional
 
-Selected. A local-only adapter can be configured explicitly without changing default behavior or approving external providers.
+Selected. A localhost/loopback-only adapter can be configured explicitly without changing default behavior or approving external providers.
 
 ## Final Decision
 

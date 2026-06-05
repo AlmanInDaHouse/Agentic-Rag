@@ -34,6 +34,36 @@ describe("RagStatusService", () => {
     expect(status.warnings).toContain("pgvector_unavailable_using_jsonb");
   });
 
+  it("does not require a local endpoint when local provider is configured", async () => {
+    const service = new RagStatusService(
+      { embeddingProvider: "local", embeddingStorage: "jsonb" },
+      storage("jsonb", true),
+      storage("pgvector", false),
+      localAdapter(false, false)
+    );
+
+    const status = await service.getStatus();
+
+    expect(status.activeEmbeddingProvider).toBe("mock");
+    expect(status.localEmbeddingConfigured).toBe(false);
+    expect(status.warnings).toContain("local_embedding_endpoint_not_configured");
+  });
+
+  it("falls back to jsonb when pgvector storage is configured but unavailable", async () => {
+    const service = new RagStatusService(
+      { embeddingProvider: "mock", embeddingStorage: "pgvector" },
+      storage("jsonb", true),
+      storage("pgvector", false),
+      localAdapter(false, false)
+    );
+
+    const status = await service.getStatus();
+
+    expect(status.embeddingStorage).toBe("jsonb");
+    expect(status.pgvectorConfigured).toBe(true);
+    expect(status.warnings).toContain("pgvector_unavailable_using_jsonb");
+  });
+
   it("reports local and pgvector active when available", async () => {
     const service = new RagStatusService(
       { embeddingProvider: "local", embeddingStorage: "pgvector" },
