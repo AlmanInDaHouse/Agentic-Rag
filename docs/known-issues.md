@@ -72,13 +72,13 @@ Status: open.
 
 Target resolution: strengthen redaction, data handling, audit logging and review policy before real local models or external embedding providers are considered.
 
-## RAG-003: No vector index or pgvector support yet
+## RAG-003: pgvector is optional, not default
 
-The database does not enable pgvector and has no vector index. This is intentional until embedding interfaces and harness behavior are proven.
+The project now has optional pgvector capability reporting and an optional Docker Compose pgvector service, but standard CI/harness still uses PostgreSQL without requiring the extension. There is still no production vector index or mandatory pgvector-backed search path.
 
 Status: open.
 
-Target resolution: add pgvector only after a migration and CI plan is accepted.
+Target resolution: add explicit pgvector columns/indexes only after the optional capability path is stable and a migration/CI plan is accepted.
 
 ## RAG-005: Mock embeddings are not semantically meaningful
 
@@ -95,6 +95,30 @@ External embedding providers are not approved. Sending persisted context to a pr
 Status: open.
 
 Target resolution: add external provider policy only after local/mock embedding paths are stable.
+
+## RAG-006: Local embedding endpoint is optional and not production hardened
+
+`TRIFORGE_LOCAL_EMBEDDING_ENDPOINT` can point to a local embedding service, but the adapter contract is minimal and intended for controlled local experiments. It has a short timeout and no retries, but no production health model, authentication or capacity management.
+
+Status: open.
+
+Target resolution: define a local model operations policy before relying on local embeddings for production retrieval.
+
+## RAG-007: pgvector is not required in CI
+
+CI intentionally validates mock/jsonb/lexical behavior and does not require pgvector. This protects baseline reproducibility but means pgvector-specific behavior still needs future opt-in CI coverage.
+
+Status: open.
+
+Target resolution: add a separate optional pgvector CI job only after vector schema and index design are accepted.
+
+## RAG-008: Vector search quality depends on configured model
+
+Real vector search quality will depend on the configured local model, output dimension, language coverage and chunking strategy. The current mock vectors are deterministic but not semantic.
+
+Status: open.
+
+Target resolution: add retrieval evaluation fixtures once a real local embedding model path is accepted.
 
 ## DATA-001: Regex redaction is not complete DLP
 

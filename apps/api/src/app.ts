@@ -19,7 +19,13 @@ import { AgentRuntimeService } from "./services/agentRuntimeService.js";
 import { ContextEmbeddingService } from "./services/contextEmbeddingService.js";
 import { ContextEngineService } from "./services/contextEngineService.js";
 import { ContextRetentionPolicyService } from "./services/contextRetentionPolicyService.js";
+import {
+  JsonbEmbeddingStorage,
+  PgvectorEmbeddingStorage
+} from "./services/embeddings/embeddingStorage.js";
+import { LocalEmbeddingAdapter } from "./services/embeddings/localEmbeddingAdapter.js";
 import { MockEmbeddingAdapter } from "./services/embeddings/mockEmbeddingAdapter.js";
+import { RagStatusService } from "./services/ragStatusService.js";
 import { DebateService } from "./services/debateService.js";
 import { createMockAgents } from "./services/mockAgents.js";
 import { HighestConfidenceJudge } from "./services/mockJudge.js";
@@ -50,6 +56,21 @@ export async function buildApp() {
   const chunkEmbeddingRepository = new PgChunkEmbeddingRepository(pool);
   const agentRuntimeTransactionManager = new PgAgentRuntimeTransactionManager(pool);
   const mockEmbeddingAdapter = new MockEmbeddingAdapter();
+  const localEmbeddingAdapter = new LocalEmbeddingAdapter({
+    endpoint: env.TRIFORGE_LOCAL_EMBEDDING_ENDPOINT,
+    dimension: env.TRIFORGE_LOCAL_EMBEDDING_DIMENSION
+  });
+  const jsonbEmbeddingStorage = new JsonbEmbeddingStorage(chunkEmbeddingRepository);
+  const pgvectorEmbeddingStorage = new PgvectorEmbeddingStorage(pool);
+  const ragStatusService = new RagStatusService(
+    {
+      embeddingProvider: env.TRIFORGE_EMBEDDING_PROVIDER,
+      embeddingStorage: env.TRIFORGE_EMBEDDING_STORAGE
+    },
+    jsonbEmbeddingStorage,
+    pgvectorEmbeddingStorage,
+    localEmbeddingAdapter
+  );
   const contextRetentionPolicyService = new ContextRetentionPolicyService(
     goalsRepository,
     contextSourceRepository,
@@ -106,7 +127,8 @@ export async function buildApp() {
     debateService,
     agentRuntimeService,
     contextEngineService,
-    contextEmbeddingService
+    contextEmbeddingService,
+    ragStatusService
   );
   return app;
 }

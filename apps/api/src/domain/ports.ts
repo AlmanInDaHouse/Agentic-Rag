@@ -238,8 +238,17 @@ export type UpsertChunkEmbeddingInput = {
   embeddingHash: string;
 };
 
+export type GetOrCreateEmbeddingModelInput = {
+  name: string;
+  provider: EmbeddingModel["provider"];
+  dimension: number;
+  storageKind?: EmbeddingModel["storageKind"];
+  metadata?: Record<string, unknown>;
+};
+
 export interface EmbeddingModelRepository {
   getOrCreateMockModel(): Promise<EmbeddingModel>;
+  getOrCreateModel(input: GetOrCreateEmbeddingModelInput): Promise<EmbeddingModel>;
   listEmbeddingModels(): Promise<EmbeddingModel[]>;
 }
 

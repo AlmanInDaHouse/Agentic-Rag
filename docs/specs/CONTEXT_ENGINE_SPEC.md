@@ -21,14 +21,17 @@ Milestone 1.5B extends the context layer with deterministic mock embeddings and 
 
 Milestone 1.5C-A adds a basic deterministic context data policy and regex redaction layer before future pgvector or real embedding work. Milestone 1.5C-B adds retention quotas, soft delete/restore and context audit events.
 
+Milestone 1.5C adds optional pgvector capability reporting and a local-only embedding adapter boundary without making either required.
+
 ## Out of Scope
 
 - GraphRAG.
 - Code Graph.
 - Real Codex, Claude, Gemini or Ollama adapters.
 - Required external embeddings.
-- pgvector.
-- Real semantic embeddings.
+- Required pgvector.
+- Required real semantic embeddings.
+- External embedding providers.
 - Worker queues.
 - Real authentication.
 - Web crawlers.
@@ -81,7 +84,7 @@ Context Engine v0 uses PostgreSQL tables in migration `0006_context_engine.sql`.
 - Chunks store the retrievable text.
 - When sensitive findings exist, chunks store redacted text.
 - Retrievals store selected results as JSONB for traceability.
-- The schema keeps source/document/chunk boundaries compatible with future embeddings, but no vector extension is required.
+- The schema keeps source/document/chunk boundaries compatible with future embeddings, but no vector extension is required for default operation.
 
 ## Chunking v0
 
@@ -161,6 +164,32 @@ The initial adapter is `mock_embedding_v1`:
 
 Embeddings are stored in `context_chunk_embeddings.embedding` as JSONB for this narrow milestone. Recalculation uses upsert on `(chunk_id, model_id)`, so repeated generation is idempotent and cannot duplicate embeddings.
 
+## Optional pgvector and Local Embeddings
+
+Default context retrieval and embeddings continue to use:
+
+```text
+provider: mock
+storage: jsonb
+```
+
+Optional configuration can request:
+
+```text
+provider: local
+storage: pgvector
+```
+
+Those settings are capability flags, not mandatory runtime requirements. If pgvector is not available, active storage remains JSONB. If the local endpoint is not configured or not reachable, active provider remains mock. Search modes remain API-compatible:
+
+```text
+lexical
+mock_vector
+hybrid
+```
+
+The Context Engine does not send text to external providers. Local endpoint use is opt-in, local-only and reported through `/api/rag/status`.
+
 ## Runtime Integration
 
 When an agent run advances through `load_context`:
@@ -191,6 +220,7 @@ The runtime remains mock-only and does not read files, call networks or invoke r
 - `POST /api/context/documents/:documentId/embeddings/mock`
 - `GET /api/context/documents/:documentId/embeddings`
 - `POST /api/context/sources/:sourceId/embeddings/mock`
+- `GET /api/rag/status`
 
 Error rules:
 
@@ -255,6 +285,8 @@ All input schemas are strict.
 - Embedding generation is deterministic and idempotent.
 - Missing document/source returns `404`.
 - Hybrid/mock vector search falls back to lexical when embeddings are unavailable.
+- RAG status reports pgvector/local availability without requiring either capability.
+- Standard harness does not require pgvector or a local model.
 - Every search records a retrieval.
 - Duplicate normalized content for the same source returns `409`.
 - Runtime `load_context` can retrieve context and continue with no results.

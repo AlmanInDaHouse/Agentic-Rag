@@ -19,6 +19,7 @@ RAG v1 should support, in phases:
 - reproducible harness coverage,
 - lexical fallback when embeddings are unavailable,
 - context data policy enforcement before real embeddings.
+- optional pgvector/local embedding capability reporting without making either required.
 
 ## Out of Scope
 
@@ -30,6 +31,7 @@ RAG v1 should support, in phases:
 - Real Codex, Claude, Gemini or Ollama adapters.
 - LLM answer generation.
 - External model re-ranking.
+- External embedding providers.
 - Advanced multi-tenant controls.
 - Real authentication.
 
@@ -50,7 +52,7 @@ RAG v1 must build on those entities rather than replacing them.
 
 ## Implemented Mock Embedding Entities
 
-Milestone 1.5B implements the first embedding persistence boundary without pgvector.
+Milestone 1.5B implements the first embedding persistence boundary without requiring pgvector. Milestone 1.5C adds optional pgvector capability metadata while keeping JSONB as the default storage.
 
 ### `embedding_models`
 
@@ -61,6 +63,7 @@ provider TEXT NOT NULL
 dimension INTEGER NOT NULL
 is_active BOOLEAN NOT NULL DEFAULT true
 metadata JSONB NOT NULL DEFAULT '{}'
+storage_kind TEXT NOT NULL DEFAULT 'jsonb'
 created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 UNIQUE(name, provider)
@@ -90,7 +93,8 @@ Notes:
 
 - Milestone 1.5B stores deterministic mock vectors as JSONB.
 - JSONB is not the final production semantic search path.
-- Future pgvector work must introduce a separate migration and extension plan.
+- Milestone 1.5C records storage kind metadata and pgvector availability, but does not make vector columns mandatory.
+- Future production pgvector work must introduce explicit vector columns/indexes only after extension availability is accepted.
 - `embedding_hash` should be derived from normalized chunk content, model id and adapter version so re-embedding decisions are traceable.
 
 ### `rag_retrieval_runs`
@@ -123,8 +127,9 @@ Milestone 1.5B adds these contracts to `packages/shared` because API, dashboard 
 type EmbeddingModel = {
   id: string;
   name: string;
-  provider: "mock";
+  provider: "mock" | "local";
   dimension: number;
+  storageKind: "jsonb" | "pgvector";
   isActive: boolean;
   metadata: Record<string, unknown>;
 };
@@ -137,7 +142,7 @@ type EmbeddingRequest = {
 
 type EmbeddingResult = {
   modelId: string;
-  provider: "mock";
+  provider: "mock" | "local";
   dimension: number;
   embedding: EmbeddingVector;
   embeddingHash: string;
@@ -210,8 +215,41 @@ gemini_embedding_optional
 Preferred path for this project:
 
 1. `mock_embedding` first for deterministic CI and harness coverage.
-2. `local_ollama_embedding` later after adapter policy is accepted.
+2. optional local-only embedding endpoint after adapter policy is accepted.
 3. External providers only after explicit approval, redaction and data handling policy.
+
+## Optional pgvector and Local Embeddings
+
+Milestone 1.5C keeps pgvector and local embeddings optional.
+
+Defaults:
+
+```text
+TRIFORGE_EMBEDDING_PROVIDER=mock
+TRIFORGE_EMBEDDING_STORAGE=jsonb
+```
+
+Optional settings:
+
+```text
+TRIFORGE_EMBEDDING_PROVIDER=local
+TRIFORGE_LOCAL_EMBEDDING_ENDPOINT=http://127.0.0.1:11434/api/embed
+TRIFORGE_LOCAL_EMBEDDING_DIMENSION=32
+TRIFORGE_EMBEDDING_STORAGE=pgvector
+```
+
+Rules:
+
+- CI and standard harness use mock embeddings and JSONB storage.
+- `pgvector` is reported as available only when the database advertises the extension.
+- A separate `postgres-vector` Docker Compose profile is available for local experiments.
+- The API must keep running when pgvector is absent.
+- The API must keep running when the local model endpoint is absent or failing.
+- Local endpoint calls must use short timeout, no infinite retries and no full-content logging.
+- External embedding providers remain prohibited.
+- No text is sent outside the configured local endpoint.
+
+`GET /api/rag/status` reports provider/storage configuration, availability and fallback warnings without exposing secrets or endpoint values.
 
 ## Retrieval Modes
 
@@ -292,9 +330,9 @@ Fallback rules:
 
 ### Milestone 1.5C: pgvector and Local Embeddings
 
-- Implement only after Milestone 1.5C-A data policy is accepted.
-- Add pgvector migration and database support if operationally acceptable.
-- Add optional local embedding model path, preferably Ollama.
+- Implement only after Milestone 1.5C-A/B data policy and retention controls are accepted.
+- Add optional pgvector capability checks and local embedding adapter boundary.
+- Keep mock/jsonb as the CI path.
 - Keep external providers out of default runtime.
 
 ### Milestone 1.5D: Real Hybrid Retrieval
@@ -330,6 +368,16 @@ Fallback rules:
 - Harness validates deterministic mock embeddings before pgvector is introduced.
 - CI remains reproducible without external model access.
 - No external context source or provider is enabled by default.
+
+## Acceptance Criteria for Milestone 1.5C Optional Support
+
+- `/api/rag/status` reports active/configured provider and storage.
+- pgvector absence does not break startup, migration or harness.
+- local embedding endpoint absence does not break startup.
+- mock/jsonb remains the default.
+- hybrid search keeps working with mock embeddings.
+- lexical fallback remains available when vector paths are unavailable.
+- Docker Compose offers an optional pgvector service without replacing standard `postgres:16`.
 
 ## Risks
 

@@ -50,6 +50,7 @@ const embeddingModel: EmbeddingModel = {
   name: "mock_embedding_v1",
   provider: "mock",
   dimension: 32,
+  storageKind: "jsonb",
   isActive: true,
   metadata: {},
   createdAt: now,
@@ -908,6 +909,9 @@ class InMemoryContextAuditEventRepository implements ContextAuditEventRepository
 
 class InMemoryEmbeddingModelRepository implements EmbeddingModelRepository {
   async getOrCreateMockModel() {
+    return embeddingModel;
+  }
+  async getOrCreateModel() {
     return embeddingModel;
   }
   async listEmbeddingModels() {
