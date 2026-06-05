@@ -90,7 +90,12 @@ export async function buildApp() {
     mockEmbeddingAdapter,
     undefined,
     contextRetentionPolicyService,
-    contextAuditEventRepository
+    contextAuditEventRepository,
+    {
+      configuredStorage: env.TRIFORGE_EMBEDDING_STORAGE
+    },
+    jsonbEmbeddingStorage,
+    pgvectorEmbeddingStorage
   );
   const contextEmbeddingService = new ContextEmbeddingService(
     contextSourceRepository,
@@ -98,7 +103,11 @@ export async function buildApp() {
     contextChunkRepository,
     embeddingModelRepository,
     chunkEmbeddingRepository,
-    mockEmbeddingAdapter
+    mockEmbeddingAdapter,
+    {
+      configuredStorage: env.TRIFORGE_EMBEDDING_STORAGE
+    },
+    pgvectorEmbeddingStorage
   );
   const debateService = new DebateService(
     goalsRepository,

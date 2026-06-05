@@ -1,8 +1,14 @@
 import type { RagStatus } from "@triforge/shared";
-import type { EmbeddingStorage } from "./embeddings/embeddingStorage.js";
+import type {
+  EmbeddingStorage,
+  PgvectorAvailability
+} from "./embeddings/embeddingStorage.js";
 import type { LocalEmbeddingAdapter } from "./embeddings/localEmbeddingAdapter.js";
 
 type LocalEmbeddingAvailability = Pick<LocalEmbeddingAdapter, "isConfigured" | "isAvailable">;
+type PgvectorStatusProvider = EmbeddingStorage & {
+  getAvailability(): Promise<PgvectorAvailability>;
+};
 
 export type RagStatusConfig = {
   embeddingProvider: "mock" | "local";
@@ -13,15 +19,21 @@ export class RagStatusService {
   constructor(
     private readonly config: RagStatusConfig,
     private readonly jsonbStorage: EmbeddingStorage,
-    private readonly pgvectorStorage: EmbeddingStorage,
+    private readonly pgvectorStorage: PgvectorStatusProvider,
     private readonly localEmbeddingAdapter: LocalEmbeddingAvailability
   ) {}
 
   async getStatus(): Promise<RagStatus> {
-    const [pgvectorAvailable, localEmbeddingAvailable] = await Promise.all([
-      this.pgvectorStorage.isAvailable().catch(() => false),
+    const [pgvectorAvailability, localEmbeddingAvailable] = await Promise.all([
+      this.pgvectorStorage.getAvailability().catch(() => ({
+        extensionAvailable: false,
+        tableAvailable: false,
+        available: false,
+        fallbackReason: "pgvector_status_check_failed"
+      })),
       this.localEmbeddingAdapter.isAvailable().catch(() => false)
     ]);
+    const pgvectorAvailable = pgvectorAvailability.available;
     const warnings: string[] = [];
     const localEmbeddingConfigured = this.localEmbeddingAdapter.isConfigured();
     const pgvectorConfigured = this.config.embeddingStorage === "pgvector";
@@ -34,6 +46,13 @@ export class RagStatusService {
       this.config.embeddingStorage === "pgvector" && pgvectorAvailable
         ? "pgvector"
         : "jsonb";
+    const fallbackReason = determineFallbackReason({
+      providerConfigured: this.config.embeddingProvider,
+      localEmbeddingConfigured,
+      localEmbeddingAvailable,
+      storageConfigured: this.config.embeddingStorage,
+      pgvectorAvailability
+    });
 
     if (this.config.embeddingProvider === "local" && !localEmbeddingConfigured) {
       warnings.push("local_embedding_endpoint_not_configured");
@@ -42,7 +61,7 @@ export class RagStatusService {
     }
 
     if (this.config.embeddingStorage === "pgvector" && !pgvectorAvailable) {
-      warnings.push("pgvector_unavailable_using_jsonb");
+      warnings.push(`${pgvectorAvailability.fallbackReason ?? "pgvector_unavailable"}_using_jsonb`);
     }
     if (embeddingStorage === "jsonb") {
       warnings.push("jsonb_embedding_storage_active");
@@ -52,11 +71,16 @@ export class RagStatusService {
       activeEmbeddingProvider,
       configuredEmbeddingProvider: this.config.embeddingProvider,
       embeddingStorage,
+      effectiveEmbeddingStorage: embeddingStorage,
       configuredEmbeddingStorage: this.config.embeddingStorage,
       pgvectorAvailable,
+      pgvectorExtensionAvailable: pgvectorAvailability.extensionAvailable,
+      pgvectorTableAvailable: pgvectorAvailability.tableAvailable,
       localEmbeddingAvailable,
       localEmbeddingConfigured,
       pgvectorConfigured,
+      vectorSearchEnabled: pgvectorAvailable || await this.jsonbStorage.isAvailable().catch(() => false),
+      fallbackReason,
       fallbackMode: determineFallbackMode(activeEmbeddingProvider, embeddingStorage),
       warnings
     };
@@ -74,4 +98,23 @@ function determineFallbackMode(
     return "mock_then_lexical";
   }
   return "mock";
+}
+
+function determineFallbackReason(input: {
+  providerConfigured: "mock" | "local";
+  localEmbeddingConfigured: boolean;
+  localEmbeddingAvailable: boolean;
+  storageConfigured: "jsonb" | "pgvector";
+  pgvectorAvailability: PgvectorAvailability;
+}): string | null {
+  if (input.providerConfigured === "local" && !input.localEmbeddingConfigured) {
+    return "local_embedding_endpoint_not_configured";
+  }
+  if (input.providerConfigured === "local" && !input.localEmbeddingAvailable) {
+    return "local_embedding_unavailable_using_mock";
+  }
+  if (input.storageConfigured === "pgvector" && !input.pgvectorAvailability.available) {
+    return `${input.pgvectorAvailability.fallbackReason ?? "pgvector_unavailable"}_using_jsonb`;
+  }
+  return null;
 }

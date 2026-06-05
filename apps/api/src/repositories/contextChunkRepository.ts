@@ -155,6 +155,8 @@ export class PgContextChunkRepository implements ContextChunkRepository {
       lexicalScore: 0,
       vectorScore: null,
       mode: "lexical",
+      searchMode: "lexical",
+      vectorStorageUsed: "none",
       fallbackUsed: false,
       fallbackReason: null
     }));

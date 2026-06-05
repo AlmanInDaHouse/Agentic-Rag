@@ -19,7 +19,8 @@ RAG v1 should support, in phases:
 - reproducible harness coverage,
 - lexical fallback when embeddings are unavailable,
 - context data policy enforcement before real embeddings.
-- optional pgvector/local embedding capability reporting without making either required.
+- optional pgvector/local embedding capability reporting without making either required,
+- optional active pgvector retrieval when explicitly configured and available.
 
 ## Out of Scope
 
@@ -52,7 +53,7 @@ RAG v1 must build on those entities rather than replacing them.
 
 ## Implemented Mock Embedding Entities
 
-Milestone 1.5B implements the first embedding persistence boundary without requiring pgvector. Milestone 1.5C adds optional pgvector capability metadata while keeping JSONB as the default storage.
+Milestone 1.5B implements the first embedding persistence boundary without requiring pgvector. Milestone 1.5C adds optional pgvector capability metadata while keeping JSONB as the default storage. Milestone 1.5D activates pgvector retrieval only when `TRIFORGE_EMBEDDING_STORAGE=pgvector` and the database has the required extension and optional vector table.
 
 ### `embedding_models`
 
@@ -94,7 +95,8 @@ Notes:
 - Milestone 1.5B stores deterministic mock vectors as JSONB.
 - JSONB is not the final production semantic search path.
 - Milestone 1.5C records storage kind metadata and pgvector availability, but does not make vector columns mandatory.
-- Future production pgvector work must introduce explicit vector columns/indexes only after extension availability is accepted.
+- Milestone 1.5D may mirror rows into the optional pgvector table when configured and available.
+- JSONB remains the compatibility fallback and standard CI storage path.
 - `embedding_hash` should be derived from normalized chunk content, model id and adapter version so re-embedding decisions are traceable.
 
 ### `rag_retrieval_runs`
@@ -220,7 +222,7 @@ Preferred path for this project:
 
 ## Optional pgvector and Local Embeddings
 
-Milestone 1.5C keeps pgvector and local embeddings optional.
+Milestone 1.5C keeps pgvector and local embeddings optional. Milestone 1.5D adds an active pgvector retrieval path while preserving that optional contract.
 
 Defaults:
 
@@ -241,15 +243,54 @@ TRIFORGE_EMBEDDING_STORAGE=pgvector
 Rules:
 
 - CI and standard harness use mock embeddings and JSONB storage.
-- `pgvector` is reported as available only when the database advertises the extension.
+- `pgvector` active retrieval is requested only by `TRIFORGE_EMBEDDING_STORAGE=pgvector`.
+- `pgvector` is effective only when the database has the installed `vector` extension and the optional `context_chunk_vector_embeddings` table.
 - A separate `postgres-vector` Docker Compose profile is available for local experiments.
 - The API must keep running when pgvector is absent.
+- When pgvector is requested but unavailable, generation keeps JSONB rows and search falls back to JSONB mock-vector scoring or lexical retrieval.
 - The API must keep running when the local model endpoint is absent or failing.
 - Local endpoint calls must use short timeout, no infinite retries and no full-content logging.
 - External embedding providers remain prohibited.
 - No text is sent outside the configured localhost/loopback endpoint.
 
 `GET /api/rag/status` reports provider/storage configuration, availability and fallback warnings without exposing secrets or endpoint values.
+
+## Active pgvector Retrieval
+
+The optional pgvector table is:
+
+```text
+context_chunk_vector_embeddings
+```
+
+It stores one `vector(32)` row per `(chunk_id, model_id)` and references the existing JSONB `context_chunk_embeddings` row. Standard migrations do not create the `vector` extension. If the extension is already installed, migration `0011_pgvector_active_retrieval.sql` creates the optional table. Otherwise it is a safe no-op. Local operators can run `infra/sql/enable_pgvector.sql` against the optional `postgres-vector` service.
+
+Storage selection:
+
+- configured `jsonb`: embeddings are stored in JSONB and vector search uses JSONB mock-vector scoring.
+- configured `pgvector` plus available extension/table: embeddings are stored in JSONB and mirrored to pgvector; vector search uses pgvector cosine distance.
+- configured `pgvector` but unavailable extension/table: embeddings remain JSONB-only; vector search falls back to JSONB mock-vector scoring if embeddings exist, otherwise lexical.
+
+Hybrid behavior:
+
+- `mock_vector` uses the best available vector storage and records `vectorStorageUsed`.
+- `hybrid` combines lexical and vector scores with the existing `0.4 / 0.6` weights.
+- if pgvector is requested but JSONB is used, result snapshots set `fallbackUsed=true` and a pgvector fallback reason.
+- if no vector scores are available, `mock_vector` and `hybrid` fall back to lexical results.
+
+Search result snapshots include:
+
+```text
+searchMode
+vectorStorageUsed: jsonb | pgvector | none
+fallbackUsed
+fallbackReason
+lexicalScore
+vectorScore
+finalScore
+```
+
+Active search must continue to exclude deleted sources, deleted documents, deleted chunks, deleted embeddings and blocked/restricted documents.
 
 ## Retrieval Modes
 
@@ -342,6 +383,14 @@ Fallback rules:
 - Expose dashboard details for lexical/vector score components.
 - Validate fallback behavior in harness.
 
+### Milestone 1.5D: pgvector Active Retrieval
+
+- Prefer pgvector vector scoring when explicitly configured and available.
+- Keep JSONB/mock vector scoring and lexical fallback mandatory.
+- Report pgvector extension/table availability in RAG status.
+- Keep standard CI and standard harness free of pgvector requirements.
+- Do not add GraphRAG, Code Graph, external providers or worker queues.
+
 ## Safe Execution and Data Policy
 
 - Embedding text already persisted from `manual_text`, `project_note` or `artifact` sources is medium risk when processed by an approved local/mock embedding adapter.
@@ -379,9 +428,21 @@ Fallback rules:
 - lexical fallback remains available when vector paths are unavailable.
 - Docker Compose offers an optional pgvector service without replacing standard `postgres:16`.
 
+## Acceptance Criteria for Milestone 1.5D pgvector Active Retrieval
+
+- `TRIFORGE_EMBEDDING_STORAGE=pgvector` requests pgvector active retrieval.
+- The system detects extension and table availability without failing startup.
+- Standard migrations do not require `CREATE EXTENSION vector`.
+- Embedding generation keeps JSONB compatibility and mirrors pgvector rows only when available.
+- `mock_vector` and `hybrid` use pgvector scores when configured and available.
+- If pgvector is unavailable, search falls back to JSONB/mock-vector or lexical retrieval.
+- Result snapshots report storage and fallback metadata.
+- `/api/rag/status` reports extension availability, table availability, configured storage, effective storage, fallback reason and vector search enabled state.
+- Standard unit tests and harness pass without pgvector.
+
 ## Risks
 
-- pgvector requires extension support and a fixed vector dimension.
+- pgvector requires explicit extension/table setup and a fixed vector dimension.
 - Mock embeddings do not prove semantic quality.
 - Local embedding models add runtime resource and reproducibility concerns.
 - External providers introduce data handling, approval and privacy risks.
@@ -389,3 +450,4 @@ Fallback rules:
 - Regex redaction is not complete DLP and does not eliminate the need for stronger data governance before real providers.
 - Basic retention has no background pruning worker yet.
 - Existing retrieval snapshots may reference content selected before later deletion.
+- Approximate pgvector indexes and production-grade vector tuning are not configured yet.

@@ -31,7 +31,10 @@ describe("RagStatusService", () => {
     expect(status.activeEmbeddingProvider).toBe("mock");
     expect(status.embeddingStorage).toBe("jsonb");
     expect(status.warnings).toContain("local_embedding_unavailable_using_mock");
-    expect(status.warnings).toContain("pgvector_unavailable_using_jsonb");
+    expect(status.warnings).toContain("pgvector_extension_unavailable_using_jsonb");
+    expect(status.pgvectorExtensionAvailable).toBe(false);
+    expect(status.pgvectorTableAvailable).toBe(false);
+    expect(status.fallbackReason).toBe("local_embedding_unavailable_using_mock");
   });
 
   it("does not require a local endpoint when local provider is configured", async () => {
@@ -61,7 +64,9 @@ describe("RagStatusService", () => {
 
     expect(status.embeddingStorage).toBe("jsonb");
     expect(status.pgvectorConfigured).toBe(true);
-    expect(status.warnings).toContain("pgvector_unavailable_using_jsonb");
+    expect(status.warnings).toContain("pgvector_extension_unavailable_using_jsonb");
+    expect(status.effectiveEmbeddingStorage).toBe("jsonb");
+    expect(status.vectorSearchEnabled).toBe(true);
   });
 
   it("reports local and pgvector active when available", async () => {
@@ -77,17 +82,35 @@ describe("RagStatusService", () => {
     expect(status.activeEmbeddingProvider).toBe("local");
     expect(status.embeddingStorage).toBe("pgvector");
     expect(status.fallbackMode).toBe("none");
+    expect(status.pgvectorExtensionAvailable).toBe(true);
+    expect(status.pgvectorTableAvailable).toBe(true);
+    expect(status.vectorSearchEnabled).toBe(true);
   });
 });
 
 function storage(
   storageKind: "jsonb" | "pgvector",
   available: boolean
-): EmbeddingStorage {
+): EmbeddingStorage & {
+  getAvailability(): Promise<{
+    extensionAvailable: boolean;
+    tableAvailable: boolean;
+    available: boolean;
+    fallbackReason: string | null;
+  }>;
+} {
   return {
     storageKind,
     async isAvailable() {
       return available;
+    },
+    async getAvailability() {
+      return {
+        extensionAvailable: available,
+        tableAvailable: available,
+        available,
+        fallbackReason: available ? null : "pgvector_extension_unavailable"
+      };
     },
     async upsertChunkEmbedding() {},
     async searchSimilarChunks() {

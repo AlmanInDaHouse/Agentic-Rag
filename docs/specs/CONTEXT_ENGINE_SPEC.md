@@ -21,7 +21,7 @@ Milestone 1.5B extends the context layer with deterministic mock embeddings and 
 
 Milestone 1.5C-A adds a basic deterministic context data policy and regex redaction layer before future pgvector or real embedding work. Milestone 1.5C-B adds retention quotas, soft delete/restore and context audit events.
 
-Milestone 1.5C adds optional pgvector capability reporting and a localhost/loopback-only embedding adapter boundary without making either required.
+Milestone 1.5C adds optional pgvector capability reporting and a localhost/loopback-only embedding adapter boundary without making either required. Milestone 1.5D adds optional active pgvector retrieval when configured and available, while keeping JSONB/mock/lexical fallback mandatory.
 
 ## Out of Scope
 
@@ -31,6 +31,7 @@ Milestone 1.5C adds optional pgvector capability reporting and a localhost/loopb
 - Required external embeddings.
 - Required pgvector.
 - Required real semantic embeddings.
+- Required pgvector-backed active retrieval.
 - External embedding providers.
 - Worker queues.
 - Real authentication.
@@ -84,7 +85,7 @@ Context Engine v0 uses PostgreSQL tables in migration `0006_context_engine.sql`.
 - Chunks store the retrievable text.
 - When sensitive findings exist, chunks store redacted text.
 - Retrievals store selected results as JSONB for traceability.
-- The schema keeps source/document/chunk boundaries compatible with future embeddings, but no vector extension is required for default operation.
+- The schema keeps source/document/chunk boundaries compatible with embeddings, but no vector extension is required for default operation. JSONB embedding rows remain the default storage. Optional pgvector rows are stored in `context_chunk_vector_embeddings` only when `TRIFORGE_EMBEDDING_STORAGE=pgvector` is configured and the database has both the installed `vector` extension and the optional table.
 
 ## Chunking v0
 
@@ -138,7 +139,7 @@ hybrid
 0.4 * lexical_score + 0.6 * vector_score
 ```
 
-If mock embeddings are unavailable, `mock_vector` and `hybrid` fall back to lexical retrieval and record `fallbackUsed` plus `fallbackReason` in result snapshots. This is not real semantic retrieval; mock vectors are deterministic hashes used to prove adapter boundaries, persistence and ranking behavior.
+If embeddings or vector storage are unavailable, `mock_vector` and `hybrid` fall back to JSONB mock-vector scoring or lexical retrieval and record `fallbackUsed` plus `fallbackReason` in result snapshots. When pgvector is configured and available, vector scores come from pgvector cosine distance. When pgvector is configured but unavailable, vector scoring falls back to JSONB if rows exist, then lexical. Mock vectors are deterministic hashes used to prove adapter boundaries, persistence and ranking behavior; they are not semantic-quality proof.
 
 ## Mock Embeddings
 
@@ -180,7 +181,7 @@ provider: local
 storage: pgvector
 ```
 
-Those settings are capability flags, not mandatory runtime requirements. If pgvector is not available, active storage remains JSONB. If the local endpoint is not configured or not reachable, active provider remains mock. Search modes remain API-compatible:
+Those settings are capability flags, not mandatory runtime requirements. If pgvector is not available, effective storage remains JSONB. If the local endpoint is not configured or not reachable, active provider remains mock. Search modes remain API-compatible:
 
 ```text
 lexical
@@ -189,6 +190,13 @@ hybrid
 ```
 
 The Context Engine does not send text to external providers. Local endpoint use is opt-in, localhost/loopback-only and reported through `/api/rag/status`.
+
+pgvector detection:
+
+- extension availability is based on the installed `vector` extension,
+- table availability is based on `context_chunk_vector_embeddings` in the active schema/search path,
+- pgvector vector search is enabled only when both are true and storage is configured as `pgvector`,
+- standard harness and CI do not require either.
 
 ## Runtime Integration
 
@@ -262,6 +270,7 @@ Shared Zod contracts live in `packages/shared/src/index.ts`:
 - `EmbeddingResultSchema`
 - `GenerateEmbeddingsRequestSchema`
 - `RagSearchModeSchema`
+- RAG status fields for pgvector extension/table availability, effective storage, fallback reason and vector search enabled state.
 
 All input schemas are strict.
 
@@ -285,7 +294,11 @@ All input schemas are strict.
 - Embedding generation is deterministic and idempotent.
 - Missing document/source returns `404`.
 - Hybrid/mock vector search falls back to lexical when embeddings are unavailable.
+- When configured and available, pgvector supplies vector scores for `mock_vector` and `hybrid`.
+- When configured but unavailable, pgvector falls back to JSONB/mock/lexical without breaking search.
+- Search result snapshots record `searchMode`, `vectorStorageUsed`, `fallbackUsed`, `fallbackReason`, `lexicalScore`, `vectorScore` and `finalScore`.
 - RAG status reports pgvector/local availability without requiring either capability.
+- RAG status reports pgvector extension availability, table availability, configured storage, effective storage, fallback reason and vector search enabled state.
 - Standard harness does not require pgvector or a local model.
 - Every search records a retrieval.
 - Duplicate normalized content for the same source returns `409`.

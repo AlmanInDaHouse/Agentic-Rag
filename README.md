@@ -60,6 +60,17 @@ docker compose -f infra/docker/docker-compose.yml --profile vector up -d postgre
 
 El servicio opcional queda en el puerto local `5433`. El harness estandar sigue usando `postgres:16` sin pgvector.
 
+Para usar el servicio vectorial local:
+
+```bash
+DATABASE_URL=postgres://triforge:triforge@localhost:5433/triforge
+pnpm db:migrate
+psql "$DATABASE_URL" -f infra/sql/enable_pgvector.sql
+TRIFORGE_EMBEDDING_STORAGE=pgvector pnpm dev:api
+```
+
+La migracion estandar no fuerza `CREATE EXTENSION vector`; si la extension no esta instalada, la tabla vectorial opcional se omite de forma segura.
+
 3. Ejecutar migraciones:
 
 ```bash
@@ -271,7 +282,7 @@ Todavia no esta implementado: RAG semantico real, GraphRAG, Code Graph, adapters
 
 ## Context Engine and Mock Embeddings
 
-El Context Engine permite registrar contexto manual, aplicar redaccion regex local, recuperarlo con busqueda lexical y generar embeddings mock deterministas. No usa pgvector, modelos reales, crawlers web, lectores del filesystem ni adapters externos.
+El Context Engine permite registrar contexto manual, aplicar redaccion regex local, recuperarlo con busqueda lexical y generar embeddings mock deterministas. pgvector puede usarse como retrieval vectorial activo solo si se configura explicitamente y la base de datos tiene extension/tabla vectorial. No usa modelos reales obligatorios, crawlers web, lectores del filesystem ni adapters externos.
 
 Tipos de source permitidos:
 
@@ -393,14 +404,15 @@ Listar retrievals:
 curl http://127.0.0.1:3001/api/goals/<goal-id>/context/retrievals
 ```
 
-Si `mock_vector` o `hybrid` no encuentran embeddings, la API hace fallback a `lexical` y deja `fallbackUsed`/`fallbackReason` en los resultados persistidos. Cuando un run avanza por `load_context`, el runtime sigue usando `lexical` por defecto, guarda `retrievalId`, `query` y `results` en el output del step y registra `context_retrieval_created` en timeline. Si no hay resultados, el step continua con `results: []`.
+Si `mock_vector` o `hybrid` no encuentran embeddings, la API hace fallback a `lexical` y deja `fallbackUsed`/`fallbackReason` en los resultados persistidos. Si `TRIFORGE_EMBEDDING_STORAGE=pgvector` esta configurado pero pgvector no esta disponible, la API cae a JSONB/mock-vector si hay embeddings, y luego a lexical. Los resultados persistidos incluyen `searchMode`, `vectorStorageUsed`, `fallbackUsed`, `fallbackReason`, `lexicalScore`, `vectorScore` y `finalScore`. Cuando un run avanza por `load_context`, el runtime sigue usando `lexical` por defecto, guarda `retrievalId`, `query` y `results` en el output del step y registra `context_retrieval_created` en timeline. Si no hay resultados, el step continua con `results: []`.
 
 Limitaciones actuales:
 
 - `mock_embedding_v1` produce vectores de 32 dimensiones con hashing determinista.
 - Es reproducible para CI/harness, pero no representa semantica real.
 - Los vectores mock se guardan en JSONB por defecto; no es un indice vectorial productivo.
-- pgvector es opcional y no se requiere para CI/harness.
+- pgvector es opcional, se activa solo con `TRIFORGE_EMBEDDING_STORAGE=pgvector` y no se requiere para CI/harness.
+- `/api/rag/status` reporta extension pgvector, tabla pgvector, storage configurado, storage efectivo, fallback reason y si vector search esta habilitado.
 - El endpoint local de embeddings es opt-in y debe apuntar a localhost/loopback.
 - La redaccion actual es regex basica y no es DLP completo.
 - Hay policy basica de retention, quota, soft delete/restore y audit; no hay worker de retention ni cuotas tenant-specific.
@@ -414,6 +426,7 @@ Estado actual:
 - Context ingestion aplica redaccion regex local antes de persistir chunks.
 - Hay embeddings mock deterministas para probar boundary, persistencia y harness.
 - pgvector existe solo como capacidad opcional/local, no como requisito ni indice activo por defecto.
+- pgvector tiene retrieval activo opcional cuando extension/tabla existen y `TRIFORGE_EMBEDDING_STORAGE=pgvector`.
 - Local embeddings son opt-in; no hay modelo real obligatorio.
 - No hay GraphRAG ni Code Graph.
 - No hay fuentes externas como filesystem, web, GitHub, Gmail o calendar.
@@ -426,7 +439,7 @@ v1B: interfaces de embeddings y mock embeddings deterministas.
 v1C-A: data policy y redaccion regex local.
 v1C-B: retention, quota, soft delete/restore y audit.
 v1C: pgvector y embeddings locales opcionales con fallback mock/jsonb/lexical.
-v1D: retrieval hibrido lexical + vectorial.
+v1D: retrieval hibrido lexical + vectorial con pgvector activo opcional.
 ```
 
 El fallback lexical debe mantenerse durante todo el rollout. Si embeddings no existen o fallan, `load_context` debe poder seguir usando retrieval lexical y registrar el motivo.
@@ -460,7 +473,7 @@ Para solicitar storage pgvector opcional:
 TRIFORGE_EMBEDDING_STORAGE=pgvector
 ```
 
-Si pgvector o el endpoint local no estan disponibles, la API sigue arrancando y `/api/rag/status` reporta fallback a `jsonb`, `mock` y lexical.
+Si pgvector o el endpoint local no estan disponibles, la API sigue arrancando y `/api/rag/status` reporta fallback a `jsonb`, `mock` y lexical. Para que pgvector sea efectivo, `postgres-vector` debe estar activo y `infra/sql/enable_pgvector.sql` debe haberse aplicado en la base de datos/schema usados por la API.
 
 La web puede configurar:
 

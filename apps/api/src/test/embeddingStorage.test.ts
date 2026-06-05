@@ -3,7 +3,8 @@ import type { ChunkEmbedding } from "@triforge/shared";
 import type { ChunkEmbeddingRepository, UpsertChunkEmbeddingInput } from "../domain/ports.js";
 import {
   JsonbEmbeddingStorage,
-  PgvectorEmbeddingStorage
+  PgvectorEmbeddingStorage,
+  toPgvectorLiteral
 } from "../services/embeddings/embeddingStorage.js";
 
 const now = new Date("2026-01-01T00:00:00.000Z").toISOString();
@@ -41,12 +42,27 @@ describe("EmbeddingStorage", () => {
         rowCount: 1,
         oid: 0,
         fields: [],
-        rows: [{ available: false }]
+        rows: [{ extension_available: false }]
       })
     });
 
     await expect(storage.isAvailable()).resolves.toBe(false);
-    await expect(storage.searchSimilarChunks()).resolves.toEqual([]);
+    await expect(storage.getAvailability()).resolves.toEqual({
+      extensionAvailable: false,
+      tableAvailable: false,
+      available: false,
+      fallbackReason: "pgvector_extension_unavailable"
+    });
+    await expect(storage.searchSimilarChunks({
+      queryEmbedding: [1, 0],
+      chunkIds: [],
+      modelId: "00000000-0000-4000-8000-000000000002"
+    })).resolves.toEqual([]);
+  });
+
+  it("serializes vectors for pgvector SQL parameters", () => {
+    expect(toPgvectorLiteral([1, 0.25, -0.5])).toBe("[1,0.25,-0.5]");
+    expect(() => toPgvectorLiteral([Number.NaN])).toThrow("finite");
   });
 });
 

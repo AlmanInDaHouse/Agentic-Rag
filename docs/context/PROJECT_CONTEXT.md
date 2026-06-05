@@ -6,7 +6,7 @@ TriForge Agentic Lab is an experimental platform for coordinating AI agents thro
 
 ## Current Architecture
 
-- `apps/api`: Fastify ESM API, PostgreSQL repositories, migrations, mock debate runtime, mock agent runtime state machine, safe execution policy, Context Engine, basic context redaction/retention policy, mock embedding boundary, optional local/pgvector capability reporting and tests.
+- `apps/api`: Fastify ESM API, PostgreSQL repositories, migrations, mock debate runtime, mock agent runtime state machine, safe execution policy, Context Engine, basic context redaction/retention policy, mock embedding boundary, optional local/pgvector capability reporting, optional pgvector active retrieval and tests.
 - `apps/web`: React + Vite dashboard.
 - `packages/shared`: Zod contracts and shared TypeScript types.
 - `infra/docker`: local PostgreSQL compose setup.
@@ -40,7 +40,7 @@ TriForge Agentic Lab is an experimental platform for coordinating AI agents thro
 
 ## Current State
 
-The MVP supports goal creation/listing, debate round creation, latest round retrieval, mock agents, mock judge, persisted proposals, timeline events and basic dashboard. Milestone 1.3.1 adds a persisted mock agent runtime state machine with approval gate workflows, a safe execution policy, transactional advance locking and approval hardening. Milestone 1.4 adds Context Engine v0 with manual/project/artifact sources, deterministic chunking, lexical retrieval and runtime `load_context` integration. Milestone 1.5C-A adds deterministic regex redaction and context data policy metadata before future real embedding work. Milestone 1.5C-B adds basic context retention quotas, soft delete/restore and audit events. The runtime remains mock-only and does not execute real commands, modify code, install dependencies, run migrations or call real adapters.
+The MVP supports goal creation/listing, debate round creation, latest round retrieval, mock agents, mock judge, persisted proposals, timeline events and basic dashboard. Milestone 1.3.1 adds a persisted mock agent runtime state machine with approval gate workflows, a safe execution policy, transactional advance locking and approval hardening. Milestone 1.4 adds Context Engine v0 with manual/project/artifact sources, deterministic chunking, lexical retrieval and runtime `load_context` integration. Milestone 1.5C-A adds deterministic regex redaction and context data policy metadata before future real embedding work. Milestone 1.5C-B adds basic context retention quotas, soft delete/restore and audit events. Milestone 1.5D adds optional pgvector active retrieval when explicitly configured and available, with JSONB/mock/lexical fallback when it is not. The runtime remains mock-only and does not execute real commands, modify code, install dependencies, run migrations or call real adapters.
 
 ## Decisions Taken
 
@@ -52,8 +52,8 @@ The MVP supports goal creation/listing, debate round creation, latest round retr
 - Runtime advance uses a PostgreSQL transaction and `SELECT ... FOR UPDATE NOWAIT` to serialize per-run state transitions.
 - Approval gates use simulated actor roles until real auth is introduced.
 - Context Engine uses lexical retrieval by default.
-- RAG v1 now has deterministic mock embeddings and mock/hybrid search modes without pgvector or external embeddings.
-- pgvector and local embeddings are optional capabilities only; default CI/harness remains mock plus JSONB.
+- RAG v1 now has deterministic mock embeddings, mock/hybrid search modes and optional pgvector active retrieval without external embeddings.
+- pgvector and local embeddings are optional capabilities only; default CI/harness remains mock plus JSONB, and pgvector requires explicit extension/table setup.
 - Context ingestion applies basic local regex redaction before chunk persistence.
 - Context retention uses simple service-layer quotas, soft delete by default and audit events for deletion/quota outcomes.
 
@@ -62,7 +62,7 @@ The MVP supports goal creation/listing, debate round creation, latest round retr
 - Consider database-per-run harness isolation only if schema isolation becomes insufficient.
 - Add adapter specs before implementing real agent bridges.
 - Keep the runtime mock-only until adapter sandboxing, subprocess limits and authorization exist.
-- Add real semantic vector search only after optional pgvector/local capability reporting is stable.
+- Add real semantic vector quality evaluation only after optional pgvector/local retrieval setup is stable.
 
 ## Development Rules
 
@@ -134,7 +134,7 @@ tooling/harness
 - API route schemas are manually wired instead of using Fastify schema integration.
 - Approval gates are exposed for mock runtime actions and enforce simulated actor roles, but are not yet backed by authentication or real role binding.
 - Context retrieval is lexical by default and has basic regex redaction plus basic retention/quota/delete policy, but no full DLP yet.
-- RAG v1 has deterministic mock embeddings, optional local/pgvector capability reporting and hybrid/mock-vector modes, but no required real semantic embeddings or vector index yet.
+- RAG v1 has deterministic mock embeddings, optional local/pgvector capability reporting, optional pgvector active retrieval and hybrid/mock-vector modes, but no required real semantic embeddings, external providers or production vector tuning yet.
 
 ## Definition of Done
 
