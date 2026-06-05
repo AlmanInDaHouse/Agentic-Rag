@@ -1,0 +1,86 @@
+import { describe, expect, it } from "vitest";
+import { buildReport, renderMarkdownReport } from "./report.js";
+import type { RetrievalEvalQueryResult } from "./types.js";
+
+function result(overrides: Partial<RetrievalEvalQueryResult>): RetrievalEvalQueryResult {
+  return {
+    fixtureName: "unit-fixture",
+    mode: "lexical",
+    query: "unit query",
+    k: 3,
+    expectedChunkIds: ["expected-1"],
+    expectedDocumentTitles: ["Unit document"],
+    expectedChunkContains: ["expected text"],
+    fallbackUsed: false,
+    metrics: {
+      precision_at_k: 1 / 3,
+      recall_at_k: 1,
+      hit_at_k: 1,
+      mean_reciprocal_rank: 1,
+      expected_chunk_found: true
+    },
+    topResults: [
+      {
+        rank: 1,
+        documentTitle: "Unit document",
+        chunkId: "expected-1",
+        chunkExcerpt: "expected text",
+        finalScore: 1,
+        lexicalScore: 1,
+        vectorScore: null,
+        fallbackUsed: false,
+        fallbackReason: null,
+        vectorStorageUsed: "none"
+      }
+    ],
+    ...overrides
+  };
+}
+
+describe("retrieval eval reports", () => {
+  it("summarizes expected chunk and fallback rates", () => {
+    const report = buildReport({
+      generatedAt: "2026-06-06T00:00:00.000Z",
+      modes: ["lexical"],
+      results: [
+        result({ fallbackUsed: false }),
+        result({
+          fallbackUsed: true,
+          metrics: {
+            precision_at_k: 0,
+            recall_at_k: 0,
+            hit_at_k: 0,
+            mean_reciprocal_rank: 0,
+            expected_chunk_found: false
+          }
+        })
+      ]
+    });
+
+    expect(report.summaries).toEqual([
+      {
+        mode: "lexical",
+        queryCount: 2,
+        precisionAtK: 1 / 6,
+        recallAtK: 0.5,
+        hitAtK: 0.5,
+        meanReciprocalRank: 0.5,
+        expectedChunkFoundRate: 0.5,
+        fallbackUsedRate: 0.5
+      }
+    ]);
+  });
+
+  it("renders fixture, mode, metrics, fallback state and top results", () => {
+    const report = buildReport({
+      generatedAt: "2026-06-06T00:00:00.000Z",
+      modes: ["lexical"],
+      results: [result({})]
+    });
+
+    expect(renderMarkdownReport(report)).toContain("## unit-fixture / lexical");
+    expect(renderMarkdownReport(report)).toContain("precision@k: 0.333");
+    expect(renderMarkdownReport(report)).toContain("fallbackUsed: false");
+    expect(renderMarkdownReport(report)).toContain("| 1 | Unit document |");
+  });
+});

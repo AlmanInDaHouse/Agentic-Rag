@@ -4,8 +4,8 @@ export function precisionAtK(results: string[], expected: string[], k: number): 
   }
   const topResults = topK(results, k);
   const expectedSet = new Set(expected);
-  const matches = topResults.filter((result) => expectedSet.has(result)).length;
-  return matches / k;
+  const matches = new Set(topResults.filter((result) => expectedSet.has(result)));
+  return matches.size / k;
 }
 
 export function recallAtK(results: string[], expected: string[], k: number): number {

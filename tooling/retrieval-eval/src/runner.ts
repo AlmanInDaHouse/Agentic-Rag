@@ -25,13 +25,14 @@ const repoRoot = path.resolve(path.dirname(currentFile), "../../..");
 const fixturesDir = path.join(repoRoot, "tooling/retrieval-eval/fixtures");
 const reportsDir = path.join(repoRoot, "reports/retrieval-eval");
 const defaultModes: EvaluatedMode[] = ["lexical", "mock_vector", "hybrid"];
+const allowedModes = new Set<string>(defaultModes);
 
 export async function runRetrievalEvaluation(options: {
-  modes?: EvaluatedMode[];
+  modes?: readonly EvaluatedMode[];
   fixturePaths?: string[];
   outputDir?: string;
 } = {}) {
-  const modes = options.modes ?? defaultModes;
+  const modes = validateModes(options.modes ?? defaultModes);
   const fixturePaths = options.fixturePaths ?? await listFixturePaths();
   const fixtures = await Promise.all(fixturePaths.map(readFixture));
   const runtime = await startHarnessRuntime({});
@@ -191,20 +192,93 @@ async function readFixture(fixturePath: string): Promise<RetrievalEvalFixture> {
   return validateFixture(JSON.parse(raw), fixturePath);
 }
 
-function validateFixture(value: unknown, fixturePath: string): RetrievalEvalFixture {
-  const candidate = value as RetrievalEvalFixture;
-  if (
-    typeof candidate?.name !== "string" ||
-    !Array.isArray(candidate.documents) ||
-    !Array.isArray(candidate.queries)
-  ) {
-    throw new Error(`Invalid retrieval evaluation fixture: ${fixturePath}`);
+export function validateModes(modes: readonly string[]): EvaluatedMode[] {
+  if (modes.length === 0) {
+    throw new Error("Retrieval evaluation requires at least one mode");
   }
-  return candidate;
+  for (const mode of modes) {
+    if (!allowedModes.has(mode)) {
+      throw new Error(`Unsupported retrieval evaluation mode "${mode}". Expected one of: ${defaultModes.join(", ")}`);
+    }
+  }
+  return [...modes] as EvaluatedMode[];
+}
+
+export function validateFixture(value: unknown, fixturePath: string): RetrievalEvalFixture {
+  if (!isRecord(value)) {
+    throw invalidFixture(fixturePath, "fixture must be an object");
+  }
+  if (!isNonEmptyString(value.name)) {
+    throw invalidFixture(fixturePath, "name must be a non-empty string");
+  }
+  if (!Array.isArray(value.documents) || value.documents.length === 0) {
+    throw invalidFixture(fixturePath, "documents must be a non-empty array");
+  }
+  if (!Array.isArray(value.queries) || value.queries.length === 0) {
+    throw invalidFixture(fixturePath, "queries must be a non-empty array");
+  }
+
+  const documentTitles = new Set<string>();
+  for (const [index, document] of value.documents.entries()) {
+    if (!isRecord(document)) {
+      throw invalidFixture(fixturePath, `documents[${index}] must be an object`);
+    }
+    if (!isNonEmptyString(document.title)) {
+      throw invalidFixture(fixturePath, `documents[${index}].title must be a non-empty string`);
+    }
+    if (documentTitles.has(document.title)) {
+      throw invalidFixture(fixturePath, `documents[${index}].title must be unique`);
+    }
+    documentTitles.add(document.title);
+    if (!isNonEmptyString(document.content)) {
+      throw invalidFixture(fixturePath, `documents[${index}].content must be a non-empty string`);
+    }
+  }
+
+  for (const [index, query] of value.queries.entries()) {
+    if (!isRecord(query)) {
+      throw invalidFixture(fixturePath, `queries[${index}] must be an object`);
+    }
+    if (!isNonEmptyString(query.query)) {
+      throw invalidFixture(fixturePath, `queries[${index}].query must be a non-empty string`);
+    }
+    if (!isNonEmptyStringArray(query.expectedDocumentTitles)) {
+      throw invalidFixture(fixturePath, `queries[${index}].expectedDocumentTitles must be a non-empty string array`);
+    }
+    for (const title of query.expectedDocumentTitles) {
+      if (!documentTitles.has(title)) {
+        throw invalidFixture(fixturePath, `queries[${index}] references unknown document title "${title}"`);
+      }
+    }
+    if (!isNonEmptyStringArray(query.expectedChunkContains)) {
+      throw invalidFixture(fixturePath, `queries[${index}].expectedChunkContains must be a non-empty string array`);
+    }
+    if (!Number.isInteger(query.k) || query.k <= 0) {
+      throw invalidFixture(fixturePath, `queries[${index}].k must be a positive integer`);
+    }
+  }
+
+  return value as RetrievalEvalFixture;
 }
 
 function excerpt(content: string): string {
   return content.length <= 180 ? content : `${content.slice(0, 177)}...`;
+}
+
+function invalidFixture(fixturePath: string, reason: string): Error {
+  return new Error(`Invalid retrieval evaluation fixture ${fixturePath}: ${reason}`);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function isNonEmptyStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.length > 0 && value.every(isNonEmptyString);
 }
 
 const isDirectExecution =
