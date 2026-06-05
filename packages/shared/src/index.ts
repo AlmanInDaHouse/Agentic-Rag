@@ -351,11 +351,16 @@ export const RagStatusSchema = z.object({
   activeEmbeddingProvider: EmbeddingProviderSchema,
   configuredEmbeddingProvider: EmbeddingProviderSchema,
   embeddingStorage: EmbeddingStorageKindSchema,
+  effectiveEmbeddingStorage: EmbeddingStorageKindSchema,
   configuredEmbeddingStorage: EmbeddingStorageKindSchema,
   pgvectorAvailable: z.boolean(),
+  pgvectorExtensionAvailable: z.boolean(),
+  pgvectorTableAvailable: z.boolean(),
   localEmbeddingAvailable: z.boolean(),
   localEmbeddingConfigured: z.boolean(),
   pgvectorConfigured: z.boolean(),
+  vectorSearchEnabled: z.boolean(),
+  fallbackReason: z.string().nullable(),
   fallbackMode: z.enum(["none", "mock", "lexical", "mock_then_lexical"]),
   warnings: z.array(z.string())
 });
@@ -375,6 +380,8 @@ export const ContextSearchResultSchema = z.object({
   lexicalScore: z.number().nonnegative().default(0),
   vectorScore: z.number().nonnegative().nullable().default(null),
   mode: RagSearchModeSchema.default("lexical"),
+  searchMode: RagSearchModeSchema.default("lexical"),
+  vectorStorageUsed: z.enum(["jsonb", "pgvector", "none"]).default("none"),
   fallbackUsed: z.boolean().default(false),
   fallbackReason: z.string().nullable().default(null)
 });

@@ -72,13 +72,13 @@ Status: open.
 
 Target resolution: strengthen redaction, data handling, audit logging and review policy before real local models or external embedding providers are considered.
 
-## RAG-003: pgvector is optional, not default
+## RAG-003: pgvector optional active path exists
 
-The project now has optional pgvector capability reporting and an optional Docker Compose pgvector service, but standard CI/harness still uses PostgreSQL without requiring the extension. There is still no production vector index or mandatory pgvector-backed search path.
+The project now has optional pgvector capability reporting, an optional Docker Compose pgvector service and an active pgvector retrieval path when `TRIFORGE_EMBEDDING_STORAGE=pgvector` is configured and the extension/table are available. Standard CI/harness still uses PostgreSQL without requiring the extension. JSONB/mock/lexical fallback remains mandatory.
 
 Status: open.
 
-Target resolution: add explicit pgvector columns/indexes only after the optional capability path is stable and a migration/CI plan is accepted.
+Target resolution: add opt-in pgvector CI coverage and production vector tuning only after local vector setup is stable.
 
 ## RAG-005: Mock embeddings are not semantically meaningful
 
@@ -119,6 +119,30 @@ Real vector search quality will depend on the configured local model, output dim
 Status: open.
 
 Target resolution: add retrieval evaluation fixtures once a real local embedding model path is accepted.
+
+## RAG-009: pgvector active retrieval requires explicit vector database setup
+
+`TRIFORGE_EMBEDDING_STORAGE=pgvector` only becomes effective when the database has the installed `vector` extension and the optional `context_chunk_vector_embeddings` table. Standard migration is safe without pgvector and does not force extension creation.
+
+Status: open.
+
+Target resolution: add a documented opt-in local/CI vector profile once the setup is stable enough to maintain.
+
+## RAG-010: No production-grade vector tuning yet
+
+The active pgvector path uses exact cosine distance over 32-dimensional mock/local vectors. There is no retrieval evaluation set, model quality benchmark, tuned weighting policy or production capacity model yet.
+
+Status: open.
+
+Target resolution: define retrieval evaluation fixtures and model operations policy before relying on vector quality.
+
+## RAG-011: Approximate pgvector indexes are not configured yet
+
+The optional vector table has only a basic model/chunk index. It does not configure HNSW, IVFFlat or any approximate nearest-neighbor index.
+
+Status: open.
+
+Target resolution: add index strategy after vector volume, model dimension and latency requirements are known.
 
 ## DATA-001: Regex redaction is not complete DLP
 

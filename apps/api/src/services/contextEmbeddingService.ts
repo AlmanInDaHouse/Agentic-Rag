@@ -8,10 +8,15 @@ import type {
   EmbeddingModelRepository
 } from "../domain/ports.js";
 import type { EmbeddingAdapter } from "./embeddings/embeddingAdapter.js";
+import type { EmbeddingStorage } from "./embeddings/embeddingStorage.js";
 import { embeddingHash, MockEmbeddingAdapter } from "./embeddings/mockEmbeddingAdapter.js";
 
 export type GenerateEmbeddingsOptions = {
   force?: boolean;
+};
+
+export type ContextEmbeddingStorageConfig = {
+  configuredStorage: "jsonb" | "pgvector";
 };
 
 export type EmbeddingGenerationResult = {
@@ -39,7 +44,9 @@ export class ContextEmbeddingService {
     private readonly contextChunkRepository: ContextChunkRepository,
     private readonly embeddingModelRepository: EmbeddingModelRepository,
     private readonly chunkEmbeddingRepository: ChunkEmbeddingRepository,
-    private readonly embeddingAdapter: EmbeddingAdapter = new MockEmbeddingAdapter()
+    private readonly embeddingAdapter: EmbeddingAdapter = new MockEmbeddingAdapter(),
+    private readonly storageConfig: ContextEmbeddingStorageConfig = { configuredStorage: "jsonb" },
+    private readonly pgvectorEmbeddingStorage?: EmbeddingStorage
   ) {}
 
   async listEmbeddingModels(): Promise<EmbeddingModel[]> {
@@ -75,7 +82,7 @@ export class ContextEmbeddingService {
     let generatedCount = 0;
     let skippedCount = 0;
     const embeddings: ChunkEmbedding[] = [];
-    const model = await this.embeddingModelRepository.getOrCreateMockModel();
+    const model = await this.getOrCreateActiveModel();
     for (const document of documents) {
       const result = await this.generateForDocument(document, options, model);
       generatedCount += result.generatedCount;
@@ -97,7 +104,7 @@ export class ContextEmbeddingService {
     if (document.deletedAt) {
       throw new ConflictError(`Context document ${document.id} is deleted`);
     }
-    const model = await this.embeddingModelRepository.getOrCreateMockModel();
+    const model = await this.getOrCreateActiveModel();
     const chunks = (await this.contextChunkRepository.listByDocument(document.id))
       .filter((chunk) => !chunk.deletedAt);
     const embeddings = await this.chunkEmbeddingRepository.getEmbeddingsByChunkIds(
@@ -135,7 +142,7 @@ export class ContextEmbeddingService {
     if (document.deletedAt) {
       throw new ConflictError(`Context document ${document.id} is deleted`);
     }
-    const model = existingModel ?? (await this.embeddingModelRepository.getOrCreateMockModel());
+    const model = existingModel ?? (await this.getOrCreateActiveModel());
     const chunks = (await this.contextChunkRepository.listByDocument(document.id))
       .filter((chunk) => !chunk.deletedAt);
     const existingEmbeddings = await this.chunkEmbeddingRepository.getEmbeddingsByChunkIds(
@@ -148,24 +155,46 @@ export class ContextEmbeddingService {
       : chunks.filter((chunk) => !existingChunkIds.has(chunk.id));
     const vectors = await this.embeddingAdapter.embedBatch(chunksToEmbed.map((chunk) => chunk.content));
     const created: ChunkEmbedding[] = [];
+    const pgvectorStorage = await this.availablePgvectorStorage();
 
     for (let index = 0; index < chunksToEmbed.length; index += 1) {
       const chunk = chunksToEmbed[index];
       const embedding = vectors[index];
-      created.push(
-        await this.chunkEmbeddingRepository.upsertChunkEmbedding({
+      const hash = embeddingHash({
+        modelName: this.embeddingAdapter.name,
+        provider: this.embeddingAdapter.provider,
+        dimension: this.embeddingAdapter.dimension,
+        text: chunk.content,
+        embedding
+      });
+      const stored = await this.chunkEmbeddingRepository.upsertChunkEmbedding({
+        chunkId: chunk.id,
+        modelId: model.id,
+        embedding,
+        embeddingHash: hash
+      });
+      created.push(stored);
+      if (pgvectorStorage) {
+        await pgvectorStorage.upsertChunkEmbedding({
+          chunkEmbeddingId: stored.id,
           chunkId: chunk.id,
           modelId: model.id,
           embedding,
-          embeddingHash: embeddingHash({
-            modelName: this.embeddingAdapter.name,
-            provider: this.embeddingAdapter.provider,
-            dimension: this.embeddingAdapter.dimension,
-            text: chunk.content,
-            embedding
-          })
-        })
-      );
+          embeddingHash: hash
+        });
+      }
+    }
+
+    if (pgvectorStorage && !options.force) {
+      for (const existingEmbedding of existingEmbeddings) {
+        await pgvectorStorage.upsertChunkEmbedding({
+          chunkEmbeddingId: existingEmbedding.id,
+          chunkId: existingEmbedding.chunkId,
+          modelId: existingEmbedding.modelId,
+          embedding: existingEmbedding.embedding,
+          embeddingHash: existingEmbedding.embeddingHash
+        });
+      }
     }
 
     return {
@@ -182,5 +211,26 @@ export class ContextEmbeddingService {
       throw new NotFoundError(`Context document ${documentId} was not found`);
     }
     return document;
+  }
+
+  private async getOrCreateActiveModel(): Promise<EmbeddingModel> {
+    return this.embeddingModelRepository.getOrCreateModel({
+      name: this.embeddingAdapter.name,
+      provider: this.embeddingAdapter.provider as EmbeddingModel["provider"],
+      dimension: this.embeddingAdapter.dimension,
+      storageKind: this.storageConfig.configuredStorage,
+      metadata: {
+        deterministic: this.embeddingAdapter.provider === "mock",
+        semantic: this.embeddingAdapter.provider !== "mock"
+      }
+    });
+  }
+
+  private async availablePgvectorStorage(): Promise<EmbeddingStorage | null> {
+    const pgvectorStorage = this.pgvectorEmbeddingStorage;
+    if (this.storageConfig.configuredStorage !== "pgvector" || !pgvectorStorage) {
+      return null;
+    }
+    return await pgvectorStorage.isAvailable().catch(() => false) ? pgvectorStorage : null;
   }
 }

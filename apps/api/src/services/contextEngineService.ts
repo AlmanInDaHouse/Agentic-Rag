@@ -13,7 +13,8 @@ import type {
   RedactionResult,
   ContextSource,
   CreateContextDocument,
-  CreateContextSource
+  CreateContextSource,
+  EmbeddingModel
 } from "@triforge/shared";
 import { ConflictError, NotFoundError } from "../domain/errors.js";
 import type {
@@ -33,10 +34,15 @@ import {
   MockEmbeddingAdapter,
   normalizeCosineScore
 } from "./embeddings/mockEmbeddingAdapter.js";
+import type { EmbeddingStorage, EmbeddingStorageSearchResult } from "./embeddings/embeddingStorage.js";
 import { ContextRedactionService } from "./contextRedactionService.js";
 import { ContextRetentionPolicyService } from "./contextRetentionPolicyService.js";
 
 const candidateLimit = 500;
+
+export type ContextEngineVectorStorageConfig = {
+  configuredStorage: "jsonb" | "pgvector";
+};
 
 export class ContextEngineService {
   constructor(
@@ -51,7 +57,12 @@ export class ContextEngineService {
     private readonly embeddingAdapter: EmbeddingAdapter = new MockEmbeddingAdapter(),
     private readonly contextRedactionService = new ContextRedactionService(),
     private readonly contextRetentionPolicyService?: ContextRetentionPolicyService,
-    private readonly contextAuditEventRepository?: ContextAuditEventRepository
+    private readonly contextAuditEventRepository?: ContextAuditEventRepository,
+    private readonly vectorStorageConfig: ContextEngineVectorStorageConfig = {
+      configuredStorage: "jsonb"
+    },
+    private readonly jsonbEmbeddingStorage?: EmbeddingStorage,
+    private readonly pgvectorEmbeddingStorage?: EmbeddingStorage
   ) {}
 
   async createSource(
@@ -287,6 +298,8 @@ export class ContextEngineService {
       return sortResults(
         lexicalRanked.map((candidate) => ({
           ...candidate,
+          searchMode: "lexical" as RagSearchMode,
+          vectorStorageUsed: "none" as const,
           fallbackUsed: true,
           fallbackReason: vectorScored?.fallbackReason ?? "mock_embeddings_unavailable"
         })),
@@ -314,7 +327,8 @@ export class ContextEngineService {
             ...candidate,
             score: 0.4 * normalizedLexicalScore + 0.6 * vectorScore,
             finalScore: 0.4 * normalizedLexicalScore + 0.6 * vectorScore,
-            mode: "hybrid" as RagSearchMode
+            mode: "hybrid" as RagSearchMode,
+            searchMode: "hybrid" as RagSearchMode
           };
         })
         .filter((candidate) => candidate.score > 0),
@@ -329,25 +343,14 @@ export class ContextEngineService {
     results: ContextSearchResult[];
     availableCount: number;
     fallbackReason: string | null;
+    vectorStorageUsed: "jsonb" | "pgvector" | "none";
   } | null> {
     if (!this.embeddingModelRepository || !this.chunkEmbeddingRepository) {
       return {
         results: [],
         availableCount: 0,
-        fallbackReason: "embedding_repository_unavailable"
-      };
-    }
-
-    const model = await this.embeddingModelRepository.getOrCreateMockModel();
-    const embeddings = await this.chunkEmbeddingRepository.getEmbeddingsByChunkIds(
-      candidates.map((candidate) => candidate.chunk.id),
-      model.id
-    );
-    if (embeddings.length === 0) {
-      return {
-        results: [],
-        availableCount: 0,
-        fallbackReason: "mock_embeddings_unavailable"
+        fallbackReason: "embedding_repository_unavailable",
+        vectorStorageUsed: "none"
       };
     }
 
@@ -358,18 +361,38 @@ export class ContextEngineService {
       return {
         results: [],
         availableCount: 0,
-        fallbackReason: "query_embedding_failed"
+        fallbackReason: "query_embedding_failed",
+        vectorStorageUsed: "none"
       };
     }
-    const embeddingsByChunkId = new Map(
-      embeddings.map((embedding) => [embedding.chunkId, embedding])
+
+    const model = await this.getOrCreateActiveModel();
+    const chunkIds = candidates.map((candidate) => candidate.chunk.id);
+    const {
+      scores,
+      vectorStorageUsed,
+      fallbackReason
+    } = await this.searchBestVectorStorage({
+      queryEmbedding,
+      chunkIds,
+      modelId: model.id
+    });
+
+    if (scores.length === 0) {
+      return {
+        results: [],
+        availableCount: 0,
+        fallbackReason,
+        vectorStorageUsed: "none"
+      };
+    }
+
+    const scoresByChunkId = new Map(
+      scores.map((score) => [score.chunkId, score.vectorScore])
     );
     const results = candidates.map((candidate) => {
-      const embedding = embeddingsByChunkId.get(candidate.chunk.id);
       const lexical = lexicalScore(candidate, tokenizeQuery(input.query));
-      const vectorScore = embedding
-        ? normalizeCosineScore(cosineSimilarity(queryEmbedding, embedding.embedding))
-        : null;
+      const vectorScore = scoresByChunkId.get(candidate.chunk.id) ?? null;
       return {
         ...candidate,
         lexicalScore: lexical,
@@ -377,16 +400,106 @@ export class ContextEngineService {
         score: vectorScore ?? 0,
         finalScore: vectorScore ?? 0,
         mode: "mock_vector" as RagSearchMode,
-        fallbackUsed: false,
-        fallbackReason: null
+        searchMode: "mock_vector" as RagSearchMode,
+        vectorStorageUsed,
+        fallbackUsed: fallbackReason !== null,
+        fallbackReason
       };
     });
 
     return {
       results,
-      availableCount: embeddings.length,
-      fallbackReason: null
+      availableCount: scores.length,
+      fallbackReason,
+      vectorStorageUsed
     };
+  }
+
+  private async searchBestVectorStorage(input: {
+    queryEmbedding: number[];
+    chunkIds: string[];
+    modelId: string;
+  }): Promise<{
+    scores: EmbeddingStorageSearchResult[];
+    vectorStorageUsed: "jsonb" | "pgvector" | "none";
+    fallbackReason: string | null;
+  }> {
+    const pgvectorRequested = this.vectorStorageConfig.configuredStorage === "pgvector";
+    if (pgvectorRequested && this.pgvectorEmbeddingStorage) {
+      const pgvectorAvailable = await this.pgvectorEmbeddingStorage.isAvailable().catch(() => false);
+      if (pgvectorAvailable) {
+        const pgvectorScores = await this.pgvectorEmbeddingStorage.searchSimilarChunks(input);
+        if (pgvectorScores.length > 0) {
+          return {
+            scores: pgvectorScores,
+            vectorStorageUsed: "pgvector",
+            fallbackReason: null
+          };
+        }
+        const jsonbScores = await this.searchJsonbSimilarChunks(input);
+        return {
+          scores: jsonbScores,
+          vectorStorageUsed: jsonbScores.length > 0 ? "jsonb" : "none",
+          fallbackReason: jsonbScores.length > 0
+            ? "pgvector_embeddings_unavailable_using_jsonb"
+            : "pgvector_embeddings_unavailable"
+        };
+      }
+      const jsonbScores = await this.searchJsonbSimilarChunks(input);
+      return {
+        scores: jsonbScores,
+        vectorStorageUsed: jsonbScores.length > 0 ? "jsonb" : "none",
+        fallbackReason: jsonbScores.length > 0
+          ? "pgvector_unavailable_using_jsonb"
+          : "pgvector_unavailable"
+      };
+    }
+
+    const jsonbScores = await this.searchJsonbSimilarChunks(input);
+    return {
+      scores: jsonbScores,
+      vectorStorageUsed: jsonbScores.length > 0 ? "jsonb" : "none",
+      fallbackReason: jsonbScores.length > 0 ? null : "mock_embeddings_unavailable"
+    };
+  }
+
+  private async searchJsonbSimilarChunks(input: {
+    queryEmbedding: number[];
+    chunkIds: string[];
+    modelId: string;
+  }): Promise<EmbeddingStorageSearchResult[]> {
+    if (this.jsonbEmbeddingStorage) {
+      return this.jsonbEmbeddingStorage.searchSimilarChunks(input);
+    }
+    if (!this.chunkEmbeddingRepository) {
+      return [];
+    }
+    const embeddings = await this.chunkEmbeddingRepository.getEmbeddingsByChunkIds(
+      input.chunkIds,
+      input.modelId
+    );
+    return embeddings.map((embedding) => ({
+      chunkId: embedding.chunkId,
+      vectorScore: normalizeCosineScore(
+        cosineSimilarity(input.queryEmbedding, embedding.embedding)
+      )
+    }));
+  }
+
+  private async getOrCreateActiveModel(): Promise<EmbeddingModel> {
+    if (!this.embeddingModelRepository) {
+      throw new Error("Embedding model repository is unavailable");
+    }
+    return this.embeddingModelRepository.getOrCreateModel({
+      name: this.embeddingAdapter.name,
+      provider: this.embeddingAdapter.provider as EmbeddingModel["provider"],
+      dimension: this.embeddingAdapter.dimension,
+      storageKind: this.vectorStorageConfig.configuredStorage,
+      metadata: {
+        deterministic: this.embeddingAdapter.provider === "mock",
+        semantic: this.embeddingAdapter.provider !== "mock"
+      }
+    });
   }
 
   async listRetrievals(goalId: string): Promise<ContextRetrieval[]> {
@@ -454,6 +567,8 @@ function withLexicalScore(
     lexicalScore: score,
     vectorScore: null,
     mode: "lexical",
+    searchMode: "lexical",
+    vectorStorageUsed: "none",
     fallbackUsed: false,
     fallbackReason: null
   };
@@ -467,7 +582,8 @@ function sortResults(
     .map((candidate) => ({
       ...candidate,
       finalScore: candidate.score,
-      mode
+      mode,
+      searchMode: mode
     }))
     .sort((left, right) => {
       if (right.score !== left.score) {

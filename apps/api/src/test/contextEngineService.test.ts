@@ -33,6 +33,7 @@ import {
   stableContentHash
 } from "../services/contextEngineService.js";
 import { MockEmbeddingAdapter, embeddingHash } from "../services/embeddings/mockEmbeddingAdapter.js";
+import type { EmbeddingStorage, EmbeddingStorageSearchResult } from "../services/embeddings/embeddingStorage.js";
 import { ContextRetentionPolicyService } from "../services/contextRetentionPolicyService.js";
 
 const now = new Date("2026-01-01T00:00:00.000Z").toISOString();
@@ -304,6 +305,8 @@ describe("ContextEngineService", () => {
 
     expect(first.results.length).toBeGreaterThan(0);
     expect(first.results[0].mode).toBe("hybrid");
+    expect(first.results[0].searchMode).toBe("hybrid");
+    expect(first.results[0].vectorStorageUsed).toBe("jsonb");
     expect(first.results[0].vectorScore).not.toBeNull();
     expect(first.results[0].fallbackUsed).toBe(false);
     expect(first.results[0].finalScore).toBe(first.results[0].score);
@@ -337,6 +340,75 @@ describe("ContextEngineService", () => {
 
     expect(retrieval.results).toHaveLength(1);
     expect(retrieval.results[0].mode).toBe("hybrid");
+  });
+
+  it("uses pgvector storage when configured and available", async () => {
+    const pgvectorStorage = new InMemoryEmbeddingStorage("pgvector", true);
+    const fixture = createContextFixture({
+      includeEmbeddings: true,
+      configuredStorage: "pgvector",
+      pgvectorStorage
+    });
+    const source = await fixture.service.createSource(goal.id, {
+      name: "Pgvector source",
+      type: "manual_text",
+      metadata: {}
+    });
+    const result = await fixture.service.addDocument(source.id, {
+      title: "Pgvector context",
+      content: "active pgvector retrieval path",
+      metadata: {}
+    });
+    pgvectorStorage.seed([{ chunkId: result.chunks[0].id, vectorScore: 0.95 }]);
+
+    const retrieval = await fixture.service.search(goal.id, {
+      query: "semantic query",
+      limit: 3,
+      mode: "mock_vector"
+    });
+
+    expect(retrieval.results[0]).toMatchObject({
+      mode: "mock_vector",
+      searchMode: "mock_vector",
+      vectorStorageUsed: "pgvector",
+      vectorScore: 0.95,
+      fallbackUsed: false
+    });
+  });
+
+  it("falls back to JSONB vector storage when pgvector is configured but unavailable", async () => {
+    const fixture = createContextFixture({
+      includeEmbeddings: true,
+      configuredStorage: "pgvector",
+      pgvectorStorage: new InMemoryEmbeddingStorage("pgvector", false)
+    });
+    const source = await fixture.service.createSource(goal.id, {
+      name: "Pgvector fallback source",
+      type: "manual_text",
+      metadata: {}
+    });
+    const result = await fixture.service.addDocument(source.id, {
+      title: "Pgvector fallback context",
+      content: "jsonb vector fallback content",
+      metadata: {}
+    });
+    await fixture.seedEmbeddings(result.chunks.map((chunk) => ({
+      chunkId: chunk.id,
+      content: chunk.content
+    })));
+
+    const retrieval = await fixture.service.search(goal.id, {
+      query: "jsonb fallback",
+      limit: 3,
+      mode: "hybrid"
+    });
+
+    expect(retrieval.results[0]).toMatchObject({
+      mode: "hybrid",
+      vectorStorageUsed: "jsonb",
+      fallbackUsed: true,
+      fallbackReason: "pgvector_unavailable_using_jsonb"
+    });
   });
 
   it("does not return chunks from other goals", async () => {
@@ -577,6 +649,8 @@ function createContextFixture(options: {
   includeEmbeddings?: boolean;
   includeRetention?: boolean;
   policy?: Partial<ContextRetentionPolicy>;
+  configuredStorage?: "jsonb" | "pgvector";
+  pgvectorStorage?: EmbeddingStorage;
 } = {}) {
   const goalsRepository = new InMemoryGoalsRepository(options.includeGoal ?? true);
   const sourceRepository = new InMemoryContextSourceRepository();
@@ -637,7 +711,12 @@ function createContextFixture(options: {
       embeddingAdapter,
       undefined,
       retentionPolicyService,
-      auditEventRepository
+      auditEventRepository,
+      {
+        configuredStorage: options.configuredStorage ?? "jsonb"
+      },
+      undefined,
+      options.pgvectorStorage
     )
   };
 }
@@ -693,6 +772,8 @@ function contextCandidate(input: {
     lexicalScore: 0,
     vectorScore: null,
     mode: "lexical",
+    searchMode: "lexical",
+    vectorStorageUsed: "none",
     fallbackUsed: false,
     fallbackReason: null
   };
@@ -842,6 +923,8 @@ class InMemoryContextChunkRepository implements ContextChunkRepository {
         lexicalScore: 0,
         vectorScore: null,
         mode: "lexical" as const,
+        searchMode: "lexical" as const,
+        vectorStorageUsed: "none" as const,
         fallbackUsed: false,
         fallbackReason: null
       }];
@@ -949,4 +1032,32 @@ class InMemoryChunkEmbeddingRepository implements ChunkEmbeddingRepository {
   }
   async softDeleteByDocument() {}
   async restoreByDocument() {}
+}
+
+class InMemoryEmbeddingStorage implements EmbeddingStorage {
+  scores: EmbeddingStorageSearchResult[] = [];
+
+  constructor(
+    readonly storageKind: "jsonb" | "pgvector",
+    private readonly available: boolean
+  ) {}
+
+  seed(scores: EmbeddingStorageSearchResult[]): void {
+    this.scores = scores;
+  }
+
+  async isAvailable() {
+    return this.available;
+  }
+
+  async upsertChunkEmbedding() {}
+
+  async searchSimilarChunks(input: {
+    chunkIds: string[];
+  }) {
+    if (!this.available) {
+      return [];
+    }
+    return this.scores.filter((score) => input.chunkIds.includes(score.chunkId));
+  }
 }

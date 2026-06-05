@@ -13,10 +13,11 @@ import type {
 } from "../domain/ports.js";
 import { NotFoundError } from "../domain/errors.js";
 import { ContextEmbeddingService } from "../services/contextEmbeddingService.js";
+import type { EmbeddingStorage, EmbeddingStorageUpsertInput } from "../services/embeddings/embeddingStorage.js";
 import { MockEmbeddingAdapter } from "../services/embeddings/mockEmbeddingAdapter.js";
 
 const now = new Date("2026-01-01T00:00:00.000Z").toISOString();
-const model: EmbeddingModel = {
+const baseModel: EmbeddingModel = {
   id: "00000000-0000-4000-8000-000000000900",
   name: "mock_embedding_v1",
   provider: "mock",
@@ -137,9 +138,70 @@ describe("ContextEmbeddingService", () => {
       fixture.service.generateEmbeddingsForSource(fixture.source.id)
     ).rejects.toThrow("is deleted");
   });
+
+  it("writes pgvector storage when configured and available while keeping JSONB compatibility", async () => {
+    const pgvectorStorage = new RecordingEmbeddingStorage(true);
+    const fixture = createEmbeddingFixture({
+      configuredStorage: "pgvector",
+      pgvectorStorage
+    });
+
+    const result = await fixture.service.generateEmbeddingsForDocument(fixture.document.id);
+
+    expect(result.generatedCount).toBe(2);
+    expect(fixture.chunkEmbeddingRepository.embeddings).toHaveLength(2);
+    expect(pgvectorStorage.upserts).toHaveLength(2);
+    expect(result.model.storageKind).toBe("pgvector");
+  });
+
+  it("falls back to JSONB when pgvector storage is configured but unavailable", async () => {
+    const pgvectorStorage = new RecordingEmbeddingStorage(false);
+    const fixture = createEmbeddingFixture({
+      configuredStorage: "pgvector",
+      pgvectorStorage
+    });
+
+    const result = await fixture.service.generateEmbeddingsForDocument(fixture.document.id);
+
+    expect(result.generatedCount).toBe(2);
+    expect(fixture.chunkEmbeddingRepository.embeddings).toHaveLength(2);
+    expect(pgvectorStorage.upserts).toEqual([]);
+  });
+
+  it("mirrors existing JSONB embeddings into pgvector without forcing regeneration", async () => {
+    const fixture = createEmbeddingFixture();
+    await fixture.service.generateEmbeddingsForDocument(fixture.document.id);
+    const pgvectorStorage = new RecordingEmbeddingStorage(true);
+    const pgvectorService = new ContextEmbeddingService(
+      fixture.sourceRepository,
+      fixture.documentRepository,
+      fixture.chunkRepository,
+      fixture.embeddingModelRepository,
+      fixture.chunkEmbeddingRepository,
+      new MockEmbeddingAdapter(),
+      {
+        configuredStorage: "pgvector"
+      },
+      pgvectorStorage
+    );
+
+    const result = await pgvectorService.generateEmbeddingsForDocument(fixture.document.id);
+
+    expect(result.generatedCount).toBe(0);
+    expect(result.skippedCount).toBe(2);
+    expect(fixture.chunkEmbeddingRepository.embeddings).toHaveLength(2);
+    expect(pgvectorStorage.upserts).toHaveLength(2);
+    expect(pgvectorStorage.upserts.map((upsert) => upsert.chunkEmbeddingId)).toEqual(
+      fixture.chunkEmbeddingRepository.embeddings.map((embedding) => embedding.id)
+    );
+  });
 });
 
-function createEmbeddingFixture(options: { seedChunks?: boolean } = {}) {
+function createEmbeddingFixture(options: {
+  seedChunks?: boolean;
+  configuredStorage?: "jsonb" | "pgvector";
+  pgvectorStorage?: EmbeddingStorage;
+} = {}) {
   const sourceRepository = new InMemorySourceRepository();
   const documentRepository = new InMemoryDocumentRepository();
   const chunkRepository = new InMemoryChunkRepository();
@@ -157,13 +219,19 @@ function createEmbeddingFixture(options: { seedChunks?: boolean } = {}) {
     documentRepository,
     sourceRepository,
     chunkEmbeddingRepository,
+    chunkRepository,
+    embeddingModelRepository,
     service: new ContextEmbeddingService(
       sourceRepository,
       documentRepository,
       chunkRepository,
       embeddingModelRepository,
       chunkEmbeddingRepository,
-      new MockEmbeddingAdapter()
+      new MockEmbeddingAdapter(),
+      {
+        configuredStorage: options.configuredStorage ?? "jsonb"
+      },
+      options.pgvectorStorage
     )
   };
 }
@@ -328,14 +396,20 @@ class InMemoryChunkRepository implements ContextChunkRepository {
 }
 
 class InMemoryEmbeddingModelRepository implements EmbeddingModelRepository {
+  model = baseModel;
   async getOrCreateMockModel() {
-    return model;
+    return this.model;
   }
-  async getOrCreateModel() {
-    return model;
+  async getOrCreateModel(input: { storageKind?: EmbeddingModel["storageKind"] }) {
+    this.model = {
+      ...this.model,
+      storageKind: input.storageKind ?? "jsonb",
+      updatedAt: now
+    };
+    return this.model;
   }
   async listEmbeddingModels() {
-    return [model];
+    return [this.model];
   }
 }
 
@@ -369,4 +443,23 @@ class InMemoryChunkEmbeddingRepository implements ChunkEmbeddingRepository {
   }
   async softDeleteByDocument() {}
   async restoreByDocument() {}
+}
+
+class RecordingEmbeddingStorage implements EmbeddingStorage {
+  readonly storageKind = "pgvector";
+  upserts: EmbeddingStorageUpsertInput[] = [];
+
+  constructor(private readonly available: boolean) {}
+
+  async isAvailable() {
+    return this.available;
+  }
+
+  async upsertChunkEmbedding(input: EmbeddingStorageUpsertInput) {
+    this.upserts.push(input);
+  }
+
+  async searchSimilarChunks() {
+    return [];
+  }
 }

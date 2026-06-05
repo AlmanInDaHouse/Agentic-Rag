@@ -28,6 +28,7 @@ const defaultDatabaseUrl = "postgres://triforge:triforge@localhost:5432/triforge
 export async function startHarnessRuntime(options: {
   port?: number;
   failureMode?: HarnessAgentFailureMode;
+  env?: Record<string, string | undefined>;
 }): Promise<HarnessRuntime> {
   const databaseUrl = process.env.DATABASE_URL ?? defaultDatabaseUrl;
   const schema = createHarnessSchemaIdentity();
@@ -41,10 +42,11 @@ export async function startHarnessRuntime(options: {
     await createHarnessSchema(databaseUrl, schema.schemaName);
     await runPnpm(["--filter", "@triforge/api", "db:migrate"], {
       DATABASE_URL: databaseUrl,
-      TRIFORGE_DB_SCHEMA: schema.schemaName
+      TRIFORGE_DB_SCHEMA: schema.schemaName,
+      ...options.env
     });
 
-    child = spawnApiProcess(port, schema, databaseUrl, options.failureMode ?? "none");
+    child = spawnApiProcess(port, schema, databaseUrl, options.failureMode ?? "none", options.env ?? {});
     const api = new HarnessApiClient(baseUrl);
     await waitForApi(api, child, port);
 
@@ -84,7 +86,8 @@ function spawnApiProcess(
   port: number,
   schema: HarnessSchema,
   databaseUrl: string,
-  failureMode: HarnessAgentFailureMode
+  failureMode: HarnessAgentFailureMode,
+  env: Record<string, string | undefined>
 ): ChildProcessWithoutNullStreams {
   const child = spawn(
     corepackBin,
@@ -97,7 +100,8 @@ function spawnApiProcess(
         HOST: "127.0.0.1",
         PORT: String(port),
         TRIFORGE_DB_SCHEMA: schema.schemaName,
-        TRIFORGE_MOCK_AGENT_FAILURE_MODE: failureMode
+        TRIFORGE_MOCK_AGENT_FAILURE_MODE: failureMode,
+        ...env
       },
       stdio: "pipe",
       shell: process.platform === "win32",

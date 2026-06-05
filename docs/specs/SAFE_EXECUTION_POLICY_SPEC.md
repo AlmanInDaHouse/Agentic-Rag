@@ -14,6 +14,8 @@ Context data policy now scans and redacts manual/project/artifact text before ch
 
 Milestone 1.5C allows an optional local-only embedding endpoint through `TRIFORGE_LOCAL_EMBEDDING_ENDPOINT`. This endpoint must point to localhost or loopback infrastructure controlled by the local operator, use short timeouts, avoid infinite retries and must not log full context content. Absence or failure of the local endpoint must fall back to mock/lexical behavior. External embedding APIs remain prohibited.
 
+Milestone 1.5D allows optional active pgvector retrieval only when `TRIFORGE_EMBEDDING_STORAGE=pgvector` and the database has the installed `vector` extension plus the optional vector table. Standard CI and harness must not require pgvector. The standard migration must not force `CREATE EXTENSION vector`; operators can run the opt-in setup script against local pgvector infrastructure. When pgvector is unavailable, the safe behavior is JSONB/mock-vector fallback and then lexical fallback.
+
 ## Action Types
 
 ```text
@@ -100,6 +102,8 @@ external embedding provider without explicit future policy
 sending context to non-local embedding endpoints
 using local embedding endpoint as a required startup dependency
 making pgvector mandatory for standard CI/harness
+making pgvector active retrieval a startup requirement
+running pgvector setup against production without an explicit operator action
 ```
 
 Blocked actions do not create approval gates. They fail the mock step and fail the run with `ACTION_BLOCKED`.
@@ -243,4 +247,6 @@ stopped
 - It is clear which actions are always blocked.
 - No real external execution is introduced.
 - Optional local embedding endpoints remain local-only and non-mandatory.
+- Optional pgvector retrieval remains explicit and non-mandatory.
+- pgvector absence falls back to JSONB/mock/lexical behavior.
 - External embedding providers remain prohibited.
