@@ -12,6 +12,8 @@ Context Engine v0 is limited to user-provided text through `manual_text`, `proje
 
 Context data policy now scans and redacts manual/project/artifact text before chunk persistence. RAG v1 planning treats embeddings over already persisted redacted chunks as medium risk when handled by an approved local or mock embedding adapter. Calls to external embedding providers are `external_adapter_call` and require future approval, stronger redaction/data handling policy and audit logging. Local model adapters must be explicitly registered before use. Context must not be sent to an external provider by default.
 
+Milestone 1.5C allows an optional local-only embedding endpoint through `TRIFORGE_LOCAL_EMBEDDING_ENDPOINT`. This endpoint must point to localhost or loopback infrastructure controlled by the local operator, use short timeouts, avoid infinite retries and must not log full context content. Absence or failure of the local endpoint must fall back to mock/lexical behavior. External embedding APIs remain prohibited.
+
 ## Action Types
 
 ```text
@@ -89,6 +91,15 @@ git_operation targeting main
 db destructive migration
 external network call without approved adapter
 install_dependency without dependency review
+```
+
+Embedding-specific blocked defaults:
+
+```text
+external embedding provider without explicit future policy
+sending context to non-local embedding endpoints
+using local embedding endpoint as a required startup dependency
+making pgvector mandatory for standard CI/harness
 ```
 
 Blocked actions do not create approval gates. They fail the mock step and fail the run with `ACTION_BLOCKED`.
@@ -231,3 +242,5 @@ stopped
 - It is clear which events are recorded.
 - It is clear which actions are always blocked.
 - No real external execution is introduced.
+- Optional local embedding endpoints remain local-only and non-mandatory.
+- External embedding providers remain prohibited.

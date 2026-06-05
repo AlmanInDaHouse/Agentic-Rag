@@ -18,6 +18,7 @@ import {
   GenerateEmbeddingsRequestSchema,
   RedactionPreviewRequestSchema,
   RedactionResultSchema,
+  RagStatusSchema,
   ResolveApprovalGateSchema,
   RestoreContextDocumentSchema,
   createGoalRequestSchema,
@@ -46,6 +47,7 @@ import {
   type Goal,
   type RedactionPreviewRequest,
   type RedactionResult,
+  type RagStatus,
   type RestoreContextDocument,
   type TimelineEvent
 } from "@triforge/shared";
@@ -64,6 +66,11 @@ export class HarnessApiClient {
     } catch {
       return false;
     }
+  }
+
+  async ragStatus(): Promise<RagStatus> {
+    const body = await this.request("/api/rag/status");
+    return RagStatusSchema.parse(body);
   }
 
   async createGoal(input: CreateGoalRequest): Promise<Goal> {

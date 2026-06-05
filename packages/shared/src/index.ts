@@ -302,20 +302,22 @@ export const ContextQuotaStatusSchema = z.object({
   shouldPruneRetrievals: z.boolean()
 });
 
-export const EmbeddingProviderSchema = z.enum(["mock"]);
+export const EmbeddingProviderSchema = z.enum(["mock", "local"]);
+export const EmbeddingStorageKindSchema = z.enum(["jsonb", "pgvector"]);
 
 export const EmbeddingModelSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
   provider: EmbeddingProviderSchema,
   dimension: z.number().int().positive(),
+  storageKind: EmbeddingStorageKindSchema.default("jsonb"),
   isActive: z.boolean(),
   metadata: z.record(z.unknown()),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime()
 });
 
-export const EmbeddingVectorSchema = z.array(z.number().finite()).length(32);
+export const EmbeddingVectorSchema = z.array(z.number().finite()).min(1).max(4096);
 
 export const ChunkEmbeddingSchema = z.object({
   id: z.string().uuid(),
@@ -344,6 +346,19 @@ export const GenerateEmbeddingsRequestSchema = z.object({
 }).strict();
 
 export const RagSearchModeSchema = z.enum(["lexical", "mock_vector", "hybrid"]);
+
+export const RagStatusSchema = z.object({
+  activeEmbeddingProvider: EmbeddingProviderSchema,
+  configuredEmbeddingProvider: EmbeddingProviderSchema,
+  embeddingStorage: EmbeddingStorageKindSchema,
+  configuredEmbeddingStorage: EmbeddingStorageKindSchema,
+  pgvectorAvailable: z.boolean(),
+  localEmbeddingAvailable: z.boolean(),
+  localEmbeddingConfigured: z.boolean(),
+  pgvectorConfigured: z.boolean(),
+  fallbackMode: z.enum(["none", "mock", "lexical", "mock_then_lexical"]),
+  warnings: z.array(z.string())
+});
 
 export const ContextSearchSchema = z.object({
   query: z.string().trim().min(1).max(5000),
@@ -511,6 +526,7 @@ export type ContextDocument = z.infer<typeof ContextDocumentSchema>;
 export type ContextChunk = z.infer<typeof ContextChunkSchema>;
 export type RedactionPreviewRequest = z.infer<typeof RedactionPreviewRequestSchema>;
 export type EmbeddingProvider = z.infer<typeof EmbeddingProviderSchema>;
+export type EmbeddingStorageKind = z.infer<typeof EmbeddingStorageKindSchema>;
 export type EmbeddingModel = z.infer<typeof EmbeddingModelSchema>;
 export type EmbeddingVector = z.infer<typeof EmbeddingVectorSchema>;
 export type ChunkEmbedding = z.infer<typeof ChunkEmbeddingSchema>;
@@ -518,6 +534,7 @@ export type EmbeddingRequest = z.infer<typeof EmbeddingRequestSchema>;
 export type EmbeddingResult = z.infer<typeof EmbeddingResultSchema>;
 export type GenerateEmbeddingsRequest = z.infer<typeof GenerateEmbeddingsRequestSchema>;
 export type RagSearchMode = z.infer<typeof RagSearchModeSchema>;
+export type RagStatus = z.infer<typeof RagStatusSchema>;
 export type ContextSearch = z.infer<typeof ContextSearchSchema>;
 export type ContextSearchResult = z.infer<typeof ContextSearchResultSchema>;
 export type ContextRetrieval = z.infer<typeof ContextRetrievalSchema>;

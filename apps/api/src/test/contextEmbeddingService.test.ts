@@ -21,6 +21,7 @@ const model: EmbeddingModel = {
   name: "mock_embedding_v1",
   provider: "mock",
   dimension: 32,
+  storageKind: "jsonb",
   isActive: true,
   metadata: {},
   createdAt: now,
@@ -328,6 +329,9 @@ class InMemoryChunkRepository implements ContextChunkRepository {
 
 class InMemoryEmbeddingModelRepository implements EmbeddingModelRepository {
   async getOrCreateMockModel() {
+    return model;
+  }
+  async getOrCreateModel() {
     return model;
   }
   async listEmbeddingModels() {

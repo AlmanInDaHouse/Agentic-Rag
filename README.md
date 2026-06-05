@@ -52,6 +52,14 @@ pnpm install
 docker compose -f infra/docker/docker-compose.yml up -d postgres
 ```
 
+PostgreSQL con pgvector es opcional para experimentos locales y no se usa por defecto:
+
+```bash
+docker compose -f infra/docker/docker-compose.yml --profile vector up -d postgres-vector
+```
+
+El servicio opcional queda en el puerto local `5433`. El harness estandar sigue usando `postgres:16` sin pgvector.
+
 3. Ejecutar migraciones:
 
 ```bash
@@ -141,6 +149,7 @@ See:
 - `POST /api/context/documents/:documentId/embeddings/mock`
 - `GET /api/context/documents/:documentId/embeddings`
 - `POST /api/context/sources/:sourceId/embeddings/mock`
+- `GET /api/rag/status`
 - `POST /api/goals/:goalId/context/search`
 - `GET /api/goals/:goalId/context/retrievals`
 
@@ -258,7 +267,7 @@ external network call without approved adapter
 install_dependency without dependency review
 ```
 
-Todavia no esta implementado: RAG, GraphRAG, Code Graph, adapters reales de Codex/Claude/Gemini/Ollama, colas de workers, auth para approval gates ni ejecucion autonoma multi-ciclo.
+Todavia no esta implementado: RAG semantico real, GraphRAG, Code Graph, adapters reales de Codex/Claude/Gemini/Ollama, colas de workers, auth para approval gates ni ejecucion autonoma multi-ciclo.
 
 ## Context Engine and Mock Embeddings
 
@@ -360,6 +369,12 @@ Ver cobertura de embeddings para un documento:
 curl http://127.0.0.1:3001/api/context/documents/<document-id>/embeddings
 ```
 
+Ver estado RAG, provider activo, storage activo y fallbacks:
+
+```bash
+curl http://127.0.0.1:3001/api/rag/status
+```
+
 Buscar con mock vector o hibrido:
 
 ```bash
@@ -384,7 +399,9 @@ Limitaciones actuales:
 
 - `mock_embedding_v1` produce vectores de 32 dimensiones con hashing determinista.
 - Es reproducible para CI/harness, pero no representa semantica real.
-- Los vectores se guardan en JSONB solo para este milestone; no es un indice vectorial productivo.
+- Los vectores mock se guardan en JSONB por defecto; no es un indice vectorial productivo.
+- pgvector es opcional y no se requiere para CI/harness.
+- El endpoint local de embeddings es opt-in y debe apuntar a localhost/loopback.
 - La redaccion actual es regex basica y no es DLP completo.
 - Hay policy basica de retention, quota, soft delete/restore y audit; no hay worker de retention ni cuotas tenant-specific.
 - No se envia contexto a providers externos.
@@ -396,8 +413,8 @@ Estado actual:
 - Context Engine usa retrieval lexical por defecto.
 - Context ingestion aplica redaccion regex local antes de persistir chunks.
 - Hay embeddings mock deterministas para probar boundary, persistencia y harness.
-- No hay embeddings reales.
-- No hay pgvector.
+- pgvector existe solo como capacidad opcional/local, no como requisito ni indice activo por defecto.
+- Local embeddings son opt-in; no hay modelo real obligatorio.
 - No hay GraphRAG ni Code Graph.
 - No hay fuentes externas como filesystem, web, GitHub, Gmail o calendar.
 
@@ -408,7 +425,7 @@ v1A: spec y ADR de estrategia RAG/embeddings.
 v1B: interfaces de embeddings y mock embeddings deterministas.
 v1C-A: data policy y redaccion regex local.
 v1C-B: retention, quota, soft delete/restore y audit.
-v1C: pgvector y embeddings locales opcionales, despues de endurecer data policy.
+v1C: pgvector y embeddings locales opcionales con fallback mock/jsonb/lexical.
 v1D: retrieval hibrido lexical + vectorial.
 ```
 
@@ -423,7 +440,27 @@ PORT=3001
 HOST=0.0.0.0
 DATABASE_URL=postgres://triforge:triforge@localhost:5432/triforge
 TRIFORGE_DB_SCHEMA=public
+TRIFORGE_EMBEDDING_PROVIDER=mock
+TRIFORGE_EMBEDDING_STORAGE=jsonb
+TRIFORGE_LOCAL_EMBEDDING_ENDPOINT=
+TRIFORGE_LOCAL_EMBEDDING_DIMENSION=32
 ```
+
+Para probar un endpoint local, mantenerlo en localhost/loopback y no usar proveedores externos:
+
+```bash
+TRIFORGE_EMBEDDING_PROVIDER=local
+TRIFORGE_LOCAL_EMBEDDING_ENDPOINT=http://127.0.0.1:11434/api/embed
+TRIFORGE_LOCAL_EMBEDDING_DIMENSION=32
+```
+
+Para solicitar storage pgvector opcional:
+
+```bash
+TRIFORGE_EMBEDDING_STORAGE=pgvector
+```
+
+Si pgvector o el endpoint local no estan disponibles, la API sigue arrancando y `/api/rag/status` reporta fallback a `jsonb`, `mock` y lexical.
 
 La web puede configurar:
 

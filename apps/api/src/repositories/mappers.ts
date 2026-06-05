@@ -159,6 +159,7 @@ type EmbeddingModelRow = {
   name: string;
   provider: EmbeddingModel["provider"];
   dimension: number;
+  storage_kind?: EmbeddingModel["storageKind"];
   is_active: boolean;
   metadata: Record<string, unknown>;
   created_at: Date;
@@ -345,6 +346,7 @@ export const mapEmbeddingModel = (row: EmbeddingModelRow): EmbeddingModel => ({
   name: row.name,
   provider: row.provider,
   dimension: row.dimension,
+  storageKind: row.storage_kind ?? "jsonb",
   isActive: row.is_active,
   metadata: row.metadata,
   createdAt: iso(row.created_at),

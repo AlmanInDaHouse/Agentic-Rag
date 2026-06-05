@@ -1,6 +1,22 @@
 import { z } from "zod";
 import { validateDbSchemaName } from "../db/schema.js";
 
+const localEmbeddingEndpointSchema = z
+  .preprocess(
+    (value) => {
+      if (typeof value !== "string") {
+        return value;
+      }
+      const trimmed = value.trim();
+      return trimmed === "" ? undefined : trimmed;
+    },
+    z.string().url().optional()
+  )
+  .refine(
+    (endpoint) => endpoint === undefined || isLocalEndpoint(endpoint),
+    "TRIFORGE_LOCAL_EMBEDDING_ENDPOINT must point to localhost or loopback"
+  );
+
 const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3001),
   HOST: z.string().default("0.0.0.0"),
@@ -14,7 +30,34 @@ const envSchema = z.object({
   TRIFORGE_DB_SCHEMA: z
     .string()
     .default("public")
-    .transform((schemaName) => validateDbSchemaName(schemaName))
+    .transform((schemaName) => validateDbSchemaName(schemaName)),
+  TRIFORGE_EMBEDDING_PROVIDER: z
+    .enum(["mock", "local"])
+    .default("mock"),
+  TRIFORGE_LOCAL_EMBEDDING_ENDPOINT: localEmbeddingEndpointSchema,
+  TRIFORGE_LOCAL_EMBEDDING_DIMENSION: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(4096)
+    .default(32),
+  TRIFORGE_EMBEDDING_STORAGE: z
+    .enum(["jsonb", "pgvector"])
+    .default("jsonb")
 });
 
-export const env = envSchema.parse(process.env);
+export function parseEnv(input: NodeJS.ProcessEnv) {
+  return envSchema.parse(input);
+}
+
+export const env = parseEnv(process.env);
+
+function isLocalEndpoint(endpoint: string): boolean {
+  const hostname = new URL(endpoint).hostname.toLowerCase();
+  return (
+    hostname === "localhost" ||
+    hostname === "::1" ||
+    hostname === "[::1]" ||
+    hostname.startsWith("127.")
+  );
+}

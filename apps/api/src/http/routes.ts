@@ -18,6 +18,7 @@ import {
   DeleteContextDocumentSchema,
   EmbeddingModelSchema,
   GenerateEmbeddingsRequestSchema,
+  RagStatusSchema,
   RedactionPreviewRequestSchema,
   RedactionResultSchema,
   ResolveApprovalGateSchema,
@@ -37,6 +38,7 @@ import type { DebateService } from "../services/debateService.js";
 import type { AgentRuntimeService } from "../services/agentRuntimeService.js";
 import type { ContextEmbeddingService } from "../services/contextEmbeddingService.js";
 import type { ContextEngineService } from "../services/contextEngineService.js";
+import type { RagStatusService } from "../services/ragStatusService.js";
 
 const goalParamsSchema = z.object({
   goalId: z.string().uuid()
@@ -93,9 +95,15 @@ export async function registerRoutes(
   debateService: DebateService,
   agentRuntimeService: AgentRuntimeService,
   contextEngineService: ContextEngineService,
-  contextEmbeddingService: ContextEmbeddingService
+  contextEmbeddingService: ContextEmbeddingService,
+  ragStatusService: RagStatusService
 ): Promise<void> {
   app.get("/health", async () => ({ status: "ok" }));
+
+  app.get("/api/rag/status", async () => {
+    const status = await ragStatusService.getStatus();
+    return RagStatusSchema.parse(status);
+  });
 
   app.post("/api/goals", async (request: FastifyRequest, reply: FastifyReply) => {
     const parsed = createGoalRequestSchema.safeParse(request.body);
