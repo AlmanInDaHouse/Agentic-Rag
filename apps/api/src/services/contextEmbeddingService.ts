@@ -155,6 +155,7 @@ export class ContextEmbeddingService {
       : chunks.filter((chunk) => !existingChunkIds.has(chunk.id));
     const vectors = await this.embeddingAdapter.embedBatch(chunksToEmbed.map((chunk) => chunk.content));
     const created: ChunkEmbedding[] = [];
+    const pgvectorStorage = await this.availablePgvectorStorage();
 
     for (let index = 0; index < chunksToEmbed.length; index += 1) {
       const chunk = chunksToEmbed[index];
@@ -173,18 +174,25 @@ export class ContextEmbeddingService {
         embeddingHash: hash
       });
       created.push(stored);
-      const pgvectorStorage = this.pgvectorEmbeddingStorage;
-      if (
-        this.storageConfig.configuredStorage === "pgvector" &&
-        pgvectorStorage &&
-        await pgvectorStorage.isAvailable()
-      ) {
+      if (pgvectorStorage) {
         await pgvectorStorage.upsertChunkEmbedding({
           chunkEmbeddingId: stored.id,
           chunkId: chunk.id,
           modelId: model.id,
           embedding,
           embeddingHash: hash
+        });
+      }
+    }
+
+    if (pgvectorStorage && !options.force) {
+      for (const existingEmbedding of existingEmbeddings) {
+        await pgvectorStorage.upsertChunkEmbedding({
+          chunkEmbeddingId: existingEmbedding.id,
+          chunkId: existingEmbedding.chunkId,
+          modelId: existingEmbedding.modelId,
+          embedding: existingEmbedding.embedding,
+          embeddingHash: existingEmbedding.embeddingHash
         });
       }
     }
@@ -216,5 +224,13 @@ export class ContextEmbeddingService {
         semantic: this.embeddingAdapter.provider !== "mock"
       }
     });
+  }
+
+  private async availablePgvectorStorage(): Promise<EmbeddingStorage | null> {
+    const pgvectorStorage = this.pgvectorEmbeddingStorage;
+    if (this.storageConfig.configuredStorage !== "pgvector" || !pgvectorStorage) {
+      return null;
+    }
+    return await pgvectorStorage.isAvailable().catch(() => false) ? pgvectorStorage : null;
   }
 }

@@ -167,6 +167,34 @@ describe("ContextEmbeddingService", () => {
     expect(fixture.chunkEmbeddingRepository.embeddings).toHaveLength(2);
     expect(pgvectorStorage.upserts).toEqual([]);
   });
+
+  it("mirrors existing JSONB embeddings into pgvector without forcing regeneration", async () => {
+    const fixture = createEmbeddingFixture();
+    await fixture.service.generateEmbeddingsForDocument(fixture.document.id);
+    const pgvectorStorage = new RecordingEmbeddingStorage(true);
+    const pgvectorService = new ContextEmbeddingService(
+      fixture.sourceRepository,
+      fixture.documentRepository,
+      fixture.chunkRepository,
+      fixture.embeddingModelRepository,
+      fixture.chunkEmbeddingRepository,
+      new MockEmbeddingAdapter(),
+      {
+        configuredStorage: "pgvector"
+      },
+      pgvectorStorage
+    );
+
+    const result = await pgvectorService.generateEmbeddingsForDocument(fixture.document.id);
+
+    expect(result.generatedCount).toBe(0);
+    expect(result.skippedCount).toBe(2);
+    expect(fixture.chunkEmbeddingRepository.embeddings).toHaveLength(2);
+    expect(pgvectorStorage.upserts).toHaveLength(2);
+    expect(pgvectorStorage.upserts.map((upsert) => upsert.chunkEmbeddingId)).toEqual(
+      fixture.chunkEmbeddingRepository.embeddings.map((embedding) => embedding.id)
+    );
+  });
 });
 
 function createEmbeddingFixture(options: {
@@ -191,6 +219,8 @@ function createEmbeddingFixture(options: {
     documentRepository,
     sourceRepository,
     chunkEmbeddingRepository,
+    chunkRepository,
+    embeddingModelRepository,
     service: new ContextEmbeddingService(
       sourceRepository,
       documentRepository,

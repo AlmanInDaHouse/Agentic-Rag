@@ -1,3 +1,5 @@
+-- Opt-in local pgvector setup. Run this manually only against a database/schema
+-- intended for pgvector experiments; standard CI and harness do not require it.
 CREATE EXTENSION IF NOT EXISTS vector;
 
 CREATE TABLE IF NOT EXISTS context_chunk_vector_embeddings (
