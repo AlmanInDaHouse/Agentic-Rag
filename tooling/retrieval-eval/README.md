@@ -15,6 +15,8 @@ The runner starts the existing black-box harness runtime, creates a temporary Po
 
 Fixtures include `answerable`, `ambiguous`, `redaction` and `no_answer` queries. No-answer queries use empty expected arrays explicitly; they do not require search to return zero rows, only that the evaluator does not invent an expected match. Report summaries keep total query count separate from retrieval metric query count so no-answer cases do not inflate aggregate retrieval quality.
 
+The runner also records search `answerability` and calculates `abstention_accuracy`, `false_answer_rate` and `false_abstention_rate`. These metrics are informational initially and are not an LLM judge or answer-generation evaluation.
+
 ## Commands
 
 ```bash
@@ -57,7 +59,7 @@ The initial gate blocks on:
 
 `precisionAtK`, `recallAtK` and `fallbackUsedRate` are reported but non-blocking initially.
 
-The default threshold block must include `hitAtK`, `expectedChunkFound` and `meanReciprocalRank`. Other metrics can be omitted to leave them ungated, or marked in `nonBlocking` to report them without failing the gate. Blocking thresholds are minimums except `fallbackUsedRate`, which is treated as a maximum if it is ever made blocking.
+The default threshold block must include `hitAtK`, `expectedChunkFound` and `meanReciprocalRank`. Other metrics can be omitted to leave them ungated, or marked in `nonBlocking` to report them without failing the gate. Blocking thresholds are minimums except `fallbackUsedRate`, `falseAnswerRate` and `falseAbstentionRate`, which are treated as maximums if they are ever made blocking.
 
 To update thresholds, run the evaluation, inspect the generated JSON/Markdown reports, and commit only the intentional baseline or threshold JSON change. Do not commit generated `reports/retrieval-eval` outputs.
 

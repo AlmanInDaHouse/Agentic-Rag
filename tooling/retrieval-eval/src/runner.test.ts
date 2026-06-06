@@ -144,6 +144,23 @@ describe("retrieval eval runner validation", () => {
     }, "unit.json")).toThrow("expectedChunkContains entry");
   });
 
+  it("rejects invalid expectedShouldAnswer values", () => {
+    expect(() => validateFixture({
+      ...validFixture,
+      queries: [
+        {
+          query: "bad expected answerability",
+          expectedDocumentTitles: ["Synthetic document"],
+          expectedChunkContains: ["retrieval text"],
+          queryType: "answerable",
+          tags: ["runtime"],
+          expectedShouldAnswer: "yes",
+          k: 3
+        }
+      ]
+    }, "unit.json")).toThrow("expectedShouldAnswer must be a boolean");
+  });
+
   it("rejects invalid queryType and tags", () => {
     expect(() => validateFixture({
       ...validFixture,
@@ -209,7 +226,10 @@ describe("retrieval eval runner validation", () => {
       recall_at_k: 1,
       hit_at_k: 1,
       mean_reciprocal_rank: 1,
-      expected_chunk_found: true
+      expected_chunk_found: true,
+      abstention_accuracy: 1,
+      false_answer_rate: 0,
+      false_abstention_rate: 0
     });
   });
 
@@ -219,7 +239,23 @@ describe("retrieval eval runner validation", () => {
       recall_at_k: 1,
       hit_at_k: 1,
       mean_reciprocal_rank: 0.5,
-      expected_chunk_found: true
+      expected_chunk_found: true,
+      abstention_accuracy: 1,
+      false_answer_rate: 0,
+      false_abstention_rate: 0
+    });
+  });
+
+  it("tracks false answer and false abstention metrics", () => {
+    expect(calculateRetrievalMetrics(["a"], [], 3, "no_answer", false, true)).toMatchObject({
+      abstention_accuracy: 0,
+      false_answer_rate: 1,
+      false_abstention_rate: 0
+    });
+    expect(calculateRetrievalMetrics(["a"], ["a"], 3, "answerable", true, false)).toMatchObject({
+      abstention_accuracy: 0,
+      false_answer_rate: 0,
+      false_abstention_rate: 1
     });
   });
 

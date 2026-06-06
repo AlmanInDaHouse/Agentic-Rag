@@ -17,6 +17,7 @@
       "expectedChunkContains": [],
       "queryType": "no_answer",
       "tags": ["no_answer"],
+      "expectedShouldAnswer": false,
       "k": 3
     },
     {
@@ -25,6 +26,7 @@
       "expectedChunkContains": [],
       "queryType": "no_answer",
       "tags": ["no_answer", "security"],
+      "expectedShouldAnswer": false,
       "k": 3
     },
     {
@@ -33,6 +35,7 @@
       "expectedChunkContains": [],
       "queryType": "no_answer",
       "tags": ["no_answer"],
+      "expectedShouldAnswer": false,
       "k": 3
     }
   ]

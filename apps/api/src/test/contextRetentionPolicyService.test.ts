@@ -244,12 +244,18 @@ class InMemoryContextDocumentRepository implements ContextDocumentRepository {
 
 class InMemoryContextRetrievalRepository implements ContextRetrievalRepository {
   retrievals: ContextRetrieval[] = [];
-  async create(input: { goalId: string; query: string; results: ContextRetrieval["results"] }) {
+  async create(input: {
+    goalId: string;
+    query: string;
+    results: ContextRetrieval["results"];
+    answerability?: ContextRetrieval["answerability"];
+  }) {
     const retrieval: ContextRetrieval = {
       id: `00000000-0000-4000-8000-${String(this.retrievals.length + 300).padStart(12, "0")}`,
       goalId: input.goalId,
       query: input.query,
       results: input.results,
+      answerability: input.answerability,
       createdAt: now
     };
     this.retrievals.push(retrieval);

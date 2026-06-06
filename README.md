@@ -407,7 +407,7 @@ Listar retrievals:
 curl http://127.0.0.1:3001/api/goals/<goal-id>/context/retrievals
 ```
 
-Si `mock_vector` o `hybrid` no encuentran embeddings, la API hace fallback a `lexical` y deja `fallbackUsed`/`fallbackReason` en los resultados persistidos. Si `TRIFORGE_EMBEDDING_STORAGE=pgvector` esta configurado pero pgvector no esta disponible, la API cae a JSONB/mock-vector si hay embeddings, y luego a lexical. Los resultados persistidos incluyen `searchMode`, `vectorStorageUsed`, `fallbackUsed`, `fallbackReason`, `lexicalScore`, `vectorScore` y `finalScore`. Cuando un run avanza por `load_context`, el runtime sigue usando `lexical` por defecto, guarda `retrievalId`, `query` y `results` en el output del step y registra `context_retrieval_created` en timeline. Si no hay resultados, el step continua con `results: []`.
+Si `mock_vector` o `hybrid` no encuentran embeddings, la API hace fallback a `lexical` y deja `fallbackUsed`/`fallbackReason` en los resultados persistidos. Si `TRIFORGE_EMBEDDING_STORAGE=pgvector` esta configurado pero pgvector no esta disponible, la API cae a JSONB/mock-vector si hay embeddings, y luego a lexical. Los resultados persistidos incluyen `searchMode`, `vectorStorageUsed`, `fallbackUsed`, `fallbackReason`, `lexicalScore`, `vectorScore` y `finalScore`. Search tambien devuelve `answerability`, una decision deterministica de abstencion basada en metadata de retrieval. Cuando un run avanza por `load_context`, el runtime sigue usando `lexical` por defecto, guarda `retrievalId`, `query`, `results` y `answerability` en el output del step y registra `context_retrieval_created` en timeline. Si no hay resultados, el step continua con `results: []` y `shouldAnswer=false`.
 
 Limitaciones actuales:
 
@@ -447,6 +447,7 @@ v1D: retrieval hibrido lexical + vectorial con pgvector activo opcional.
 v1E: evaluation harness con fixtures sinteticos, metricas y reportes.
 v1F: baselines y quality gates de retrieval con thresholds versionados.
 v1G: corpus ampliado de retrieval eval con query types y fixtures sinteticas adversariales.
+v1H: politica deterministica de abstencion RAG basada en metadata de retrieval.
 ```
 
 El fallback lexical debe mantenerse durante todo el rollout. Si embeddings no existen o fallan, `load_context` debe poder seguir usando retrieval lexical y registrar el motivo.
@@ -484,6 +485,8 @@ Estos reportes no se commitean por defecto. Las metricas sobre mock embeddings v
 
 El corpus incluye queries `answerable`, `ambiguous`, `redaction` y `no_answer`, con tags como `security`, `runtime`, `retention`, `redaction`, `ambiguous` y `no_answer`. Los datos siguen siendo sinteticos. Las queries `no_answer` usan expected vacio de forma explicita; no significan que search deba devolver cero filas, sino que no hay chunk esperado que el evaluador deba inventar. Los reportes separan queries totales de queries con metrica de retrieval para que `no_answer` no infle los promedios agregados.
 
+La evaluacion de retrieval tambien captura `answerability` y calcula `abstention_accuracy`, `false_answer_rate` y `false_abstention_rate`. Estas metricas conectan `no_answer` con comportamiento real de abstencion, pero siguen siendo informativas inicialmente porque los thresholds son heuristicos y el corpus es sintetico.
+
 Los thresholds y baselines versionados viven en:
 
 ```text
@@ -491,7 +494,7 @@ tooling/retrieval-eval/baselines/thresholds.v1.json
 tooling/retrieval-eval/baselines/baseline.v1.json
 ```
 
-Para actualizar thresholds o baseline, ejecutar la evaluacion, inspeccionar `reports/retrieval-eval/latest.json` y `latest.md`, y commitear solo el cambio intencional en los JSON versionados. `precisionAtK`, `recallAtK` y `fallbackUsedRate` son informativos inicialmente; `hitAtK`, `expectedChunkFound` y `meanReciprocalRank` son los gates bloqueantes. pgvector sigue siendo opt-in fuera del gate obligatorio.
+Para actualizar thresholds o baseline, ejecutar la evaluacion, inspeccionar `reports/retrieval-eval/latest.json` y `latest.md`, y commitear solo el cambio intencional en los JSON versionados. `precisionAtK`, `recallAtK`, `fallbackUsedRate`, `abstentionAccuracy`, `falseAnswerRate` y `falseAbstentionRate` son informativos inicialmente; `hitAtK`, `expectedChunkFound` y `meanReciprocalRank` son los gates bloqueantes. pgvector sigue siendo opt-in fuera del gate obligatorio.
 
 Cuando el gate falla, la seccion `Quality Gate` lista fixture, modo, query, metrica, valor esperado y valor real para cada regresion bloqueante.
 

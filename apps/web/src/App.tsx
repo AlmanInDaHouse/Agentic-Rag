@@ -76,6 +76,18 @@ const terminalRunStatuses = new Set<AgentRunStatus>([
   "stopped"
 ]);
 
+function isAnswerabilityOutput(value: unknown): value is {
+  shouldAnswer: boolean;
+  reason: string;
+} {
+  return typeof value === "object" &&
+    value !== null &&
+    "shouldAnswer" in value &&
+    typeof (value as { shouldAnswer?: unknown }).shouldAnswer === "boolean" &&
+    "reason" in value &&
+    typeof (value as { reason?: unknown }).reason === "string";
+}
+
 export function App() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
@@ -744,11 +756,18 @@ export function App() {
                           <div>
                             <span>{step.type}</span>
                             {step.type === "load_context" && step.output ? (
-                              <small>
-                                {Array.isArray(step.output.results)
-                                  ? `${step.output.results.length} context result(s)`
-                                  : "context loaded"}
-                              </small>
+                              <>
+                                <small>
+                                  {Array.isArray(step.output.results)
+                                    ? `${step.output.results.length} context result(s)`
+                                    : "context loaded"}
+                                </small>
+                                {isAnswerabilityOutput(step.output.answerability) ? (
+                                  <small>
+                                    answerability {String(step.output.answerability.shouldAnswer)} / {step.output.answerability.reason}
+                                  </small>
+                                ) : null}
+                              </>
                             ) : null}
                           </div>
                           <small>{step.status}</small>
@@ -1026,6 +1045,19 @@ export function App() {
                     <div key={retrieval.id} className="retrieval-item">
                       <strong>{retrieval.query}</strong>
                       <small>{new Date(retrieval.createdAt).toLocaleString()}</small>
+                      {retrieval.answerability ? (
+                        <div className="answerability-item">
+                          <strong>
+                            {retrieval.answerability.shouldAnswer ? "Answerable" : "Abstain"}
+                          </strong>
+                          <small>
+                            {retrieval.answerability.reason} / confidence {retrieval.answerability.confidence.toFixed(3)}
+                          </small>
+                          {retrieval.answerability.warnings.length > 0 ? (
+                            <small>{retrieval.answerability.warnings.join("; ")}</small>
+                          ) : null}
+                        </div>
+                      ) : null}
                       {retrieval.results.map((result) => (
                         <div key={result.chunk.id} className="retrieval-result">
                           <p>{result.document.title}: {result.chunk.content}</p>

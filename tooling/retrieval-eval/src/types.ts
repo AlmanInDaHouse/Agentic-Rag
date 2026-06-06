@@ -1,4 +1,8 @@
-import type { ContextSearchResult, RagSearchMode } from "@triforge/shared";
+import type {
+  ContextSearchResult,
+  RagAnswerabilityResult,
+  RagSearchMode
+} from "@triforge/shared";
 
 export type RetrievalEvalDocumentFixture = {
   title: string;
@@ -12,6 +16,7 @@ export type RetrievalEvalQueryFixture = {
   k: number;
   queryType: RetrievalEvalQueryType;
   tags: RetrievalEvalQueryTag[];
+  expectedShouldAnswer?: boolean;
 };
 
 export type RetrievalEvalFixture = {
@@ -28,6 +33,9 @@ export type RetrievalEvalMetrics = {
   hit_at_k: number;
   mean_reciprocal_rank: number;
   expected_chunk_found: boolean;
+  abstention_accuracy: number;
+  false_answer_rate: number;
+  false_abstention_rate: number;
 };
 
 export type RetrievalEvalQueryType = "answerable" | "no_answer" | "ambiguous" | "redaction";
@@ -63,6 +71,8 @@ export type RetrievalEvalQueryResult = {
   expectedChunkIds: string[];
   expectedDocumentTitles: string[];
   expectedChunkContains: string[];
+  expectedShouldAnswer: boolean;
+  answerability: RagAnswerabilityResult;
   fallbackUsed: boolean;
   metrics: RetrievalEvalMetrics;
   topResults: RetrievalEvalTopResult[];
@@ -78,6 +88,9 @@ export type RetrievalEvalModeSummary = {
   meanReciprocalRank: number;
   expectedChunkFoundRate: number;
   fallbackUsedRate: number;
+  abstentionAccuracy: number;
+  falseAnswerRate: number;
+  falseAbstentionRate: number;
 };
 
 export type RetrievalEvalReport = {
@@ -96,6 +109,9 @@ export type RetrievalEvalQualityMetricThresholds = {
   precisionAtK?: number;
   recallAtK?: number;
   fallbackUsedRate?: number;
+  abstentionAccuracy?: number;
+  falseAnswerRate?: number;
+  falseAbstentionRate?: number;
 };
 
 export type RetrievalEvalQualityThresholds = {
@@ -139,3 +155,8 @@ export type SearchResultLike = Pick<
   | "fallbackReason"
   | "vectorStorageUsed"
 >;
+
+export type SearchResponseLike = {
+  results: SearchResultLike[];
+  answerability?: RagAnswerabilityResult;
+};

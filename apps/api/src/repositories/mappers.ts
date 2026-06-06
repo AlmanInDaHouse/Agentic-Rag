@@ -8,6 +8,7 @@ import type {
   ContextChunk,
   ContextDocument,
   ContextRetrieval,
+  RagAnswerabilityResult,
   ContextSource,
   DebateRound,
   EmbeddingModel,
@@ -151,6 +152,7 @@ type ContextRetrievalRow = {
   goal_id: string | null;
   query: string;
   results: unknown;
+  answerability?: unknown;
   created_at: Date;
 };
 
@@ -338,6 +340,7 @@ export const mapContextRetrieval = (row: ContextRetrievalRow): ContextRetrieval 
   goalId: row.goal_id,
   query: row.query,
   results: Array.isArray(row.results) ? row.results as ContextRetrieval["results"] : [],
+  answerability: parseAnswerability(row.answerability),
   createdAt: iso(row.created_at)
 });
 
@@ -388,4 +391,11 @@ function parseSensitiveFindings(value: unknown): ContextDocument["sensitiveFindi
     return [];
   }
   return value as ContextDocument["sensitiveFindings"];
+}
+
+function parseAnswerability(value: unknown): RagAnswerabilityResult | undefined {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+  return value as RagAnswerabilityResult;
 }

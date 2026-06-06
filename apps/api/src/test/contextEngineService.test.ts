@@ -222,7 +222,16 @@ describe("ContextEngineService", () => {
     });
 
     expect(retrieval.results).toEqual([]);
-    expect(await fixture.service.listRetrievals(goal.id)).toHaveLength(1);
+    expect(retrieval.answerability).toMatchObject({
+      shouldAnswer: false,
+      reason: "no_results"
+    });
+    const retrievals = await fixture.service.listRetrievals(goal.id);
+    expect(retrievals).toHaveLength(1);
+    expect(retrievals[0].answerability).toMatchObject({
+      shouldAnswer: false,
+      reason: "no_results"
+    });
   });
 
   it("returns ranked search results", async () => {
@@ -247,6 +256,40 @@ describe("ContextEngineService", () => {
     expect(retrieval.results).toHaveLength(1);
     expect(retrieval.results[0].chunk.content).toContain("approval gate");
     expect(retrieval.results[0].score).toBeGreaterThan(0);
+    expect(retrieval.answerability).toMatchObject({
+      shouldAnswer: true,
+      reason: "sufficient_context"
+    });
+  });
+
+  it("includes low-score answerability when the search policy threshold is raised", async () => {
+    const fixture = createContextFixture();
+    const source = await fixture.service.createSource(goal.id, {
+      name: "Runtime source",
+      type: "manual_text",
+      metadata: {}
+    });
+    await fixture.service.addDocument(source.id, {
+      title: "Runtime context",
+      content: "approval gate context",
+      metadata: {}
+    });
+
+    const retrieval = await fixture.service.search(goal.id, {
+      query: "approval",
+      limit: 3,
+      mode: "lexical",
+      answerabilityPolicy: {
+        minRequiredScore: 99
+      }
+    });
+
+    expect(retrieval.results).toHaveLength(1);
+    expect(retrieval.answerability).toMatchObject({
+      shouldAnswer: false,
+      reason: "low_score",
+      minRequiredScore: 99
+    });
   });
 
   it("falls back to lexical ranking for hybrid search without embeddings", async () => {
@@ -948,12 +991,14 @@ class InMemoryContextRetrievalRepository implements ContextRetrievalRepository {
     goalId: string;
     query: string;
     results: ContextSearchResult[];
+    answerability?: ContextRetrieval["answerability"];
   }): Promise<ContextRetrieval> {
     const retrieval: ContextRetrieval = {
       id: `00000000-0000-4000-8000-${String(this.retrievals.length + 400).padStart(12, "0")}`,
       goalId: input.goalId,
       query: input.query,
       results: input.results,
+      answerability: input.answerability,
       createdAt: now
     };
     this.retrievals.push(retrieval);

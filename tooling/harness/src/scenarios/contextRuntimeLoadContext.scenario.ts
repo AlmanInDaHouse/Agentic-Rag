@@ -48,6 +48,10 @@ describe("harness: runtime load_context uses context engine", () => {
     const loadContext = run.steps.find((step) => step.type === "load_context");
     expect(loadContext?.status).toBe("succeeded");
     expect(loadContext?.output?.retrievalId).toEqual(expect.any(String));
+    expect(loadContext?.output?.answerability).toMatchObject({
+      shouldAnswer: true,
+      reason: "sufficient_context"
+    });
     const results = loadContext?.output?.results;
     expect(Array.isArray(results)).toBe(true);
     expect((results as unknown[]).length).toBeGreaterThan(0);

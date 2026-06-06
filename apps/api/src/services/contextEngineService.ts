@@ -37,6 +37,10 @@ import {
 import type { EmbeddingStorage, EmbeddingStorageSearchResult } from "./embeddings/embeddingStorage.js";
 import { ContextRedactionService } from "./contextRedactionService.js";
 import { ContextRetentionPolicyService } from "./contextRetentionPolicyService.js";
+import {
+  evaluateAnswerability,
+  resolveAnswerabilityPolicy
+} from "./ragAnswerabilityService.js";
 
 const candidateLimit = 500;
 
@@ -271,12 +275,19 @@ export class ContextEngineService {
       candidateLimit
     );
     const results = await this.rankCandidates(input, candidates, terms);
+    const mode = input.mode ?? "lexical";
+    const answerability = evaluateAnswerability(
+      { results },
+      resolveAnswerabilityPolicy(mode, input.answerabilityPolicy)
+    );
 
-    return this.contextRetrievalRepository.create({
+    const retrieval = await this.contextRetrievalRepository.create({
       goalId,
       query: input.query,
-      results
+      results,
+      answerability
     });
+    return retrieval;
   }
 
   private async rankCandidates(

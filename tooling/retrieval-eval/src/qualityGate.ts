@@ -14,7 +14,10 @@ const gateMetrics: Array<keyof RetrievalEvalQualityMetricThresholds> = [
   "meanReciprocalRank",
   "precisionAtK",
   "recallAtK",
-  "fallbackUsedRate"
+  "fallbackUsedRate",
+  "abstentionAccuracy",
+  "falseAnswerRate",
+  "falseAbstentionRate"
 ];
 const requiredDefaultMetrics: Array<keyof RetrievalEvalQualityMetricThresholds> = [
   "hitAtK",
@@ -171,6 +174,12 @@ function metricValue(
       return result.metrics.recall_at_k;
     case "fallbackUsedRate":
       return result.fallbackUsed ? 1 : 0;
+    case "abstentionAccuracy":
+      return result.metrics.abstention_accuracy;
+    case "falseAnswerRate":
+      return result.metrics.false_answer_rate;
+    case "falseAbstentionRate":
+      return result.metrics.false_abstention_rate;
   }
 }
 
@@ -179,7 +188,7 @@ function violatesThreshold(
   actual: number,
   expected: number
 ): boolean {
-  if (metric === "fallbackUsedRate") {
+  if (["fallbackUsedRate", "falseAnswerRate", "falseAbstentionRate"].includes(metric)) {
     return actual - comparisonEpsilon > expected;
   }
   return actual + comparisonEpsilon < expected;
@@ -205,7 +214,10 @@ function isKnownMetric(metric: string): metric is keyof RetrievalEvalQualityMetr
     "meanReciprocalRank",
     "precisionAtK",
     "recallAtK",
-    "fallbackUsedRate"
+    "fallbackUsedRate",
+    "abstentionAccuracy",
+    "falseAnswerRate",
+    "falseAbstentionRate"
   ].includes(metric);
 }
 

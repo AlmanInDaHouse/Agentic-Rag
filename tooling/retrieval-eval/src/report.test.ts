@@ -13,13 +13,27 @@ function result(overrides: Partial<RetrievalEvalQueryResult>): RetrievalEvalQuer
     expectedChunkIds: ["expected-1"],
     expectedDocumentTitles: ["Unit document"],
     expectedChunkContains: ["expected text"],
+    expectedShouldAnswer: true,
+    answerability: {
+      shouldAnswer: true,
+      answerability: "answerable",
+      reason: "sufficient_context",
+      confidence: 1,
+      topScore: 1,
+      minRequiredScore: 0.5,
+      supportingResultIds: ["expected-1"],
+      warnings: []
+    },
     fallbackUsed: false,
     metrics: {
       precision_at_k: 1 / 3,
       recall_at_k: 1,
       hit_at_k: 1,
       mean_reciprocal_rank: 1,
-      expected_chunk_found: true
+      expected_chunk_found: true,
+      abstention_accuracy: 1,
+      false_answer_rate: 0,
+      false_abstention_rate: 0
     },
     topResults: [
       {
@@ -49,6 +63,7 @@ describe("retrieval eval reports", () => {
         result({
           fallbackUsed: true,
           metrics: {
+            ...result({}).metrics,
             precision_at_k: 0,
             recall_at_k: 0,
             hit_at_k: 0,
@@ -69,7 +84,10 @@ describe("retrieval eval reports", () => {
         hitAtK: 0.5,
         meanReciprocalRank: 0.5,
         expectedChunkFoundRate: 0.5,
-        fallbackUsedRate: 0.5
+        fallbackUsedRate: 0.5,
+        abstentionAccuracy: 1,
+        falseAnswerRate: 0,
+        falseAbstentionRate: 0
       }
     ]);
   });
@@ -87,11 +105,26 @@ describe("retrieval eval reports", () => {
           expectedDocumentTitles: [],
           expectedChunkContains: [],
           metrics: {
+            ...result({}).metrics,
             precision_at_k: 0,
             recall_at_k: 1,
             hit_at_k: 1,
             mean_reciprocal_rank: 1,
-            expected_chunk_found: true
+            expected_chunk_found: true,
+            abstention_accuracy: 1,
+            false_answer_rate: 0,
+            false_abstention_rate: 0
+          },
+          expectedShouldAnswer: false,
+          answerability: {
+            shouldAnswer: false,
+            answerability: "abstain",
+            reason: "no_results",
+            confidence: 0,
+            topScore: null,
+            minRequiredScore: 0.5,
+            supportingResultIds: [],
+            warnings: []
           }
         })
       ]
@@ -104,7 +137,10 @@ describe("retrieval eval reports", () => {
       recallAtK: 1,
       hitAtK: 1,
       meanReciprocalRank: 1,
-      expectedChunkFoundRate: 1
+      expectedChunkFoundRate: 1,
+      abstentionAccuracy: 1,
+      falseAnswerRate: 0,
+      falseAbstentionRate: 0
     });
   });
 
@@ -118,6 +154,7 @@ describe("retrieval eval reports", () => {
     expect(renderMarkdownReport(report)).toContain("## unit-fixture / lexical");
     expect(renderMarkdownReport(report)).toContain("Query type: answerable");
     expect(renderMarkdownReport(report)).toContain("Tags: runtime");
+    expect(renderMarkdownReport(report)).toContain("Answerability: sufficient_context / shouldAnswer=true");
     expect(renderMarkdownReport(report)).toContain("precision@k: 0.333");
     expect(renderMarkdownReport(report)).toContain("fallbackUsed: false");
     expect(renderMarkdownReport(report)).toContain("| 1 | Unit document |");
