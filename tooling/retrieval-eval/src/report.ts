@@ -67,6 +67,8 @@ export function renderMarkdownReport(report: RetrievalEvalReport): string {
       `## ${result.fixtureName} / ${result.mode}`,
       "",
       `Query: ${result.query}`,
+      `Query type: ${result.queryType}`,
+      `Tags: ${result.tags.join(", ")}`,
       "",
       `precision@k: ${format(result.metrics.precision_at_k)}`,
       `recall@k: ${format(result.metrics.recall_at_k)}`,

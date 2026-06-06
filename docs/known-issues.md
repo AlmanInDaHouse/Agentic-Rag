@@ -146,11 +146,11 @@ Target resolution: add index strategy after vector volume, model dimension and l
 
 ## RAG-012: Retrieval evaluation fixtures are synthetic
 
-Milestone 1.5E adds deterministic retrieval evaluation fixtures, metrics and reports. Milestone 1.5F adds compact baselines and quality gates. The fixtures are intentionally small and synthetic, so they still do not prove production semantic quality.
+Milestone 1.5E adds deterministic retrieval evaluation fixtures, metrics and reports. Milestone 1.5F adds compact baselines and quality gates. Milestone 1.5G expands the corpus with ambiguous, overlapping-keyword, redaction, no-answer and runtime-domain fixtures. The fixtures are synthetic, so they still do not prove production semantic quality.
 
 Status: open.
 
-Target resolution: add larger evaluation sets once real local model evaluation is approved.
+Target resolution: add larger and more realistic evaluation sets once real local model evaluation is approved.
 
 ## RAG-013: Retrieval quality thresholds are intentionally minimal
 
@@ -159,6 +159,14 @@ The initial quality gate blocks on `hitAtK`, `expectedChunkFound` and `meanRecip
 Status: open.
 
 Target resolution: add stronger thresholds and mode-specific baselines after fixture coverage grows and real local model evaluation is approved.
+
+## RAG-014: No-answer retrieval eval is not answer abstention
+
+No-answer fixtures use empty expected arrays and prevent the evaluator from inventing expected matches. They do not prove that a future answer generator will abstain or that search will return zero rows.
+
+Status: open.
+
+Target resolution: define answer-generation abstention evaluation only after answer generation and judge policy exist.
 
 ## DATA-001: Regex redaction is not complete DLP
 

@@ -19,18 +19,24 @@
       "query": "what should engineers verify after release",
       "expectedDocumentTitles": ["Deployment checklist"],
       "expectedChunkContains": ["watch service health for ten minutes"],
+      "queryType": "answerable",
+      "tags": ["runtime"],
       "k": 3
     },
     {
       "query": "which document tracks corrective actions and owners",
       "expectedDocumentTitles": ["Incident review template"],
       "expectedChunkContains": ["corrective actions, and follow-up owners"],
+      "queryType": "answerable",
+      "tags": ["runtime"],
       "k": 3
     },
     {
       "query": "what customer feedback mentioned duplicate notifications",
       "expectedDocumentTitles": ["Customer feedback synthesis"],
       "expectedChunkContains": ["fewer duplicate notifications"],
+      "queryType": "answerable",
+      "tags": ["runtime"],
       "k": 3
     }
   ]

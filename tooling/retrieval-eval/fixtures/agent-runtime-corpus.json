@@ -1,0 +1,59 @@
+{
+  "name": "agent-runtime-corpus",
+  "documents": [
+    {
+      "title": "Agent run state machine",
+      "content": "The agent run state machine advances mock agent work through pending, waiting for approval, completed, failed, or cancelled states. Concurrent advance requests are serialized by locking the run row."
+    },
+    {
+      "title": "Approval gate policy",
+      "content": "The approval gate policy requires a simulated actor role for approve or reject actions, records who resolved the gate, and stops the run when an approval expires."
+    },
+    {
+      "title": "Safe execution policy",
+      "content": "The safe execution policy classifies proposed actions before execution. Destructive filesystem actions, dependency installation, migrations, and external adapter calls require explicit approval or remain blocked in the mock runtime."
+    },
+    {
+      "title": "Retention policy summary",
+      "content": "The retention policy summary says oversized documents are rejected, soft-deleted context is excluded from search, and quota or deletion operations write audit events."
+    },
+    {
+      "title": "Context source lifecycle",
+      "content": "The context source lifecycle covers source creation, duplicate document checks, chunk persistence, mock embedding generation, soft delete, restore, and active retrieval exclusion for deleted chunks."
+    }
+  ],
+  "queries": [
+    {
+      "query": "how are concurrent agent run advances serialized",
+      "expectedDocumentTitles": ["Agent run state machine"],
+      "expectedChunkContains": ["locking the run row"],
+      "queryType": "answerable",
+      "tags": ["runtime"],
+      "k": 3
+    },
+    {
+      "query": "what happens when an approval expires",
+      "expectedDocumentTitles": ["Approval gate policy"],
+      "expectedChunkContains": ["stops the run when an approval expires"],
+      "queryType": "answerable",
+      "tags": ["runtime"],
+      "k": 3
+    },
+    {
+      "query": "which policy blocks destructive filesystem actions",
+      "expectedDocumentTitles": ["Safe execution policy"],
+      "expectedChunkContains": ["Destructive filesystem actions"],
+      "queryType": "answerable",
+      "tags": ["runtime", "security"],
+      "k": 3
+    },
+    {
+      "query": "what context operations write audit events",
+      "expectedDocumentTitles": ["Retention policy summary"],
+      "expectedChunkContains": ["quota or deletion operations write audit events"],
+      "queryType": "answerable",
+      "tags": ["runtime", "retention"],
+      "k": 3
+    }
+  ]
+}

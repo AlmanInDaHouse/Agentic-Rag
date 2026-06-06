@@ -7,6 +7,8 @@ function result(overrides: Partial<RetrievalEvalQueryResult>): RetrievalEvalQuer
     fixtureName: "unit-fixture",
     mode: "lexical",
     query: "unit query",
+    queryType: "answerable",
+    tags: ["runtime"],
     k: 3,
     expectedChunkIds: ["expected-1"],
     expectedDocumentTitles: ["Unit document"],
@@ -79,6 +81,8 @@ describe("retrieval eval reports", () => {
     });
 
     expect(renderMarkdownReport(report)).toContain("## unit-fixture / lexical");
+    expect(renderMarkdownReport(report)).toContain("Query type: answerable");
+    expect(renderMarkdownReport(report)).toContain("Tags: runtime");
     expect(renderMarkdownReport(report)).toContain("precision@k: 0.333");
     expect(renderMarkdownReport(report)).toContain("fallbackUsed: false");
     expect(renderMarkdownReport(report)).toContain("| 1 | Unit document |");

@@ -1,0 +1,31 @@
+{
+  "name": "redaction-adversarial-corpus",
+  "documents": [
+    {
+      "title": "Synthetic redacted token review",
+      "content": "A synthetic reviewer submitted fake-token-for-redaction-test and user@example.test during a redaction exercise. The persisted retrieval fact is that access was revoked after the redaction drill, not the original placeholder value."
+    },
+    {
+      "title": "Redaction handling checklist",
+      "content": "The redaction handling checklist says reviewers should assert replacement markers, verify retrieval facts still remain readable, and avoid storing original sensitive-looking placeholders in expected results."
+    }
+  ],
+  "queries": [
+    {
+      "query": "what happened after the redaction drill",
+      "expectedDocumentTitles": ["Synthetic redacted token review"],
+      "expectedChunkContains": ["access was revoked after the redaction drill"],
+      "queryType": "redaction",
+      "tags": ["redaction", "security"],
+      "k": 3
+    },
+    {
+      "query": "what should reviewers verify about retrieval facts",
+      "expectedDocumentTitles": ["Redaction handling checklist"],
+      "expectedChunkContains": ["retrieval facts still remain readable"],
+      "queryType": "redaction",
+      "tags": ["redaction"],
+      "k": 3
+    }
+  ]
+}

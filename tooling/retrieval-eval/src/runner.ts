@@ -17,6 +17,8 @@ import type {
   RetrievalEvalFixture,
   RetrievalEvalQueryFixture,
   RetrievalEvalQueryResult,
+  RetrievalEvalQueryTag,
+  RetrievalEvalQueryType,
   RetrievalEvalTopResult,
   SearchResultLike
 } from "./types.js";
@@ -29,6 +31,15 @@ const defaultReportJsonPath = path.join(reportsDir, "latest.json");
 const defaultThresholdsPath = path.join(repoRoot, "tooling/retrieval-eval/baselines/thresholds.v1.json");
 const defaultModes: EvaluatedMode[] = ["lexical", "mock_vector", "hybrid"];
 const allowedModes = new Set<string>(defaultModes);
+const allowedQueryTypes = new Set<string>(["answerable", "no_answer", "ambiguous", "redaction"]);
+const allowedTags = new Set<string>([
+  "security",
+  "runtime",
+  "redaction",
+  "retention",
+  "no_answer",
+  "ambiguous"
+]);
 
 export async function runRetrievalEvaluation(options: {
   modes?: readonly EvaluatedMode[];
@@ -123,7 +134,7 @@ async function evaluateQuery(input: {
   ) => Promise<{ results: SearchResultLike[] }>;
 }): Promise<RetrievalEvalQueryResult> {
   const expectedChunkIds = resolveExpectedChunkIds(input.chunks, input.query);
-  if (expectedChunkIds.length === 0) {
+  if (expectedChunkIds.length === 0 && input.query.queryType !== "no_answer") {
     throw new Error(`Fixture ${input.fixtureName} query "${input.query.query}" did not resolve expected chunks`);
   }
 
@@ -133,18 +144,19 @@ async function evaluateQuery(input: {
     mode: input.mode
   });
   const resultChunkIds = retrieval.results.map((result) => result.chunk.id);
-  const metrics = {
-    precision_at_k: precisionAtK(resultChunkIds, expectedChunkIds, input.query.k),
-    recall_at_k: recallAtK(resultChunkIds, expectedChunkIds, input.query.k),
-    hit_at_k: hitAtK(resultChunkIds, expectedChunkIds, input.query.k),
-    mean_reciprocal_rank: meanReciprocalRank(resultChunkIds, expectedChunkIds, input.query.k),
-    expected_chunk_found: hitAtK(resultChunkIds, expectedChunkIds, input.query.k) === 1
-  };
+  const metrics = calculateRetrievalMetrics(
+    resultChunkIds,
+    expectedChunkIds,
+    input.query.k,
+    input.query.queryType
+  );
 
   return {
     fixtureName: input.fixtureName,
     mode: input.mode,
     query: input.query.query,
+    queryType: input.query.queryType,
+    tags: input.query.tags,
     k: input.query.k,
     expectedChunkIds,
     expectedDocumentTitles: input.query.expectedDocumentTitles,
@@ -152,6 +164,32 @@ async function evaluateQuery(input: {
     fallbackUsed: retrieval.results.some((result) => result.fallbackUsed),
     metrics,
     topResults: retrieval.results.map(toTopResult)
+  };
+}
+
+export function calculateRetrievalMetrics(
+  resultChunkIds: string[],
+  expectedChunkIds: string[],
+  k: number,
+  queryType: RetrievalEvalQueryType
+) {
+  if (queryType === "no_answer") {
+    return {
+      precision_at_k: 0,
+      recall_at_k: 1,
+      hit_at_k: 1,
+      mean_reciprocal_rank: 1,
+      expected_chunk_found: true
+    };
+  }
+
+  const hit = hitAtK(resultChunkIds, expectedChunkIds, k);
+  return {
+    precision_at_k: precisionAtK(resultChunkIds, expectedChunkIds, k),
+    recall_at_k: recallAtK(resultChunkIds, expectedChunkIds, k),
+    hit_at_k: hit,
+    mean_reciprocal_rank: meanReciprocalRank(resultChunkIds, expectedChunkIds, k),
+    expected_chunk_found: hit === 1
   };
 }
 
@@ -257,16 +295,39 @@ export function validateFixture(value: unknown, fixturePath: string): RetrievalE
     if (!isNonEmptyString(query.query)) {
       throw invalidFixture(fixturePath, `queries[${index}].query must be a non-empty string`);
     }
-    if (!isNonEmptyStringArray(query.expectedDocumentTitles)) {
-      throw invalidFixture(fixturePath, `queries[${index}].expectedDocumentTitles must be a non-empty string array`);
+    if (!isQueryType(query.queryType)) {
+      throw invalidFixture(fixturePath, `queries[${index}].queryType must be one of: ${Array.from(allowedQueryTypes).join(", ")}`);
     }
-    for (const title of query.expectedDocumentTitles) {
+    if (!isTagArray(query.tags)) {
+      throw invalidFixture(fixturePath, `queries[${index}].tags must contain only supported tags`);
+    }
+    const expectedDocumentTitles = query.expectedDocumentTitles;
+    if (!Array.isArray(expectedDocumentTitles) || !expectedDocumentTitles.every(isNonEmptyString)) {
+      throw invalidFixture(fixturePath, `queries[${index}].expectedDocumentTitles must be a string array`);
+    }
+    if (query.queryType !== "no_answer" && expectedDocumentTitles.length === 0) {
+      throw invalidFixture(fixturePath, `queries[${index}].expectedDocumentTitles must be non-empty unless queryType is no_answer`);
+    }
+    if (query.queryType === "no_answer" && expectedDocumentTitles.length > 0) {
+      throw invalidFixture(fixturePath, `queries[${index}].expectedDocumentTitles must be empty for no_answer queries`);
+    }
+    for (const title of expectedDocumentTitles) {
       if (!documentTitles.has(title)) {
         throw invalidFixture(fixturePath, `queries[${index}] references unknown document title "${title}"`);
       }
     }
-    if (!isNonEmptyStringArray(query.expectedChunkContains)) {
-      throw invalidFixture(fixturePath, `queries[${index}].expectedChunkContains must be a non-empty string array`);
+    const expectedChunkContains = query.expectedChunkContains;
+    if (!Array.isArray(expectedChunkContains) || !expectedChunkContains.every(isNonEmptyString)) {
+      throw invalidFixture(fixturePath, `queries[${index}].expectedChunkContains must be a string array`);
+    }
+    if (query.queryType !== "no_answer" && expectedChunkContains.length === 0) {
+      throw invalidFixture(fixturePath, `queries[${index}].expectedChunkContains must be non-empty unless queryType is no_answer`);
+    }
+    if (query.queryType === "no_answer" && expectedChunkContains.length > 0) {
+      throw invalidFixture(fixturePath, `queries[${index}].expectedChunkContains must be empty for no_answer queries`);
+    }
+    if (query.queryType === "no_answer" && !query.tags.includes("no_answer")) {
+      throw invalidFixture(fixturePath, `queries[${index}].tags must include no_answer for no_answer queries`);
     }
     if (!Number.isInteger(query.k) || query.k <= 0) {
       throw invalidFixture(fixturePath, `queries[${index}].k must be a positive integer`);
@@ -292,8 +353,14 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
-function isNonEmptyStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.length > 0 && value.every(isNonEmptyString);
+function isQueryType(value: unknown): value is RetrievalEvalQueryType {
+  return typeof value === "string" && allowedQueryTypes.has(value);
+}
+
+function isTagArray(value: unknown): value is RetrievalEvalQueryTag[] {
+  return Array.isArray(value) &&
+    value.length > 0 &&
+    value.every((tag) => typeof tag === "string" && allowedTags.has(tag));
 }
 
 export function parseCliArgs(argv: readonly string[]): {

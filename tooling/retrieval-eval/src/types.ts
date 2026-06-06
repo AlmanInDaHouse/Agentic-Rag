@@ -10,6 +10,8 @@ export type RetrievalEvalQueryFixture = {
   expectedDocumentTitles: string[];
   expectedChunkContains: string[];
   k: number;
+  queryType: RetrievalEvalQueryType;
+  tags: RetrievalEvalQueryTag[];
 };
 
 export type RetrievalEvalFixture = {
@@ -28,6 +30,16 @@ export type RetrievalEvalMetrics = {
   expected_chunk_found: boolean;
 };
 
+export type RetrievalEvalQueryType = "answerable" | "no_answer" | "ambiguous" | "redaction";
+
+export type RetrievalEvalQueryTag =
+  | "security"
+  | "runtime"
+  | "redaction"
+  | "retention"
+  | "no_answer"
+  | "ambiguous";
+
 export type RetrievalEvalTopResult = {
   rank: number;
   documentTitle: string;
@@ -45,6 +57,8 @@ export type RetrievalEvalQueryResult = {
   fixtureName: string;
   mode: EvaluatedMode;
   query: string;
+  queryType: RetrievalEvalQueryType;
+  tags: RetrievalEvalQueryTag[];
   k: number;
   expectedChunkIds: string[];
   expectedDocumentTitles: string[];
@@ -87,6 +101,8 @@ export type RetrievalEvalQualityThresholds = {
   version: number;
   default: RetrievalEvalQualityMetricThresholds;
   modes: Partial<Record<EvaluatedMode, RetrievalEvalQualityMetricThresholds>>;
+  fixtures?: Record<string, RetrievalEvalQualityMetricThresholds>;
+  queryTypes?: Partial<Record<RetrievalEvalQueryType, RetrievalEvalQualityMetricThresholds>>;
   nonBlocking: Partial<Record<keyof RetrievalEvalQualityMetricThresholds, boolean>>;
 };
 

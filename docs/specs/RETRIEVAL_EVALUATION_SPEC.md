@@ -21,6 +21,14 @@ Milestone 1.5F adds:
 - a deterministic quality gate,
 - report output that records pass/fail state and blocking failures.
 
+Milestone 1.5G expands the synthetic corpus with:
+
+- ambiguous queries,
+- overlapping-keyword corpora,
+- redaction-adversarial fixtures,
+- explicit no-answer queries,
+- project-domain runtime and policy fixtures.
+
 The evaluation harness measures pipeline behavior, not production semantic quality.
 
 ## Out of Scope
@@ -103,7 +111,7 @@ Quality gates compare an evaluation report against versioned thresholds. Thresho
 tooling/retrieval-eval/baselines/thresholds.v1.json
 ```
 
-Initial blocking thresholds for the current synthetic fixtures:
+Initial default blocking thresholds for the current synthetic fixtures:
 
 - `hitAtK >= 1.0`,
 - `expectedChunkFound >= 1.0`,
@@ -128,6 +136,14 @@ hybrid
 ```
 
 pgvector remains opt-in and outside the required gate.
+
+Thresholds may also include optional overrides by fixture name and query type. Override precedence is:
+
+```text
+default -> queryTypes -> modes -> fixtures
+```
+
+This keeps lexical defaults strict while allowing conservative handling for mock-vector and hybrid modes until real semantic embeddings exist.
 
 ## Fixtures
 
@@ -161,6 +177,63 @@ Each fixture includes:
 
 Fixture content must be synthetic. Do not include real user data, credentials, logs, customer content or production incidents.
 
+## Expanded Corpus
+
+Milestone 1.5G expands fixtures while keeping all data synthetic. The expanded set covers:
+
+- basic security and mixed-topic retrieval,
+- ambiguous security terms such as `alert`, `incident`, `policy` and `token`,
+- overlapping vocabulary with different intent, such as phishing detection versus notification settings,
+- redaction-adversarial context that uses placeholder values only,
+- no-answer queries with explicit empty expected arrays,
+- TriForge runtime concepts such as agent runs, approval gates, safe execution policy, retention policy and context lifecycle.
+
+All fixture documents must avoid real secrets, real customer data, production logs and live credentials.
+
+## Query Types and Tags
+
+Each query declares:
+
+```text
+queryType: answerable | no_answer | ambiguous | redaction
+tags: security | runtime | redaction | retention | no_answer | ambiguous
+```
+
+Rules:
+
+- `answerable`, `ambiguous` and `redaction` queries require expected document titles and expected chunk substrings.
+- `no_answer` queries must use empty `expectedDocumentTitles` and `expectedChunkContains` arrays.
+- `no_answer` does not mean search must return zero rows. It means the fixture has no expected relevant chunk and the evaluator must not invent an expected match.
+- `redaction` queries must assert retrieval facts that remain after redaction; expected substrings must not be original secret-like placeholder values.
+- `ambiguous` queries intentionally share terms across documents but still identify one expected chunk.
+
+## Ambiguous and Overlapping Queries
+
+Ambiguous and overlapping fixtures are designed to catch ranking regressions where common words appear in several documents. These fixtures should use short synthetic documents and precise expected substrings so failures are easy to debug.
+
+## Redaction-Adversarial Queries
+
+Redaction-adversarial fixtures may include synthetic placeholders such as:
+
+```text
+fake-token-for-redaction-test
+user@example.test
+```
+
+They must not include real secrets. Expected substrings should target safe retrieval facts or redaction behavior, not the original placeholder value.
+
+## No-Answer Queries
+
+No-answer queries are represented explicitly with `queryType: no_answer`, `tags` containing `no_answer`, and empty expected arrays. For these queries:
+
+- `hit_at_k` is treated as `1`,
+- `expected_chunk_found` is treated as `true`,
+- `mean_reciprocal_rank` is treated as `1`,
+- `recall_at_k` is treated as `1`,
+- `precision_at_k` remains `0`.
+
+This prevents empty expected arrays from penalizing the corpus while preserving a clear distinction from answerable queries.
+
 ## Reports
 
 Runtime reports are written to:
@@ -178,6 +251,7 @@ Generated reports are runtime outputs and are not committed by default.
 
 - Fixtures are reproducible and synthetic.
 - Evaluation is deterministic for the same database, code and fixture set.
+- Fixture validation supports query type, tags and explicit no-answer expectations.
 - Unit tests cover metric calculations.
 - The runner uses API HTTP behavior rather than private API services.
 - The runner can write JSON and Markdown reports.

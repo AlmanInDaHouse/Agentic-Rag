@@ -1,0 +1,55 @@
+{
+  "name": "overlapping-keywords-corpus",
+  "documents": [
+    {
+      "title": "Phishing email detection",
+      "content": "The phishing email detection note says analysts confirmed suspicious links by comparing sender reputation, domain alignment, and attachment behavior before opening an incident."
+    },
+    {
+      "title": "Email notification settings",
+      "content": "The email notification settings guide explains how users choose digest frequency, mute project updates, and route low priority alerts to a weekly summary."
+    },
+    {
+      "title": "SMTP delivery failure",
+      "content": "The SMTP delivery failure runbook says engineers check message queues, retry status, bounce codes, and DNS records when legitimate email fails to deliver."
+    },
+    {
+      "title": "Security alert triage",
+      "content": "The security alert triage note says responders classify severity, confirm affected systems, assign an owner, and create an incident only when evidence supports escalation."
+    }
+  ],
+  "queries": [
+    {
+      "query": "how did analysts confirm suspicious phishing links",
+      "expectedDocumentTitles": ["Phishing email detection"],
+      "expectedChunkContains": ["comparing sender reputation"],
+      "queryType": "answerable",
+      "tags": ["security"],
+      "k": 3
+    },
+    {
+      "query": "where can users choose digest frequency",
+      "expectedDocumentTitles": ["Email notification settings"],
+      "expectedChunkContains": ["choose digest frequency"],
+      "queryType": "answerable",
+      "tags": ["runtime"],
+      "k": 3
+    },
+    {
+      "query": "what should engineers inspect for delivery failures",
+      "expectedDocumentTitles": ["SMTP delivery failure"],
+      "expectedChunkContains": ["check message queues"],
+      "queryType": "answerable",
+      "tags": ["runtime"],
+      "k": 3
+    },
+    {
+      "query": "when should responders create an incident from an alert",
+      "expectedDocumentTitles": ["Security alert triage"],
+      "expectedChunkContains": ["evidence supports escalation"],
+      "queryType": "answerable",
+      "tags": ["security"],
+      "k": 3
+    }
+  ]
+}

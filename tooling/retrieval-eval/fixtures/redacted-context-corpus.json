@@ -15,12 +15,16 @@
       "query": "what happened to the temporary token after review",
       "expectedDocumentTitles": ["Synthetic access review note"],
       "expectedChunkContains": ["temporary token was rotated after review"],
+      "queryType": "redaction",
+      "tags": ["redaction", "security"],
       "k": 3
     },
     {
       "query": "what kind of content should evaluation fixtures use",
       "expectedDocumentTitles": ["Data minimization reminder"],
       "expectedChunkContains": ["use synthetic content"],
+      "queryType": "answerable",
+      "tags": ["redaction"],
       "k": 3
     }
   ]

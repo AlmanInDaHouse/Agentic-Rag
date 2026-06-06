@@ -1,0 +1,43 @@
+{
+  "name": "ambiguous-security-corpus",
+  "documents": [
+    {
+      "title": "Token rotation incident",
+      "content": "A synthetic security incident recorded that an integration token was rotated after an alert showed repeated failed validation attempts. The incident owner confirmed the old token was disabled before the follow-up policy review."
+    },
+    {
+      "title": "Alert routing policy",
+      "content": "The alert routing policy says low severity alerts go to the operations queue, incident alerts go to the security queue, and policy reminders go to team leads each Monday."
+    },
+    {
+      "title": "Policy exception register",
+      "content": "The policy exception register tracks approved exceptions for temporary access, token naming conventions, and incident review deadlines. It does not describe alert validation failures."
+    }
+  ],
+  "queries": [
+    {
+      "query": "which incident says the old token was disabled",
+      "expectedDocumentTitles": ["Token rotation incident"],
+      "expectedChunkContains": ["old token was disabled"],
+      "queryType": "ambiguous",
+      "tags": ["security", "ambiguous"],
+      "k": 3
+    },
+    {
+      "query": "where do incident alerts get routed",
+      "expectedDocumentTitles": ["Alert routing policy"],
+      "expectedChunkContains": ["incident alerts go to the security queue"],
+      "queryType": "ambiguous",
+      "tags": ["security", "ambiguous"],
+      "k": 3
+    },
+    {
+      "query": "which register tracks approved exceptions for temporary access",
+      "expectedDocumentTitles": ["Policy exception register"],
+      "expectedChunkContains": ["approved exceptions for temporary access"],
+      "queryType": "ambiguous",
+      "tags": ["security", "ambiguous"],
+      "k": 3
+    }
+  ]
+}
