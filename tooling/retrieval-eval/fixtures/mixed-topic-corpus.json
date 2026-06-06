@@ -1,0 +1,37 @@
+{
+  "name": "mixed-topic-corpus",
+  "documents": [
+    {
+      "title": "Deployment checklist",
+      "content": "The deployment checklist asks engineers to confirm migrations, verify environment variables, run smoke tests, and watch service health for ten minutes after release."
+    },
+    {
+      "title": "Customer feedback synthesis",
+      "content": "The feedback synthesis notes that users want clearer import status, fewer duplicate notifications, and better summaries for long-running background tasks."
+    },
+    {
+      "title": "Incident review template",
+      "content": "The incident review template captures timeline, detected impact, contributing factors, corrective actions, and follow-up owners."
+    }
+  ],
+  "queries": [
+    {
+      "query": "what should engineers verify after release",
+      "expectedDocumentTitles": ["Deployment checklist"],
+      "expectedChunkContains": ["watch service health for ten minutes"],
+      "k": 3
+    },
+    {
+      "query": "which document tracks corrective actions and owners",
+      "expectedDocumentTitles": ["Incident review template"],
+      "expectedChunkContains": ["corrective actions, and follow-up owners"],
+      "k": 3
+    },
+    {
+      "query": "what customer feedback mentioned duplicate notifications",
+      "expectedDocumentTitles": ["Customer feedback synthesis"],
+      "expectedChunkContains": ["fewer duplicate notifications"],
+      "k": 3
+    }
+  ]
+}

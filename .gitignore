@@ -10,3 +10,4 @@ coverage/
 *.log
 .playwright-mcp/
 triforge-dashboard.png
+reports/retrieval-eval/

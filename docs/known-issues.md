@@ -144,6 +144,14 @@ Status: open.
 
 Target resolution: add index strategy after vector volume, model dimension and latency requirements are known.
 
+## RAG-012: Retrieval evaluation fixtures are synthetic and threshold-free
+
+Milestone 1.5E adds deterministic retrieval evaluation fixtures, metrics and reports. The fixtures are intentionally small and synthetic, and the reports are observational. They do not prove production semantic quality and do not enforce pass/fail thresholds yet.
+
+Status: open.
+
+Target resolution: add larger evaluation sets and explicit quality thresholds once real local model evaluation is approved.
+
 ## DATA-001: Regex redaction is not complete DLP
 
 The current redaction service uses deterministic regex patterns for common secrets and identifiers. It can miss sensitive values and can redact benign text.

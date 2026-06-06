@@ -1,0 +1,27 @@
+{
+  "name": "basic-security-corpus",
+  "documents": [
+    {
+      "title": "Phishing incident notes",
+      "content": "The security team reviewed a synthetic phishing email drill. The mail gateway flagged the sender domain because it failed SPF and DMARC checks. Analysts confirmed the message used an urgent invoice theme and asked users to open a fake attachment."
+    },
+    {
+      "title": "Password reset runbook",
+      "content": "The help desk password reset runbook requires identity verification, a temporary reset link, and a forced password change at next sign-in. The runbook does not describe phishing detection."
+    }
+  ],
+  "queries": [
+    {
+      "query": "how was the phishing email detected",
+      "expectedDocumentTitles": ["Phishing incident notes"],
+      "expectedChunkContains": ["mail gateway flagged the sender domain"],
+      "k": 3
+    },
+    {
+      "query": "what happens after a password reset link",
+      "expectedDocumentTitles": ["Password reset runbook"],
+      "expectedChunkContains": ["forced password change at next sign-in"],
+      "k": 3
+    }
+  ]
+}
