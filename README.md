@@ -490,6 +490,8 @@ tooling/retrieval-eval/baselines/baseline.v1.json
 
 Para actualizar thresholds o baseline, ejecutar la evaluacion, inspeccionar `reports/retrieval-eval/latest.json` y `latest.md`, y commitear solo el cambio intencional en los JSON versionados. `precisionAtK`, `recallAtK` y `fallbackUsedRate` son informativos inicialmente; `hitAtK`, `expectedChunkFound` y `meanReciprocalRank` son los gates bloqueantes. pgvector sigue siendo opt-in fuera del gate obligatorio.
 
+Cuando el gate falla, la seccion `Quality Gate` lista fixture, modo, query, metrica, valor esperado y valor real para cada regresion bloqueante.
+
 ## Variables de entorno
 
 La API usa estas variables con defaults locales:

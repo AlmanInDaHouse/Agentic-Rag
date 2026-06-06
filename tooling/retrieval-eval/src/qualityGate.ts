@@ -14,12 +14,32 @@ const gateMetrics: Array<keyof RetrievalEvalQualityMetricThresholds> = [
   "expectedChunkFound",
   "meanReciprocalRank",
   "precisionAtK",
-  "recallAtK"
+  "recallAtK",
+  "fallbackUsedRate"
 ];
+const requiredDefaultMetrics: Array<keyof RetrievalEvalQualityMetricThresholds> = [
+  "hitAtK",
+  "expectedChunkFound",
+  "meanReciprocalRank"
+];
+const comparisonEpsilon = 1e-9;
 
 export async function loadQualityThresholds(thresholdsPath: string): Promise<RetrievalEvalQualityThresholds> {
-  const raw = await fs.readFile(thresholdsPath, "utf8");
-  return validateQualityThresholds(JSON.parse(raw), thresholdsPath);
+  let raw: string;
+  try {
+    raw = await fs.readFile(thresholdsPath, "utf8");
+  } catch (error) {
+    throw new Error(`Unable to read retrieval evaluation thresholds ${thresholdsPath}: ${errorMessage(error)}`);
+  }
+
+  try {
+    return validateQualityThresholds(JSON.parse(raw), thresholdsPath);
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      throw invalidThresholds(thresholdsPath, `invalid JSON: ${error.message}`);
+    }
+    throw error;
+  }
 }
 
 export function evaluateQualityGate(
@@ -39,7 +59,7 @@ export function evaluateQualityGate(
         continue;
       }
       const actual = metricValue(result, metric);
-      if (actual < expected) {
+      if (violatesThreshold(metric, actual, expected)) {
         failures.push({
           fixture: result.fixtureName,
           mode: result.mode,
@@ -68,6 +88,11 @@ export function validateQualityThresholds(value: unknown, thresholdsPath: string
   }
   if (!isMetricThresholdRecord(value.default)) {
     throw invalidThresholds(thresholdsPath, "default must be a metric threshold object");
+  }
+  for (const metric of requiredDefaultMetrics) {
+    if (value.default[metric] === undefined) {
+      throw invalidThresholds(thresholdsPath, `default.${metric} is required`);
+    }
   }
   if (!isRecord(value.modes)) {
     throw invalidThresholds(thresholdsPath, "modes must be an object");
@@ -125,12 +150,27 @@ function metricValue(
   }
 }
 
+function violatesThreshold(
+  metric: keyof RetrievalEvalQualityMetricThresholds,
+  actual: number,
+  expected: number
+): boolean {
+  if (metric === "fallbackUsedRate") {
+    return actual - comparisonEpsilon > expected;
+  }
+  return actual + comparisonEpsilon < expected;
+}
+
 function isMetricThresholdRecord(value: unknown): value is RetrievalEvalQualityMetricThresholds {
   if (!isRecord(value)) {
     return false;
   }
   return Object.entries(value).every(([metric, threshold]) => (
-    isKnownMetric(metric) && typeof threshold === "number" && Number.isFinite(threshold)
+    isKnownMetric(metric) &&
+    typeof threshold === "number" &&
+    Number.isFinite(threshold) &&
+    threshold >= 0 &&
+    threshold <= 1
   ));
 }
 
@@ -151,4 +191,8 @@ function invalidThresholds(thresholdsPath: string, reason: string): Error {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }

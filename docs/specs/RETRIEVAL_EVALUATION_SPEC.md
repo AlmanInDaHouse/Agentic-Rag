@@ -117,6 +117,8 @@ Initial non-blocking metrics:
 
 `fallbackUsedRate` remains reported but does not block because fallback can be acceptable while pgvector is optional. `precisionAtK` and `recallAtK` are informational initially because the fixture set is small and `k` is intentionally broad.
 
+`hitAtK`, `expectedChunkFound` and `meanReciprocalRank` must be present in the default threshold block. Other metrics may be omitted to leave them ungated. Threshold values are bounded to `0..1`. Blocking thresholds are minimums except `fallbackUsedRate`, which is treated as a maximum if it is ever made blocking.
+
 Thresholds may be overridden per mode for:
 
 ```text

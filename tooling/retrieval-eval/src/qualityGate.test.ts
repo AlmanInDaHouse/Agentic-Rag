@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { evaluateQualityGate, validateQualityThresholds } from "./qualityGate.js";
+import { evaluateQualityGate, loadQualityThresholds, validateQualityThresholds } from "./qualityGate.js";
 import type {
   EvaluatedMode,
   RetrievalEvalQualityThresholds,
@@ -141,11 +141,94 @@ describe("retrieval quality gate", () => {
     expect(relaxed.passed).toBe(true);
   });
 
+  it("applies default thresholds when a mode has no explicit override", () => {
+    const gate = evaluateQualityGate(report([
+      result({
+        mode: "hybrid",
+        metrics: { ...result().metrics, mean_reciprocal_rank: 0.25 }
+      })
+    ]), {
+      ...thresholds,
+      modes: {}
+    });
+
+    expect(gate.failures).toMatchObject([
+      { mode: "hybrid", metric: "meanReciprocalRank", expected: 0.5, actual: 0.25 }
+    ]);
+  });
+
+  it("lists multiple blocking failures for the same query", () => {
+    const gate = evaluateQualityGate(report([
+      result({
+        metrics: {
+          ...result().metrics,
+          hit_at_k: 0,
+          mean_reciprocal_rank: 0,
+          expected_chunk_found: false
+        }
+      })
+    ]), thresholds);
+
+    expect(gate.failures).toMatchObject([
+      { metric: "hitAtK" },
+      { metric: "expectedChunkFound" },
+      { metric: "meanReciprocalRank" }
+    ]);
+  });
+
+  it("can block fallbackUsedRate when it is not marked non-blocking", () => {
+    const gate = evaluateQualityGate(report([
+      result({ fallbackUsed: true })
+    ]), {
+      ...thresholds,
+      default: {
+        ...thresholds.default,
+        fallbackUsedRate: 0
+      },
+      nonBlocking: {
+        precisionAtK: true,
+        recallAtK: true
+      }
+    });
+
+    expect(gate.failures).toMatchObject([
+      { metric: "fallbackUsedRate", expected: 0, actual: 1 }
+    ]);
+  });
+
+  it("allows tiny floating point differences at the threshold boundary", () => {
+    const gate = evaluateQualityGate(report([
+      result({ metrics: { ...result().metrics, mean_reciprocal_rank: 0.5 - 1e-10 } })
+    ]), thresholds);
+
+    expect(gate.passed).toBe(true);
+  });
+
   it("validates threshold shape", () => {
     expect(validateQualityThresholds(thresholds, "thresholds.json")).toEqual(thresholds);
     expect(() => validateQualityThresholds({
       ...thresholds,
       modes: { pgvector: {} }
     }, "thresholds.json")).toThrow('unsupported mode "pgvector"');
+    expect(() => validateQualityThresholds({
+      ...thresholds,
+      default: {
+        hitAtK: 1,
+        expectedChunkFound: 1
+      }
+    }, "thresholds.json")).toThrow("default.meanReciprocalRank is required");
+    expect(() => validateQualityThresholds({
+      ...thresholds,
+      default: {
+        ...thresholds.default,
+        hitAtK: 1.1
+      }
+    }, "thresholds.json")).toThrow("default must be a metric threshold object");
+  });
+
+  it("reports missing threshold files clearly", async () => {
+    await expect(loadQualityThresholds("missing-thresholds.json")).rejects.toThrow(
+      "Unable to read retrieval evaluation thresholds missing-thresholds.json"
+    );
   });
 });

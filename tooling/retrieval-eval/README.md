@@ -55,6 +55,8 @@ The initial gate blocks on:
 
 `precisionAtK`, `recallAtK` and `fallbackUsedRate` are reported but non-blocking initially.
 
+The default threshold block must include `hitAtK`, `expectedChunkFound` and `meanReciprocalRank`. Other metrics can be omitted to leave them ungated, or marked in `nonBlocking` to report them without failing the gate. Blocking thresholds are minimums except `fallbackUsedRate`, which is treated as a maximum if it is ever made blocking.
+
 To update thresholds, run the evaluation, inspect the generated JSON/Markdown reports, and commit only the intentional baseline or threshold JSON change. Do not commit generated `reports/retrieval-eval` outputs.
 
 ## Scope
