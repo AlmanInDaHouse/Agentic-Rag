@@ -1,0 +1,72 @@
+name: Retrieval Evaluation
+
+on:
+  workflow_dispatch:
+
+jobs:
+  retrieval-eval:
+    name: Retrieval Quality Gate
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: triforge
+          POSTGRES_PASSWORD: triforge
+          POSTGRES_DB: triforge_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U triforge -d triforge_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://triforge:triforge@localhost:5432/triforge_test
+      NODE_ENV: test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Activate pnpm from packageManager
+        run: pnpm --version
+
+      - name: Resolve pnpm store path
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pnpm store
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run migrations
+        run: pnpm db:migrate
+
+      - name: Run retrieval quality gate
+        run: pnpm eval:retrieval:gate
+
+      - name: Upload retrieval reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: retrieval-eval-reports
+          path: reports/retrieval-eval/
+          if-no-files-found: ignore

@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "description": "Compact synthetic retrieval baseline for Milestone 1.5F. This is not a generated report and does not claim real semantic quality.",
+  "fixtures": [
+    "basic-security-corpus",
+    "mixed-topic-corpus",
+    "redacted-context-corpus"
+  ],
+  "modes": [
+    "lexical",
+    "mock_vector",
+    "hybrid"
+  ],
+  "queryCount": 7,
+  "minimums": {
+    "hitAtK": 1.0,
+    "expectedChunkFound": 1.0,
+    "meanReciprocalRank": 0.5
+  },
+  "nonBlockingMetrics": [
+    "precisionAtK",
+    "recallAtK",
+    "fallbackUsedRate"
+  ],
+  "notes": [
+    "Fixtures are synthetic and intentionally small.",
+    "Mock vector and hybrid modes validate the retrieval pipeline, not semantic model quality.",
+    "pgvector evaluation remains opt-in and outside the required gate."
+  ]
+}

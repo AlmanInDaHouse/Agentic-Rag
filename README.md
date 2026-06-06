@@ -102,6 +102,7 @@ pnpm test
 pnpm test:retrieval-eval
 pnpm test:harness
 pnpm eval:retrieval
+pnpm eval:retrieval:gate
 pnpm harness:mvp
 pnpm db:migrate
 pnpm audit
@@ -444,6 +445,7 @@ v1C-B: retention, quota, soft delete/restore y audit.
 v1C: pgvector y embeddings locales opcionales con fallback mock/jsonb/lexical.
 v1D: retrieval hibrido lexical + vectorial con pgvector activo opcional.
 v1E: evaluation harness con fixtures sinteticos, metricas y reportes.
+v1F: baselines y quality gates de retrieval con thresholds versionados.
 ```
 
 El fallback lexical debe mantenerse durante todo el rollout. Si embeddings no existen o fallan, `load_context` debe poder seguir usando retrieval lexical y registrar el motivo.
@@ -464,6 +466,12 @@ Evaluacion completa local:
 pnpm eval:retrieval
 ```
 
+Quality gate local:
+
+```bash
+pnpm eval:retrieval:gate
+```
+
 La evaluacion completa requiere PostgreSQL local igual que `pnpm test:harness`. Los reportes runtime se generan en:
 
 ```text
@@ -472,6 +480,17 @@ reports/retrieval-eval/latest.md
 ```
 
 Estos reportes no se commitean por defecto. Las metricas sobre mock embeddings validan pipeline y ranking reproducible, no calidad semantica real. LLM-as-judge, providers externos, modelos reales obligatorios, GraphRAG y Code Graph quedan fuera de scope.
+
+Los thresholds y baselines versionados viven en:
+
+```text
+tooling/retrieval-eval/baselines/thresholds.v1.json
+tooling/retrieval-eval/baselines/baseline.v1.json
+```
+
+Para actualizar thresholds o baseline, ejecutar la evaluacion, inspeccionar `reports/retrieval-eval/latest.json` y `latest.md`, y commitear solo el cambio intencional en los JSON versionados. `precisionAtK`, `recallAtK` y `fallbackUsedRate` son informativos inicialmente; `hitAtK`, `expectedChunkFound` y `meanReciprocalRank` son los gates bloqueantes. pgvector sigue siendo opt-in fuera del gate obligatorio.
+
+Cuando el gate falla, la seccion `Quality Gate` lista fixture, modo, query, metrica, valor esperado y valor real para cada regresion bloqueante.
 
 ## Variables de entorno
 

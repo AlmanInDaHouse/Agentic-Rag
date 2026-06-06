@@ -2,10 +2,17 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import type {
   EvaluatedMode,
+  RetrievalEvalQualityGateResult,
   RetrievalEvalModeSummary,
   RetrievalEvalQueryResult,
   RetrievalEvalReport
 } from "./types.js";
+
+export type RetrievalEvalReportWriteOptions = {
+  outputDir?: string;
+  jsonPath?: string;
+  markdownPath?: string;
+};
 
 export function buildReport(input: {
   generatedAt?: string;
@@ -22,11 +29,16 @@ export function buildReport(input: {
   };
 }
 
-export async function writeReports(report: RetrievalEvalReport, outputDir: string): Promise<void> {
-  await fs.mkdir(outputDir, { recursive: true });
+export async function writeReports(
+  report: RetrievalEvalReport,
+  output: string | RetrievalEvalReportWriteOptions
+): Promise<void> {
+  const paths = resolveReportPaths(output);
+  await fs.mkdir(path.dirname(paths.jsonPath), { recursive: true });
+  await fs.mkdir(path.dirname(paths.markdownPath), { recursive: true });
   await Promise.all([
-    fs.writeFile(path.join(outputDir, "latest.json"), `${JSON.stringify(report, null, 2)}\n`, "utf8"),
-    fs.writeFile(path.join(outputDir, "latest.md"), renderMarkdownReport(report), "utf8")
+    fs.writeFile(paths.jsonPath, `${JSON.stringify(report, null, 2)}\n`, "utf8"),
+    fs.writeFile(paths.markdownPath, renderMarkdownReport(report), "utf8")
   ]);
 }
 
@@ -45,6 +57,10 @@ export function renderMarkdownReport(report: RetrievalEvalReport): string {
     )),
     ""
   ];
+
+  if (report.qualityGate !== undefined) {
+    lines.push(...renderQualityGate(report.qualityGate));
+  }
 
   for (const result of report.results) {
     lines.push(
@@ -69,6 +85,31 @@ export function renderMarkdownReport(report: RetrievalEvalReport): string {
   }
 
   return `${lines.join("\n")}\n`;
+}
+
+function renderQualityGate(gate: RetrievalEvalQualityGateResult): string[] {
+  const lines = [
+    "## Quality Gate",
+    "",
+    `Status: ${gate.passed ? "PASS" : "FAIL"}`,
+    `Thresholds version: ${gate.thresholdsVersion}`,
+    ""
+  ];
+
+  if (gate.failures.length === 0) {
+    lines.push("No blocking failures.", "");
+    return lines;
+  }
+
+  lines.push(
+    "| Fixture | Mode | Query | Metric | Expected | Actual |",
+    "| --- | --- | --- | --- | ---: | ---: |",
+    ...gate.failures.map((failure) => (
+      `| ${escapeCell(failure.fixture)} | ${failure.mode} | ${escapeCell(failure.query)} | ${failure.metric} | ${format(failure.expected)} | ${format(failure.actual)} |`
+    )),
+    ""
+  );
+  return lines;
 }
 
 function summarizeMode(
@@ -102,4 +143,24 @@ function format(value: number): string {
 
 function escapeCell(value: string): string {
   return value.replaceAll("|", "\\|").replaceAll("\n", " ");
+}
+
+function resolveReportPaths(output: string | RetrievalEvalReportWriteOptions): {
+  jsonPath: string;
+  markdownPath: string;
+} {
+  if (typeof output === "string") {
+    return {
+      jsonPath: path.join(output, "latest.json"),
+      markdownPath: path.join(output, "latest.md")
+    };
+  }
+
+  const outputDir = output.outputDir ?? ".";
+  const jsonPath = output.jsonPath ?? path.join(outputDir, "latest.json");
+  const markdownPath = output.markdownPath ?? jsonPath.replace(/\.json$/i, ".md");
+  return {
+    jsonPath,
+    markdownPath: markdownPath === jsonPath ? `${jsonPath}.md` : markdownPath
+  };
 }

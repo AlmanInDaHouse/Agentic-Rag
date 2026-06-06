@@ -9,6 +9,7 @@ import {
   precisionAtK,
   recallAtK
 } from "./metrics.js";
+import { evaluateQualityGate, loadQualityThresholds } from "./qualityGate.js";
 import { buildReport, writeReports } from "./report.js";
 import type {
   EvaluatedMode,
@@ -24,6 +25,8 @@ const currentFile = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(currentFile), "../../..");
 const fixturesDir = path.join(repoRoot, "tooling/retrieval-eval/fixtures");
 const reportsDir = path.join(repoRoot, "reports/retrieval-eval");
+const defaultReportJsonPath = path.join(reportsDir, "latest.json");
+const defaultThresholdsPath = path.join(repoRoot, "tooling/retrieval-eval/baselines/thresholds.v1.json");
 const defaultModes: EvaluatedMode[] = ["lexical", "mock_vector", "hybrid"];
 const allowedModes = new Set<string>(defaultModes);
 
@@ -31,6 +34,9 @@ export async function runRetrievalEvaluation(options: {
   modes?: readonly EvaluatedMode[];
   fixturePaths?: string[];
   outputDir?: string;
+  outputJsonPath?: string;
+  gate?: boolean;
+  thresholdsPath?: string;
 } = {}) {
   const modes = validateModes(options.modes ?? defaultModes);
   const fixturePaths = options.fixturePaths ?? await listFixturePaths();
@@ -72,7 +78,16 @@ export async function runRetrievalEvaluation(options: {
     }
 
     const report = buildReport({ modes, results });
-    await writeReports(report, options.outputDir ?? reportsDir);
+    if (options.gate) {
+      const thresholds = await loadQualityThresholds(options.thresholdsPath ?? defaultThresholdsPath);
+      report.qualityGate = evaluateQualityGate(report, thresholds);
+    }
+    await writeReports(
+      report,
+      options.outputJsonPath !== undefined
+        ? { jsonPath: options.outputJsonPath }
+        : options.outputDir ?? reportsDir
+    );
     return report;
   } finally {
     await runtime.stop();
@@ -281,17 +296,77 @@ function isNonEmptyStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.length > 0 && value.every(isNonEmptyString);
 }
 
+export function parseCliArgs(argv: readonly string[]): {
+  gate: boolean;
+  thresholdsPath: string;
+  outputJsonPath: string;
+} {
+  const args = [...argv];
+  const parsed = {
+    gate: false,
+    thresholdsPath: defaultThresholdsPath,
+    outputJsonPath: defaultReportJsonPath
+  };
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    switch (arg) {
+      case "--gate":
+        parsed.gate = true;
+        break;
+      case "--thresholds":
+        parsed.thresholdsPath = resolveRepoPath(readFlagValue(args, index, "--thresholds"));
+        index += 1;
+        break;
+      case "--out":
+        parsed.outputJsonPath = resolveRepoPath(readFlagValue(args, index, "--out"));
+        index += 1;
+        break;
+      default:
+        throw new Error(`Unknown retrieval evaluation argument "${arg}"`);
+    }
+  }
+
+  return parsed;
+}
+
+function readFlagValue(args: string[], index: number, flag: string): string {
+  const value = args[index + 1];
+  if (value === undefined || value.startsWith("--")) {
+    throw new Error(`Missing value for ${flag}`);
+  }
+  return value;
+}
+
+function resolveRepoPath(value: string): string {
+  return path.isAbsolute(value) ? value : path.resolve(repoRoot, value);
+}
+
 const isDirectExecution =
   process.argv[1] !== undefined && path.resolve(process.argv[1]) === currentFile;
 
 if (isDirectExecution) {
-  runRetrievalEvaluation()
+  runCli(process.argv.slice(2)).catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}
+
+async function runCli(argv: readonly string[]): Promise<void> {
+  const cli = parseCliArgs(argv);
+  await runRetrievalEvaluation({
+    gate: cli.gate,
+    thresholdsPath: cli.thresholdsPath,
+    outputJsonPath: cli.outputJsonPath
+  })
     .then((report) => {
       console.log(`Retrieval evaluation complete: ${report.results.length} query runs`);
-      console.log(`Reports written to ${reportsDir}`);
-    })
-    .catch((error) => {
-      console.error(error);
-      process.exit(1);
+      if (report.qualityGate !== undefined) {
+        console.log(`Quality gate: ${report.qualityGate.passed ? "PASS" : "FAIL"}`);
+      }
+      console.log(`Report written to ${cli.outputJsonPath}`);
+      if (report.qualityGate?.passed === false) {
+        process.exit(1);
+      }
     });
 }
