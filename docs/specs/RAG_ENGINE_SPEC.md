@@ -21,7 +21,7 @@ RAG v1 should support, in phases:
 - context data policy enforcement before real embeddings.
 - optional pgvector/local embedding capability reporting without making either required,
 - optional active pgvector retrieval when explicitly configured and available,
-- deterministic retrieval evaluation with synthetic fixtures and simple metrics.
+- deterministic retrieval evaluation with synthetic fixtures, simple metrics, baselines and quality gates.
 
 ## Out of Scope
 
@@ -321,6 +321,22 @@ Rules:
 - pgvector evaluation remains opt-in and outside standard CI,
 - no LLM-as-judge or real model is required.
 
+Milestone 1.5F adds compact baselines and versioned thresholds under:
+
+```text
+tooling/retrieval-eval/baselines
+```
+
+The initial quality gate blocks on:
+
+```text
+hitAtK >= 1.0
+expectedChunkFound >= 1.0
+meanReciprocalRank >= 0.5
+```
+
+`precisionAtK`, `recallAtK` and `fallbackUsedRate` are reported but non-blocking initially. Full gate execution remains a black-box harness run and requires PostgreSQL. A manual retrieval-eval workflow can run the gate and upload reports without making pgvector or real models mandatory.
+
 ## Retrieval Modes
 
 Initial modes:
@@ -427,6 +443,14 @@ Fallback rules:
 - Add a black-box API runner that writes JSON and Markdown reports.
 - Keep LLM-as-judge, real local models and pgvector requirements out of standard CI.
 
+### Milestone 1.5F: Retrieval Baselines and Quality Gates
+
+- Add compact versioned synthetic baselines.
+- Add JSON thresholds with default and per-mode overrides.
+- Add a quality gate that fails on blocking retrieval regressions.
+- Keep precision, recall and fallback rate informational until fixture coverage grows.
+- Keep pgvector, LLM-as-judge and real model requirements out of the required gate.
+
 ## Safe Execution and Data Policy
 
 - Embedding text already persisted from `manual_text`, `project_note` or `artifact` sources is medium risk when processed by an approved local/mock embedding adapter.
@@ -485,6 +509,15 @@ Fallback rules:
 - Metric unit tests run in standard CI without DB or model dependencies.
 - Full evaluation remains black-box through HTTP and does not use private API services.
 
+## Acceptance Criteria for Milestone 1.5F Retrieval Quality Gates
+
+- Thresholds and compact baselines are versioned JSON.
+- Quality gate reports pass/fail and blocking failures.
+- Failures include fixture, mode, query, metric, expected value and actual value.
+- Gate unit tests run without PostgreSQL, pgvector or real model dependencies.
+- Full gate execution can run locally or manually in CI with PostgreSQL.
+- Required CI remains free of pgvector, external providers, LLM-as-judge and real model requirements.
+
 ## Risks
 
 - pgvector requires explicit extension/table setup and a fixed vector dimension.
@@ -496,4 +529,4 @@ Fallback rules:
 - Basic retention has no background pruning worker yet.
 - Existing retrieval snapshots may reference content selected before later deletion.
 - Approximate pgvector indexes and production-grade vector tuning are not configured yet.
-- Evaluation fixtures are small and synthetic, so they do not prove production semantic quality.
+- Evaluation fixtures and quality gates are small and synthetic, so they do not prove production semantic quality.

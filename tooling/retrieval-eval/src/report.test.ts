@@ -83,4 +83,32 @@ describe("retrieval eval reports", () => {
     expect(renderMarkdownReport(report)).toContain("fallbackUsed: false");
     expect(renderMarkdownReport(report)).toContain("| 1 | Unit document |");
   });
+
+  it("renders quality gate status and failures when present", () => {
+    const report = buildReport({
+      generatedAt: "2026-06-06T00:00:00.000Z",
+      modes: ["lexical"],
+      results: [result({})]
+    });
+    report.qualityGate = {
+      passed: false,
+      thresholdsVersion: 1,
+      failures: [
+        {
+          fixture: "unit-fixture",
+          mode: "lexical",
+          query: "unit query",
+          metric: "hitAtK",
+          expected: 1,
+          actual: 0
+        }
+      ]
+    };
+
+    const markdown = renderMarkdownReport(report);
+
+    expect(markdown).toContain("## Quality Gate");
+    expect(markdown).toContain("Status: FAIL");
+    expect(markdown).toContain("| unit-fixture | lexical | unit query | hitAtK | 1.000 | 0.000 |");
+  });
 });

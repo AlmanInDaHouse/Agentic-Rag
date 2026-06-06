@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateFixture, validateModes } from "./runner.js";
+import { parseCliArgs, validateFixture, validateModes } from "./runner.js";
 
 const validFixture = {
   name: "unit-fixture",
@@ -72,5 +72,26 @@ describe("retrieval eval runner validation", () => {
       'Unsupported retrieval evaluation mode "pgvector"'
     );
     expect(() => validateModes([])).toThrow("requires at least one mode");
+  });
+
+  it("parses quality gate CLI flags", () => {
+    const parsed = parseCliArgs([
+      "--gate",
+      "--thresholds",
+      "tooling/retrieval-eval/baselines/thresholds.v1.json",
+      "--out",
+      "reports/retrieval-eval/latest.json"
+    ]);
+
+    expect(parsed.gate).toBe(true);
+    expect(parsed.thresholdsPath.replaceAll("\\", "/")).toContain(
+      "tooling/retrieval-eval/baselines/thresholds.v1.json"
+    );
+    expect(parsed.outputJsonPath.replaceAll("\\", "/")).toContain("reports/retrieval-eval/latest.json");
+  });
+
+  it("rejects unknown CLI flags and missing values", () => {
+    expect(() => parseCliArgs(["--unknown"])).toThrow('Unknown retrieval evaluation argument "--unknown"');
+    expect(() => parseCliArgs(["--thresholds"])).toThrow("Missing value for --thresholds");
   });
 });

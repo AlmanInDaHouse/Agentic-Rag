@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "default": {
+    "hitAtK": 1.0,
+    "expectedChunkFound": 1.0,
+    "meanReciprocalRank": 0.5
+  },
+  "modes": {
+    "lexical": {},
+    "mock_vector": {},
+    "hybrid": {}
+  },
+  "nonBlocking": {
+    "precisionAtK": true,
+    "recallAtK": true,
+    "fallbackUsedRate": true
+  }
+}

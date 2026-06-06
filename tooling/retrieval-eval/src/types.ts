@@ -71,6 +71,38 @@ export type RetrievalEvalReport = {
   fixtures: string[];
   summaries: RetrievalEvalModeSummary[];
   results: RetrievalEvalQueryResult[];
+  qualityGate?: RetrievalEvalQualityGateResult;
+};
+
+export type RetrievalEvalQualityMetricThresholds = {
+  hitAtK?: number;
+  expectedChunkFound?: number;
+  meanReciprocalRank?: number;
+  precisionAtK?: number;
+  recallAtK?: number;
+  fallbackUsedRate?: number;
+};
+
+export type RetrievalEvalQualityThresholds = {
+  version: number;
+  default: RetrievalEvalQualityMetricThresholds;
+  modes: Partial<Record<EvaluatedMode, RetrievalEvalQualityMetricThresholds>>;
+  nonBlocking: Partial<Record<keyof RetrievalEvalQualityMetricThresholds, boolean>>;
+};
+
+export type RetrievalEvalQualityGateFailure = {
+  fixture: string;
+  mode: EvaluatedMode;
+  query: string;
+  metric: keyof RetrievalEvalQualityMetricThresholds;
+  expected: number;
+  actual: number;
+};
+
+export type RetrievalEvalQualityGateResult = {
+  passed: boolean;
+  thresholdsVersion: number;
+  failures: RetrievalEvalQualityGateFailure[];
 };
 
 export type IngestedChunk = {

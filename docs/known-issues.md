@@ -144,13 +144,21 @@ Status: open.
 
 Target resolution: add index strategy after vector volume, model dimension and latency requirements are known.
 
-## RAG-012: Retrieval evaluation fixtures are synthetic and threshold-free
+## RAG-012: Retrieval evaluation fixtures are synthetic
 
-Milestone 1.5E adds deterministic retrieval evaluation fixtures, metrics and reports. The fixtures are intentionally small and synthetic, and the reports are observational. They do not prove production semantic quality and do not enforce pass/fail thresholds yet.
+Milestone 1.5E adds deterministic retrieval evaluation fixtures, metrics and reports. Milestone 1.5F adds compact baselines and quality gates. The fixtures are intentionally small and synthetic, so they still do not prove production semantic quality.
 
 Status: open.
 
-Target resolution: add larger evaluation sets and explicit quality thresholds once real local model evaluation is approved.
+Target resolution: add larger evaluation sets once real local model evaluation is approved.
+
+## RAG-013: Retrieval quality thresholds are intentionally minimal
+
+The initial quality gate blocks on `hitAtK`, `expectedChunkFound` and `meanReciprocalRank` only. `precisionAtK`, `recallAtK` and `fallbackUsedRate` are reported but non-blocking while the fixture set is small.
+
+Status: open.
+
+Target resolution: add stronger thresholds and mode-specific baselines after fixture coverage grows and real local model evaluation is approved.
 
 ## DATA-001: Regex redaction is not complete DLP
 
