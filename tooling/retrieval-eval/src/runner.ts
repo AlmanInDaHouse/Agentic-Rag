@@ -326,6 +326,18 @@ export function validateFixture(value: unknown, fixturePath: string): RetrievalE
     if (query.queryType === "no_answer" && expectedChunkContains.length > 0) {
       throw invalidFixture(fixturePath, `queries[${index}].expectedChunkContains must be empty for no_answer queries`);
     }
+    if (query.queryType !== "no_answer") {
+      const expectedDocuments = value.documents
+        .filter((document) => expectedDocumentTitles.includes(document.title));
+      for (const expectedText of expectedChunkContains) {
+        if (!expectedDocuments.some((document) => document.content.includes(expectedText))) {
+          throw invalidFixture(
+            fixturePath,
+            `queries[${index}].expectedChunkContains entry "${expectedText}" must appear in an expected document`
+          );
+        }
+      }
+    }
     if (query.queryType === "no_answer" && !query.tags.includes("no_answer")) {
       throw invalidFixture(fixturePath, `queries[${index}].tags must include no_answer for no_answer queries`);
     }

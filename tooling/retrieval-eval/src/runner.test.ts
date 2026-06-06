@@ -98,6 +98,52 @@ describe("retrieval eval runner validation", () => {
     expect(fixture.queries[0]?.queryType).toBe("no_answer");
   });
 
+  it("rejects no_answer queries with accidental expected values", () => {
+    expect(() => validateFixture({
+      ...validFixture,
+      queries: [
+        {
+          query: "which policy mentions quantum backups",
+          expectedDocumentTitles: ["Synthetic document"],
+          expectedChunkContains: [],
+          queryType: "no_answer",
+          tags: ["no_answer"],
+          k: 3
+        }
+      ]
+    }, "unit.json")).toThrow("expectedDocumentTitles must be empty for no_answer queries");
+
+    expect(() => validateFixture({
+      ...validFixture,
+      queries: [
+        {
+          query: "which policy mentions quantum backups",
+          expectedDocumentTitles: [],
+          expectedChunkContains: ["retrieval text"],
+          queryType: "no_answer",
+          tags: ["no_answer"],
+          k: 3
+        }
+      ]
+    }, "unit.json")).toThrow("expectedChunkContains must be empty for no_answer queries");
+  });
+
+  it("rejects expected chunk substrings that do not appear in expected documents", () => {
+    expect(() => validateFixture({
+      ...validFixture,
+      queries: [
+        {
+          query: "where is the missing expected text",
+          expectedDocumentTitles: ["Synthetic document"],
+          expectedChunkContains: ["missing expected text"],
+          queryType: "answerable",
+          tags: ["runtime"],
+          k: 3
+        }
+      ]
+    }, "unit.json")).toThrow("expectedChunkContains entry");
+  });
+
   it("rejects invalid queryType and tags", () => {
     expect(() => validateFixture({
       ...validFixture,

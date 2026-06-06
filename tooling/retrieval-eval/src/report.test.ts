@@ -63,6 +63,7 @@ describe("retrieval eval reports", () => {
       {
         mode: "lexical",
         queryCount: 2,
+        retrievalQueryCount: 2,
         precisionAtK: 1 / 6,
         recallAtK: 0.5,
         hitAtK: 0.5,
@@ -71,6 +72,40 @@ describe("retrieval eval reports", () => {
         fallbackUsedRate: 0.5
       }
     ]);
+  });
+
+  it("excludes no_answer queries from retrieval metric summaries", () => {
+    const report = buildReport({
+      generatedAt: "2026-06-06T00:00:00.000Z",
+      modes: ["lexical"],
+      results: [
+        result({}),
+        result({
+          queryType: "no_answer",
+          tags: ["no_answer"],
+          expectedChunkIds: [],
+          expectedDocumentTitles: [],
+          expectedChunkContains: [],
+          metrics: {
+            precision_at_k: 0,
+            recall_at_k: 1,
+            hit_at_k: 1,
+            mean_reciprocal_rank: 1,
+            expected_chunk_found: true
+          }
+        })
+      ]
+    });
+
+    expect(report.summaries[0]).toMatchObject({
+      queryCount: 2,
+      retrievalQueryCount: 1,
+      precisionAtK: 1 / 3,
+      recallAtK: 1,
+      hitAtK: 1,
+      meanReciprocalRank: 1,
+      expectedChunkFoundRate: 1
+    });
   });
 
   it("renders fixture, mode, metrics, fallback state and top results", () => {

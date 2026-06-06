@@ -71,6 +71,7 @@ export type RetrievalEvalQueryResult = {
 export type RetrievalEvalModeSummary = {
   mode: EvaluatedMode;
   queryCount: number;
+  retrievalQueryCount: number;
   precisionAtK: number;
   recallAtK: number;
   hitAtK: number;

@@ -204,6 +204,7 @@ Rules:
 - `answerable`, `ambiguous` and `redaction` queries require expected document titles and expected chunk substrings.
 - `no_answer` queries must use empty `expectedDocumentTitles` and `expectedChunkContains` arrays.
 - `no_answer` does not mean search must return zero rows. It means the fixture has no expected relevant chunk and the evaluator must not invent an expected match.
+- Aggregate retrieval metrics exclude `no_answer` queries and report their count separately from total query count.
 - `redaction` queries must assert retrieval facts that remain after redaction; expected substrings must not be original secret-like placeholder values.
 - `ambiguous` queries intentionally share terms across documents but still identify one expected chunk.
 

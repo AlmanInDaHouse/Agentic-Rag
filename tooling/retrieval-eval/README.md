@@ -13,7 +13,7 @@ It measures:
 
 The runner starts the existing black-box harness runtime, creates a temporary PostgreSQL schema, ingests fixture documents through HTTP, runs `lexical`, `mock_vector` and `hybrid` searches, and writes reports.
 
-Fixtures include `answerable`, `ambiguous`, `redaction` and `no_answer` queries. No-answer queries use empty expected arrays explicitly; they do not require search to return zero rows, only that the evaluator does not invent an expected match.
+Fixtures include `answerable`, `ambiguous`, `redaction` and `no_answer` queries. No-answer queries use empty expected arrays explicitly; they do not require search to return zero rows, only that the evaluator does not invent an expected match. Report summaries keep total query count separate from retrieval metric query count so no-answer cases do not inflate aggregate retrieval quality.
 
 ## Commands
 
