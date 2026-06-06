@@ -44,9 +44,13 @@ export const defaultRagAnswerabilityCalibration: RagAnswerabilityCalibration =
   });
 
 export class RagAnswerabilityPolicyService {
+  private readonly calibration: RagAnswerabilityCalibration;
+
   constructor(
-    private readonly calibration: RagAnswerabilityCalibration = defaultRagAnswerabilityCalibration
-  ) {}
+    calibration: RagAnswerabilityCalibration = defaultRagAnswerabilityCalibration
+  ) {
+    this.calibration = RagAnswerabilityCalibrationSchema.parse(calibration);
+  }
 
   getCalibration(): RagAnswerabilityCalibration {
     return this.calibration;
@@ -78,7 +82,7 @@ export class RagAnswerabilityPolicyService {
       const fallbackPenalty = this.calibration.fallback.fallbackPenalty;
       effective = RagAnswerabilityPolicySchema.parse({
         ...effective,
-        fallbackAllowed: this.calibration.fallback.fallbackAllowed,
+        fallbackAllowed: effective.fallbackAllowed && this.calibration.fallback.fallbackAllowed,
         fallbackPenalty,
         minRequiredScore: Math.min(1, effective.minRequiredScore + fallbackPenalty)
       });

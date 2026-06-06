@@ -29,6 +29,8 @@ The effective policy is resolved in this order:
 
 Per-request policy overrides remain available for tests and local experimentation, but calibration is the product default. The policy stays static and versioned in code for this milestone. Synthetic fixtures are the first calibration source.
 
+Fallback adjustment is conservative: it raises the effective score threshold and preserves stricter earlier decisions such as `fallbackAllowed=false` for `queryType=no_answer`.
+
 ## Alternatives Considered
 
 ### Global thresholds

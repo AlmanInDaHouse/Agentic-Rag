@@ -8,7 +8,11 @@ import {
 import {
   evaluateAnswerability
 } from "../services/ragAnswerabilityService.js";
-import { resolveAnswerabilityPolicy } from "../services/ragAnswerabilityPolicyService.js";
+import {
+  RagAnswerabilityPolicyService,
+  defaultRagAnswerabilityCalibration,
+  resolveAnswerabilityPolicy
+} from "../services/ragAnswerabilityPolicyService.js";
 import { contextCandidate } from "./testContextFixtures.js";
 
 describe("RAG answerability service", () => {
@@ -148,6 +152,7 @@ describe("RAG answerability service", () => {
 
   it("uses mode-specific default thresholds with overrides", () => {
     expect(resolveAnswerabilityPolicy("lexical", undefined).minRequiredScore).toBe(0.5);
+    expect(resolveAnswerabilityPolicy("mock_vector", undefined).minRequiredScore).toBe(0.4);
     expect(resolveAnswerabilityPolicy("hybrid", undefined).minRequiredScore).toBe(0.35);
     expect(resolveAnswerabilityPolicy("hybrid", { minRequiredScore: 0.9 }).minRequiredScore).toBe(0.9);
   });
@@ -181,12 +186,125 @@ describe("RAG answerability service", () => {
     });
   });
 
+  it("does not let fallback adjustment relax stricter query type fallback policy", () => {
+    const policy = resolveAnswerabilityPolicy({
+      mode: "mock_vector",
+      queryType: "no_answer",
+      fallbackUsed: true
+    });
+
+    expect(policy).toMatchObject({
+      minRequiredScore: 1,
+      fallbackAllowed: false,
+      effectivePolicySource: ["default", "mode:mock_vector", "queryType:no_answer", "fallback"]
+    });
+  });
+
   it("caps fallback-adjusted thresholds at 1", () => {
     expect(resolveAnswerabilityPolicy({
       mode: "lexical",
       queryType: "no_answer",
       fallbackUsed: true
     }).minRequiredScore).toBe(1);
+  });
+
+  it("does not mutate shared calibration while resolving policies", () => {
+    const service = new RagAnswerabilityPolicyService(defaultRagAnswerabilityCalibration);
+    const before = structuredClone(service.getCalibration());
+
+    service.resolve({
+      mode: "hybrid",
+      queryType: "ambiguous",
+      fallbackUsed: true
+    });
+
+    expect(service.getCalibration()).toEqual(before);
+  });
+
+  it("keeps custom fallback penalty bounded by schema validation", () => {
+    expect(() => new RagAnswerabilityPolicyService({
+      ...defaultRagAnswerabilityCalibration,
+      fallback: {
+        fallbackAllowed: true,
+        fallbackPenalty: 1.1
+      }
+    })).toThrow();
+
+    expect(() => resolveAnswerabilityPolicy({
+      mode: "hybrid",
+      queryType: "answerable",
+      fallbackUsed: true,
+      overrides: { fallbackPenalty: -0.1 }
+    })).toThrow();
+  });
+
+  it("uses answerable query type defaults when queryType is missing", () => {
+    expect(resolveAnswerabilityPolicy({
+      mode: "hybrid",
+      fallbackUsed: false
+    })).toMatchObject({
+      minRequiredScore: 0.35,
+      effectivePolicySource: ["default", "mode:hybrid", "queryType:answerable"]
+    });
+  });
+
+  it("uses calibrated query type thresholds as policy hints", () => {
+    expect(evaluateAnswerability(
+      { results: [answerabilityCandidate({ finalScore: 0.8 })] },
+      { mode: "hybrid", queryType: "no_answer", fallbackUsed: false }
+    )).toMatchObject({
+      shouldAnswer: false,
+      reason: "low_score",
+      effectiveMinRequiredScore: 0.95
+    });
+
+    expect(evaluateAnswerability(
+      { results: [answerabilityCandidate({ finalScore: 0.4 })] },
+      { mode: "hybrid", queryType: "answerable", fallbackUsed: false }
+    )).toMatchObject({
+      shouldAnswer: true,
+      reason: "sufficient_context",
+      effectiveMinRequiredScore: 0.35
+    });
+
+    expect(evaluateAnswerability(
+      { results: [answerabilityCandidate({ finalScore: 0.64 })] },
+      { mode: "hybrid", queryType: "ambiguous", fallbackUsed: false }
+    )).toMatchObject({
+      shouldAnswer: false,
+      reason: "low_score",
+      effectiveMinRequiredScore: 0.65
+    });
+
+    expect(evaluateAnswerability(
+      { results: [answerabilityCandidate({ finalScore: 0.3 })] },
+      { mode: "hybrid", queryType: "redaction", fallbackUsed: false }
+    )).toMatchObject({
+      shouldAnswer: true,
+      reason: "sufficient_context",
+      effectiveMinRequiredScore: 0.3
+    });
+  });
+
+  it("uses fallback penalty to change answerability decisions when fallback is used", () => {
+    const result = answerabilityCandidate({ finalScore: 0.4, fallbackUsed: true });
+
+    expect(evaluateAnswerability(
+      { results: [result] },
+      { mode: "hybrid", queryType: "answerable", fallbackUsed: false }
+    )).toMatchObject({
+      shouldAnswer: true,
+      effectiveMinRequiredScore: 0.35
+    });
+    const fallbackAnswerability = evaluateAnswerability(
+      { results: [result] },
+      { mode: "hybrid", queryType: "answerable", fallbackUsed: true }
+    );
+    expect(fallbackAnswerability).toMatchObject({
+      shouldAnswer: false,
+      reason: "low_score"
+    });
+    expect(fallbackAnswerability.effectiveMinRequiredScore).toBeCloseTo(0.45);
   });
 
   it("validates answerability Zod contracts", () => {

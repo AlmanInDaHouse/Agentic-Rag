@@ -471,6 +471,8 @@ default -> mode override -> queryType override -> fallback adjustment
 
 Per-request `answerabilityPolicy` overrides remain available for tests and local experiments, but the default runtime behavior should use the static calibration. `queryType` is an optional API hint and not ground truth. Normal context search defaults to `answerable`; retrieval evaluation passes fixture query types explicitly.
 
+Fallback adjustment raises the effective threshold by `fallbackPenalty` and caps it at `1.0`. It must not relax a stricter policy selected earlier in precedence; for example `queryType=no_answer` keeps `fallbackAllowed=false` even when fallback metadata is present.
+
 Search responses include effective policy metadata:
 
 ```json
