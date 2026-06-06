@@ -15,7 +15,7 @@ The runner starts the existing black-box harness runtime, creates a temporary Po
 
 Fixtures include `answerable`, `ambiguous`, `redaction` and `no_answer` queries. No-answer queries use empty expected arrays explicitly; they do not require search to return zero rows, only that the evaluator does not invent an expected match. Report summaries keep total query count separate from retrieval metric query count so no-answer cases do not inflate aggregate retrieval quality.
 
-The runner also records search `answerability` and calculates `abstention_accuracy`, `false_answer_rate` and `false_abstention_rate`. These metrics are informational initially and are not an LLM judge or answer-generation evaluation.
+The runner passes fixture `queryType` to search so calibrated answerability thresholds are used. It records search `answerability`, effective policy metadata and calculates `abstention_accuracy`, `false_answer_rate` and `false_abstention_rate`. No-answer abstention accuracy can block the gate; false answer and false abstention rates remain non-blocking while calibration is heuristic. These metrics are not an LLM judge or answer-generation evaluation.
 
 ## Commands
 
@@ -56,8 +56,9 @@ The initial gate blocks on:
 - hitAtK >= 1.0
 - expectedChunkFound >= 1.0
 - meanReciprocalRank >= 0.5
+- abstentionAccuracy >= 1.0 for queryType=no_answer
 
-`precisionAtK`, `recallAtK` and `fallbackUsedRate` are reported but non-blocking initially.
+`precisionAtK`, `recallAtK`, `fallbackUsedRate`, `falseAnswerRate` and `falseAbstentionRate` are reported but non-blocking initially.
 
 The default threshold block must include `hitAtK`, `expectedChunkFound` and `meanReciprocalRank`. Other metrics can be omitted to leave them ungated, or marked in `nonBlocking` to report them without failing the gate. Blocking thresholds are minimums except `fallbackUsedRate`, `falseAnswerRate` and `falseAbstentionRate`, which are treated as maximums if they are ever made blocking.
 

@@ -346,6 +346,7 @@ export const GenerateEmbeddingsRequestSchema = z.object({
 }).strict();
 
 export const RagSearchModeSchema = z.enum(["lexical", "mock_vector", "hybrid"]);
+export const RagQueryTypeSchema = z.enum(["answerable", "no_answer", "ambiguous", "redaction"]);
 
 export const RagAbstentionReasonSchema = z.enum([
   "sufficient_context",
@@ -360,9 +361,43 @@ export const RagAbstentionReasonSchema = z.enum([
 export const RagAnswerabilitySchema = z.enum(["answerable", "abstain"]);
 
 export const RagAnswerabilityPolicySchema = z.object({
-  minRequiredScore: z.number().finite().nonnegative().default(1),
+  minRequiredScore: z.number().finite().min(0).max(1).default(0.35),
   minSupportingResults: z.number().int().positive().max(20).default(1),
-  fallbackAllowed: z.boolean().default(true)
+  fallbackAllowed: z.boolean().default(true),
+  fallbackPenalty: z.number().finite().min(0).max(1).default(0.1)
+}).strict();
+
+export const RagAnswerabilityModePolicySchema = z.object({
+  minRequiredScore: z.number().finite().min(0).max(1).optional(),
+  minSupportingResults: z.number().int().positive().max(20).optional(),
+  fallbackAllowed: z.boolean().optional(),
+  fallbackPenalty: z.number().finite().min(0).max(1).optional()
+}).strict();
+
+export const RagAnswerabilityQueryTypePolicySchema = z.object({
+  minRequiredScore: z.number().finite().min(0).max(1).optional(),
+  minSupportingResults: z.number().int().positive().max(20).optional(),
+  fallbackAllowed: z.boolean().optional(),
+  fallbackPenalty: z.number().finite().min(0).max(1).optional()
+}).strict();
+
+export const RagAnswerabilityCalibrationSchema = z.object({
+  default: RagAnswerabilityPolicySchema.default({}),
+  modes: z.object({
+    lexical: RagAnswerabilityModePolicySchema.optional(),
+    mock_vector: RagAnswerabilityModePolicySchema.optional(),
+    hybrid: RagAnswerabilityModePolicySchema.optional()
+  }).strict().default({}),
+  queryTypes: z.object({
+    answerable: RagAnswerabilityQueryTypePolicySchema.optional(),
+    no_answer: RagAnswerabilityQueryTypePolicySchema.optional(),
+    ambiguous: RagAnswerabilityQueryTypePolicySchema.optional(),
+    redaction: RagAnswerabilityQueryTypePolicySchema.optional()
+  }).strict().default({}),
+  fallback: z.object({
+    fallbackAllowed: z.boolean().default(true),
+    fallbackPenalty: z.number().finite().min(0).max(1).default(0.1)
+  }).strict().default({})
 }).strict();
 
 export const RagAnswerabilityResultSchema = z.object({
@@ -371,7 +406,10 @@ export const RagAnswerabilityResultSchema = z.object({
   reason: RagAbstentionReasonSchema,
   confidence: z.number().min(0).max(1),
   topScore: z.number().finite().nonnegative().nullable(),
-  minRequiredScore: z.number().finite().nonnegative(),
+  minRequiredScore: z.number().finite().min(0).max(1),
+  effectiveMinRequiredScore: z.number().finite().min(0).max(1).optional(),
+  effectiveFallbackAllowed: z.boolean().optional(),
+  effectivePolicySource: z.array(z.string()).optional(),
   supportingResultIds: z.array(z.string().uuid()),
   warnings: z.array(z.string())
 });
@@ -398,6 +436,7 @@ export const ContextSearchSchema = z.object({
   query: z.string().trim().min(1).max(5000),
   limit: z.number().int().positive().max(20).default(5),
   mode: RagSearchModeSchema.default("lexical"),
+  queryType: RagQueryTypeSchema.default("answerable"),
   answerabilityPolicy: RagAnswerabilityPolicySchema.partial().optional()
 }).strict();
 
@@ -572,12 +611,16 @@ export type EmbeddingRequest = z.infer<typeof EmbeddingRequestSchema>;
 export type EmbeddingResult = z.infer<typeof EmbeddingResultSchema>;
 export type GenerateEmbeddingsRequest = z.infer<typeof GenerateEmbeddingsRequestSchema>;
 export type RagSearchMode = z.infer<typeof RagSearchModeSchema>;
+export type RagQueryType = z.infer<typeof RagQueryTypeSchema>;
 export type RagAbstentionReason = z.infer<typeof RagAbstentionReasonSchema>;
 export type RagAnswerability = z.infer<typeof RagAnswerabilitySchema>;
 export type RagAnswerabilityPolicy = z.infer<typeof RagAnswerabilityPolicySchema>;
+export type RagAnswerabilityModePolicy = z.infer<typeof RagAnswerabilityModePolicySchema>;
+export type RagAnswerabilityQueryTypePolicy = z.infer<typeof RagAnswerabilityQueryTypePolicySchema>;
+export type RagAnswerabilityCalibration = z.infer<typeof RagAnswerabilityCalibrationSchema>;
 export type RagAnswerabilityResult = z.infer<typeof RagAnswerabilityResultSchema>;
 export type RagStatus = z.infer<typeof RagStatusSchema>;
-export type ContextSearch = z.infer<typeof ContextSearchSchema>;
+export type ContextSearch = z.input<typeof ContextSearchSchema>;
 export type ContextSearchResult = z.infer<typeof ContextSearchResultSchema>;
 export type ContextRetrieval = z.infer<typeof ContextRetrievalSchema>;
 export type ContextRetentionPolicy = z.infer<typeof ContextRetentionPolicySchema>;

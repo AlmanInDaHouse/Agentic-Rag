@@ -21,6 +21,9 @@ function result(overrides: Partial<RetrievalEvalQueryResult>): RetrievalEvalQuer
       confidence: 1,
       topScore: 1,
       minRequiredScore: 0.5,
+      effectiveMinRequiredScore: 0.5,
+      effectiveFallbackAllowed: true,
+      effectivePolicySource: ["default", "mode:lexical", "queryType:answerable"],
       supportingResultIds: ["expected-1"],
       warnings: []
     },
@@ -155,6 +158,9 @@ describe("retrieval eval reports", () => {
     expect(renderMarkdownReport(report)).toContain("Query type: answerable");
     expect(renderMarkdownReport(report)).toContain("Tags: runtime");
     expect(renderMarkdownReport(report)).toContain("Answerability: sufficient_context / shouldAnswer=true");
+    expect(renderMarkdownReport(report)).toContain("Effective minRequiredScore: 0.500");
+    expect(renderMarkdownReport(report)).toContain("Effective fallbackAllowed: true");
+    expect(renderMarkdownReport(report)).toContain("Effective policy source: default, mode:lexical, queryType:answerable");
     expect(renderMarkdownReport(report)).toContain("precision@k: 0.333");
     expect(renderMarkdownReport(report)).toContain("fallbackUsed: false");
     expect(renderMarkdownReport(report)).toContain("| 1 | Unit document |");

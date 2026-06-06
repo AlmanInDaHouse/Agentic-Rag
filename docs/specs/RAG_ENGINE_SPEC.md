@@ -339,7 +339,7 @@ meanReciprocalRank >= 0.5
 
 Milestone 1.5G expands the corpus with `answerable`, `ambiguous`, `redaction` and `no_answer` query types plus tags for security, runtime, retention, redaction and ambiguity. No-answer queries use empty expected arrays explicitly and do not require search to return zero rows. They only assert that the evaluator should not invent an expected chunk match.
 
-Milestone 1.5H adds deterministic RAG answerability and abstention policy. Search responses include an `answerability` object that decides whether retrieved context is sufficient before any future answer generation. This policy is based only on retrieval metadata and does not call an LLM.
+Milestone 1.5H adds deterministic RAG answerability and abstention policy. Search responses include an `answerability` object that decides whether retrieved context is sufficient before any future answer generation. This policy is based only on retrieval metadata and does not call an LLM. Milestone 1.5I calibrates the abstention policy by mode, query type and fallback use while keeping thresholds deterministic and heuristic.
 
 ## Retrieval Modes
 
@@ -423,7 +423,65 @@ Initial criteria:
 - redacted chunks can answer if they remain active and relevant,
 - restricted, blocked or deleted context must not support an answer.
 
-Default score thresholds are simple and mode-aware: lexical defaults to a higher threshold than mock-vector or hybrid because lexical scores are unbounded term counts while vector/hybrid scores are normalized. Thresholds are configurable per request through `answerabilityPolicy`.
+Default score thresholds are simple and calibrated. Retrieval ranking scores are unchanged, but answerability compares a bounded `0..1` score. Lexical scores above `1` are normalized for answerability as `score / (score + 1)`; vector and hybrid scores already fit the bounded range.
+
+### Calibrated Abstention Policy
+
+Milestone 1.5I resolves an effective policy from:
+
+```text
+mode: lexical | mock_vector | hybrid
+queryType: answerable | no_answer | ambiguous | redaction
+fallbackUsed: true | false
+```
+
+The current static calibration is intentionally conservative:
+
+```json
+{
+  "default": {
+    "minRequiredScore": 0.35,
+    "minSupportingResults": 1,
+    "fallbackAllowed": true,
+    "fallbackPenalty": 0.10
+  },
+  "modes": {
+    "lexical": { "minRequiredScore": 0.50 },
+    "mock_vector": { "minRequiredScore": 0.40 },
+    "hybrid": { "minRequiredScore": 0.35 }
+  },
+  "queryTypes": {
+    "answerable": {},
+    "no_answer": { "minRequiredScore": 0.95, "fallbackAllowed": false },
+    "ambiguous": { "minRequiredScore": 0.65 },
+    "redaction": { "minRequiredScore": 0.30 }
+  },
+  "fallback": {
+    "fallbackAllowed": true,
+    "fallbackPenalty": 0.10
+  }
+}
+```
+
+Effective policy precedence is:
+
+```text
+default -> mode override -> queryType override -> fallback adjustment
+```
+
+Per-request `answerabilityPolicy` overrides remain available for tests and local experiments, but the default runtime behavior should use the static calibration. `queryType` is an optional API hint and not ground truth. Normal context search defaults to `answerable`; retrieval evaluation passes fixture query types explicitly.
+
+Fallback adjustment raises the effective threshold by `fallbackPenalty` and caps it at `1.0`. It must not relax a stricter policy selected earlier in precedence; for example `queryType=no_answer` keeps `fallbackAllowed=false` even when fallback metadata is present.
+
+Search responses include effective policy metadata:
+
+```json
+{
+  "effectiveMinRequiredScore": 0.95,
+  "effectiveFallbackAllowed": false,
+  "effectivePolicySource": ["default", "mode:lexical", "queryType:no_answer"]
+}
+```
 
 This policy does not generate a final answer. It only decides whether retrieved context is sufficient for a future answer step.
 
@@ -600,6 +658,16 @@ This policy does not generate a final answer. It only decides whether retrieved 
 - Retrieval evaluation records `abstention_accuracy`, `false_answer_rate` and `false_abstention_rate`.
 - Abstention metrics remain informational until thresholds are proven stable.
 - No LLM-as-judge, LLM answer generation, GraphRAG, Code Graph, external providers or required real models are added.
+
+### Milestone 1.5I: Abstention Calibration by Mode and Query Type
+
+- Add shared Zod contracts for calibrated answerability policy.
+- Resolve effective abstention thresholds by mode, query type and fallback use.
+- Pass retrieval evaluation `queryType` into context search.
+- Report effective threshold, fallback allowance, policy source and answerability reason.
+- Make no-answer abstention accuracy eligible for blocking quality gates.
+- Keep false-answer and false-abstention rates non-blocking while calibration is still synthetic.
+- Do not add generation, GraphRAG, Code Graph, LLM-as-judge, real models or external providers.
 
 ## Risks
 

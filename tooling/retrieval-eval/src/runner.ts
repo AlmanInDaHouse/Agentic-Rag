@@ -123,7 +123,7 @@ async function ingestFixture(
   return chunks;
 }
 
-async function evaluateQuery(input: {
+export async function evaluateQuery(input: {
   fixtureName: string;
   mode: EvaluatedMode;
   goalId: string;
@@ -131,7 +131,12 @@ async function evaluateQuery(input: {
   chunks: IngestedChunk[];
   search: (
     goalId: string,
-    input: { query: string; limit: number; mode: EvaluatedMode }
+    input: {
+      query: string;
+      limit: number;
+      mode: EvaluatedMode;
+      queryType: RetrievalEvalQueryType;
+    }
   ) => Promise<SearchResponseLike>;
 }): Promise<RetrievalEvalQueryResult> {
   const expectedChunkIds = resolveExpectedChunkIds(input.chunks, input.query);
@@ -142,7 +147,8 @@ async function evaluateQuery(input: {
   const retrieval = await input.search(input.goalId, {
     query: input.query.query,
     limit: input.query.k,
-    mode: input.mode
+    mode: input.mode,
+    queryType: input.query.queryType
   });
   const resultChunkIds = retrieval.results.map((result) => result.chunk.id);
   const expectedShouldAnswer = expectedShouldAnswerForQuery(input.query);

@@ -285,6 +285,35 @@ describe("retrieval quality gate", () => {
     expect(gate.passed).toBe(true);
   });
 
+  it("can block no_answer abstention accuracy through query type thresholds", () => {
+    const gate = evaluateQualityGate(report([
+      result({
+        fixtureName: "no-answer-corpus",
+        queryType: "no_answer",
+        tags: ["no_answer"],
+        expectedShouldAnswer: false,
+        answerability: {
+          ...result().answerability,
+          shouldAnswer: true
+        },
+        metrics: {
+          ...result().metrics,
+          abstention_accuracy: 0,
+          false_answer_rate: 1
+        }
+      })
+    ]), {
+      ...thresholds,
+      queryTypes: {
+        no_answer: { abstentionAccuracy: 1 }
+      }
+    });
+
+    expect(gate.failures).toMatchObject([
+      { metric: "abstentionAccuracy", expected: 1, actual: 0 }
+    ]);
+  });
+
   it("allows tiny floating point differences at the threshold boundary", () => {
     const gate = evaluateQualityGate(report([
       result({ metrics: { ...result().metrics, mean_reciprocal_rank: 0.5 - 1e-10 } })
