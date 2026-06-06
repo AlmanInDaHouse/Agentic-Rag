@@ -1,4 +1,4 @@
-import type { ContextRetrieval, ContextSearchResult } from "@triforge/shared";
+import type { ContextRetrieval, ContextSearchResult, RagAnswerabilityResult } from "@triforge/shared";
 import type { DbQueryable } from "../db/pool.js";
 import type { ContextRetrievalRepository } from "../domain/ports.js";
 import { mapContextRetrieval } from "./mappers.js";
@@ -10,14 +10,20 @@ export class PgContextRetrievalRepository implements ContextRetrievalRepository 
     goalId: string;
     query: string;
     results: ContextSearchResult[];
+    answerability?: RagAnswerabilityResult;
   }): Promise<ContextRetrieval> {
     const result = await this.db.query(
       `
-        INSERT INTO context_retrievals (goal_id, query, results)
-        VALUES ($1, $2, $3)
+        INSERT INTO context_retrievals (goal_id, query, results, answerability)
+        VALUES ($1, $2, $3, $4)
         RETURNING *
       `,
-      [input.goalId, input.query, JSON.stringify(input.results)]
+      [
+        input.goalId,
+        input.query,
+        JSON.stringify(input.results),
+        input.answerability ? JSON.stringify(input.answerability) : null
+      ]
     );
     return mapContextRetrieval(result.rows[0]);
   }

@@ -226,7 +226,12 @@ describe("ContextEngineService", () => {
       shouldAnswer: false,
       reason: "no_results"
     });
-    expect(await fixture.service.listRetrievals(goal.id)).toHaveLength(1);
+    const retrievals = await fixture.service.listRetrievals(goal.id);
+    expect(retrievals).toHaveLength(1);
+    expect(retrievals[0].answerability).toMatchObject({
+      shouldAnswer: false,
+      reason: "no_results"
+    });
   });
 
   it("returns ranked search results", async () => {
@@ -986,12 +991,14 @@ class InMemoryContextRetrievalRepository implements ContextRetrievalRepository {
     goalId: string;
     query: string;
     results: ContextSearchResult[];
+    answerability?: ContextRetrieval["answerability"];
   }): Promise<ContextRetrieval> {
     const retrieval: ContextRetrieval = {
       id: `00000000-0000-4000-8000-${String(this.retrievals.length + 400).padStart(12, "0")}`,
       goalId: input.goalId,
       query: input.query,
       results: input.results,
+      answerability: input.answerability,
       createdAt: now
     };
     this.retrievals.push(retrieval);

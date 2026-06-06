@@ -41,7 +41,7 @@ export function evaluateAnswerability(
     });
   }
 
-  const topScore = searchResult.results[0]?.finalScore ?? null;
+  const topScore = scoreOf(searchResult.results[0]);
   const activeResults = searchResult.results.filter(isActiveResult);
   if (activeResults.length === 0) {
     const hasDeleted = searchResult.results.some(isDeletedResult);
@@ -82,7 +82,7 @@ export function evaluateAnswerability(
   }
 
   const supportingResults = activeResults.filter((result) => (
-    result.finalScore >= policy.minRequiredScore &&
+    (scoreOf(result) ?? -Infinity) >= policy.minRequiredScore &&
     (policy.fallbackAllowed || !result.fallbackUsed)
   ));
   if (supportingResults.length < policy.minSupportingResults) {
@@ -136,6 +136,13 @@ function confidence(topScore: number | null, minRequiredScore: number): number {
     return topScore > 0 ? 1 : 0;
   }
   return Math.max(0, Math.min(1, topScore / minRequiredScore));
+}
+
+function scoreOf(result: ContextSearchResult | undefined): number | null {
+  if (!result || !Number.isFinite(result.finalScore)) {
+    return null;
+  }
+  return result.finalScore;
 }
 
 function isActiveResult(result: ContextSearchResult): boolean {

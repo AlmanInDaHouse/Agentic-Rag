@@ -40,6 +40,61 @@ describe("RAG answerability service", () => {
     });
   });
 
+  it("answers when finalScore is exactly at the threshold", () => {
+    expect(evaluateAnswerability({ results: [answerabilityCandidate({ finalScore: 0.5 })] }, {
+      minRequiredScore: 0.5,
+      minSupportingResults: 1,
+      fallbackAllowed: true
+    })).toMatchObject({
+      shouldAnswer: true,
+      reason: "sufficient_context",
+      topScore: 0.5
+    });
+  });
+
+  it("abstains when finalScore is just below the threshold", () => {
+    expect(evaluateAnswerability({ results: [answerabilityCandidate({ finalScore: 0.499 })] }, {
+      minRequiredScore: 0.5,
+      minSupportingResults: 1,
+      fallbackAllowed: true
+    })).toMatchObject({
+      shouldAnswer: false,
+      reason: "low_score"
+    });
+  });
+
+  it("abstains safely when finalScore is missing", () => {
+    const result = {
+      ...answerabilityCandidate({ finalScore: 1 }),
+      finalScore: undefined
+    } as unknown as ContextSearchResult;
+
+    expect(evaluateAnswerability({ results: [result] }, {
+      minRequiredScore: 0.5,
+      minSupportingResults: 1,
+      fallbackAllowed: true
+    })).toMatchObject({
+      shouldAnswer: false,
+      reason: "low_score",
+      topScore: null
+    });
+  });
+
+  it("uses the top result score even when a later result exceeds the threshold", () => {
+    const weakTop = answerabilityCandidate({ finalScore: 0.1 });
+    const strongSecond = answerabilityCandidate({ finalScore: 0.9 });
+
+    expect(evaluateAnswerability({ results: [weakTop, strongSecond] }, {
+      minRequiredScore: 0.5,
+      minSupportingResults: 1,
+      fallbackAllowed: true
+    })).toMatchObject({
+      shouldAnswer: false,
+      reason: "low_score",
+      topScore: 0.1
+    });
+  });
+
   it("answers with sufficient context", () => {
     const result = answerabilityCandidate({ finalScore: 0.8 });
 
@@ -66,6 +121,19 @@ describe("RAG answerability service", () => {
     })).toMatchObject({
       shouldAnswer: false,
       reason: "fallback_only"
+    });
+  });
+
+  it("answers with fallback results when fallback is allowed and score passes", () => {
+    const result = answerabilityCandidate({ finalScore: 1, fallbackUsed: true });
+
+    expect(evaluateAnswerability({ results: [result] }, {
+      minRequiredScore: 0.5,
+      minSupportingResults: 1,
+      fallbackAllowed: true
+    })).toMatchObject({
+      shouldAnswer: true,
+      reason: "sufficient_context"
     });
   });
 

@@ -386,7 +386,7 @@ Fallback rules:
 
 ## Abstention Policy
 
-Context search evaluates answerability after ranking. The structured result is:
+Context search evaluates answerability after ranking and persists the decision with the retrieval trace when a `context_retrievals` row is created. The structured result is:
 
 ```json
 {

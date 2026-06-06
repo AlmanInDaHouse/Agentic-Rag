@@ -85,7 +85,7 @@ Milestone 1.5H adds deterministic answerability evaluation to context search and
 - Runtime `load_context` records abstention without failing the run.
 - No-answer evaluation starts connecting to real search behavior.
 - Thresholds can be tightened later without introducing model dependencies.
-- Existing retrieval storage remains compatible because answerability is computed at response time.
+- Existing retrieval rows remain compatible; new retrieval rows persist the answerability snapshot for dashboard refreshes and audit traces.
 
 ## Pending Risks
 

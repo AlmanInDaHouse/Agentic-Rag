@@ -27,6 +27,7 @@ import type {
   DebateRound,
   DebateRoundWithProposals,
   Goal,
+  RagAnswerabilityResult,
   RequestedAction,
   ResolveApprovalGate,
   TimelineEvent,
@@ -210,6 +211,7 @@ export interface ContextRetrievalRepository {
     goalId: string;
     query: string;
     results: ContextSearchResult[];
+    answerability?: RagAnswerabilityResult;
   }): Promise<ContextRetrieval>;
   listByGoal(goalId: string): Promise<ContextRetrieval[]>;
   countByGoal(goalId: string): Promise<number>;

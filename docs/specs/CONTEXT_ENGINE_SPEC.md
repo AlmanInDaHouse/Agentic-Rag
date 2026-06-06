@@ -45,7 +45,7 @@ Milestone 1.5C adds optional pgvector capability reporting and a localhost/loopb
 - `context_sources`: source container attached to a goal.
 - `context_documents`: ingested document metadata and stable content hash.
 - `context_chunks`: deterministic text chunks used by lexical retrieval.
-- `context_retrievals`: persisted retrieval trace containing query and selected results.
+- `context_retrievals`: persisted retrieval trace containing query, selected results and answerability metadata when available.
 - `embedding_models`: registered embedding model/provider metadata.
 - `context_chunk_embeddings`: deterministic mock vectors per chunk/model.
 - `classification`: document data classification.
@@ -84,7 +84,7 @@ Context Engine v0 uses PostgreSQL tables in migration `0006_context_engine.sql`.
 - Documents store `content_hash`, not a second full document copy.
 - Chunks store the retrievable text.
 - When sensitive findings exist, chunks store redacted text.
-- Retrievals store selected results as JSONB for traceability.
+- Retrievals store selected results and answerability snapshots as JSONB for traceability.
 - The schema keeps source/document/chunk boundaries compatible with embeddings, but no vector extension is required for default operation. JSONB embedding rows remain the default storage. Optional pgvector rows are stored in `context_chunk_vector_embeddings` only when `TRIFORGE_EMBEDDING_STORAGE=pgvector` is configured and the database has both the installed `vector` extension and the optional table.
 
 ## Chunking v0

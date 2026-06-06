@@ -284,12 +284,10 @@ export class ContextEngineService {
     const retrieval = await this.contextRetrievalRepository.create({
       goalId,
       query: input.query,
-      results
-    });
-    return {
-      ...retrieval,
+      results,
       answerability
-    };
+    });
+    return retrieval;
   }
 
   private async rankCandidates(
