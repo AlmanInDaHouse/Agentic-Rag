@@ -2,8 +2,13 @@
   "version": 1,
   "description": "Compact synthetic retrieval baseline for Milestone 1.5F. This is not a generated report and does not claim real semantic quality.",
   "fixtures": [
+    "agent-runtime-corpus",
+    "ambiguous-security-corpus",
     "basic-security-corpus",
     "mixed-topic-corpus",
+    "no-answer-corpus",
+    "overlapping-keywords-corpus",
+    "redaction-adversarial-corpus",
     "redacted-context-corpus"
   ],
   "modes": [
@@ -11,7 +16,21 @@
     "mock_vector",
     "hybrid"
   ],
-  "queryCount": 7,
+  "queryCount": 23,
+  "queryTypes": [
+    "answerable",
+    "ambiguous",
+    "no_answer",
+    "redaction"
+  ],
+  "tags": [
+    "ambiguous",
+    "no_answer",
+    "redaction",
+    "retention",
+    "runtime",
+    "security"
+  ],
   "minimums": {
     "hitAtK": 1.0,
     "expectedChunkFound": 1.0,
@@ -24,6 +43,7 @@
   ],
   "notes": [
     "Fixtures are synthetic and intentionally small.",
+    "No-answer queries use empty expected arrays and assert that no expected match should be invented.",
     "Mock vector and hybrid modes validate the retrieval pipeline, not semantic model quality.",
     "pgvector evaluation remains opt-in and outside the required gate."
   ]

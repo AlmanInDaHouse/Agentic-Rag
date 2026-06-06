@@ -15,12 +15,16 @@
       "query": "how was the phishing email detected",
       "expectedDocumentTitles": ["Phishing incident notes"],
       "expectedChunkContains": ["mail gateway flagged the sender domain"],
+      "queryType": "answerable",
+      "tags": ["security"],
       "k": 3
     },
     {
       "query": "what happens after a password reset link",
       "expectedDocumentTitles": ["Password reset runbook"],
       "expectedChunkContains": ["forced password change at next sign-in"],
+      "queryType": "answerable",
+      "tags": ["security"],
       "k": 3
     }
   ]

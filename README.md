@@ -446,6 +446,7 @@ v1C: pgvector y embeddings locales opcionales con fallback mock/jsonb/lexical.
 v1D: retrieval hibrido lexical + vectorial con pgvector activo opcional.
 v1E: evaluation harness con fixtures sinteticos, metricas y reportes.
 v1F: baselines y quality gates de retrieval con thresholds versionados.
+v1G: corpus ampliado de retrieval eval con query types y fixtures sinteticas adversariales.
 ```
 
 El fallback lexical debe mantenerse durante todo el rollout. Si embeddings no existen o fallan, `load_context` debe poder seguir usando retrieval lexical y registrar el motivo.
@@ -480,6 +481,8 @@ reports/retrieval-eval/latest.md
 ```
 
 Estos reportes no se commitean por defecto. Las metricas sobre mock embeddings validan pipeline y ranking reproducible, no calidad semantica real. LLM-as-judge, providers externos, modelos reales obligatorios, GraphRAG y Code Graph quedan fuera de scope.
+
+El corpus incluye queries `answerable`, `ambiguous`, `redaction` y `no_answer`, con tags como `security`, `runtime`, `retention`, `redaction`, `ambiguous` y `no_answer`. Los datos siguen siendo sinteticos. Las queries `no_answer` usan expected vacio de forma explicita; no significan que search deba devolver cero filas, sino que no hay chunk esperado que el evaluador deba inventar. Los reportes separan queries totales de queries con metrica de retrieval para que `no_answer` no infle los promedios agregados.
 
 Los thresholds y baselines versionados viven en:
 

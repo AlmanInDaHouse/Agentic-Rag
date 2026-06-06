@@ -50,10 +50,10 @@ export function renderMarkdownReport(report: RetrievalEvalReport): string {
     "",
     "## Summary",
     "",
-    "| Mode | Queries | Precision@k | Recall@k | Hit@k | MRR | Expected Found Rate | Fallback Used Rate |",
-    "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+    "| Mode | Queries | Retrieval Queries | Precision@k | Recall@k | Hit@k | MRR | Expected Found Rate | Fallback Used Rate |",
+    "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ...report.summaries.map((summary) => (
-      `| ${summary.mode} | ${summary.queryCount} | ${format(summary.precisionAtK)} | ${format(summary.recallAtK)} | ${format(summary.hitAtK)} | ${format(summary.meanReciprocalRank)} | ${format(summary.expectedChunkFoundRate)} | ${format(summary.fallbackUsedRate)} |`
+      `| ${summary.mode} | ${summary.queryCount} | ${summary.retrievalQueryCount} | ${format(summary.precisionAtK)} | ${format(summary.recallAtK)} | ${format(summary.hitAtK)} | ${format(summary.meanReciprocalRank)} | ${format(summary.expectedChunkFoundRate)} | ${format(summary.fallbackUsedRate)} |`
     )),
     ""
   ];
@@ -67,6 +67,8 @@ export function renderMarkdownReport(report: RetrievalEvalReport): string {
       `## ${result.fixtureName} / ${result.mode}`,
       "",
       `Query: ${result.query}`,
+      `Query type: ${result.queryType}`,
+      `Tags: ${result.tags.join(", ")}`,
       "",
       `precision@k: ${format(result.metrics.precision_at_k)}`,
       `recall@k: ${format(result.metrics.recall_at_k)}`,
@@ -117,15 +119,17 @@ function summarizeMode(
   results: RetrievalEvalQueryResult[]
 ): RetrievalEvalModeSummary {
   const modeResults = results.filter((result) => result.mode === mode);
+  const retrievalResults = modeResults.filter((result) => result.queryType !== "no_answer");
   const queryCount = modeResults.length;
   return {
     mode,
     queryCount,
-    precisionAtK: average(modeResults.map((result) => result.metrics.precision_at_k)),
-    recallAtK: average(modeResults.map((result) => result.metrics.recall_at_k)),
-    hitAtK: average(modeResults.map((result) => result.metrics.hit_at_k)),
-    meanReciprocalRank: average(modeResults.map((result) => result.metrics.mean_reciprocal_rank)),
-    expectedChunkFoundRate: average(modeResults.map((result) => result.metrics.expected_chunk_found ? 1 : 0)),
+    retrievalQueryCount: retrievalResults.length,
+    precisionAtK: average(retrievalResults.map((result) => result.metrics.precision_at_k)),
+    recallAtK: average(retrievalResults.map((result) => result.metrics.recall_at_k)),
+    hitAtK: average(retrievalResults.map((result) => result.metrics.hit_at_k)),
+    meanReciprocalRank: average(retrievalResults.map((result) => result.metrics.mean_reciprocal_rank)),
+    expectedChunkFoundRate: average(retrievalResults.map((result) => result.metrics.expected_chunk_found ? 1 : 0)),
     fallbackUsedRate: average(modeResults.map((result) => result.fallbackUsed ? 1 : 0))
   };
 }

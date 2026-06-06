@@ -1,6 +1,5 @@
 import { promises as fs } from "node:fs";
 import type {
-  EvaluatedMode,
   RetrievalEvalQualityGateFailure,
   RetrievalEvalQualityGateResult,
   RetrievalEvalQualityMetricThresholds,
@@ -49,7 +48,7 @@ export function evaluateQualityGate(
   const failures: RetrievalEvalQualityGateFailure[] = [];
 
   for (const result of report.results) {
-    const effective = thresholdsForMode(thresholds, result.mode);
+    const effective = thresholdsForResult(thresholds, result);
     for (const metric of gateMetrics) {
       if (thresholds.nonBlocking[metric]) {
         continue;
@@ -105,6 +104,29 @@ export function validateQualityThresholds(value: unknown, thresholdsPath: string
       throw invalidThresholds(thresholdsPath, `modes.${mode} must be a metric threshold object`);
     }
   }
+  if (value.fixtures !== undefined) {
+    if (!isRecord(value.fixtures)) {
+      throw invalidThresholds(thresholdsPath, "fixtures must be an object");
+    }
+    for (const [fixture, fixtureThresholds] of Object.entries(value.fixtures)) {
+      if (!isMetricThresholdRecord(fixtureThresholds)) {
+        throw invalidThresholds(thresholdsPath, `fixtures.${fixture} must be a metric threshold object`);
+      }
+    }
+  }
+  if (value.queryTypes !== undefined) {
+    if (!isRecord(value.queryTypes)) {
+      throw invalidThresholds(thresholdsPath, "queryTypes must be an object");
+    }
+    for (const [queryType, queryTypeThresholds] of Object.entries(value.queryTypes)) {
+      if (!["answerable", "no_answer", "ambiguous", "redaction"].includes(queryType)) {
+        throw invalidThresholds(thresholdsPath, `unsupported queryType "${queryType}"`);
+      }
+      if (!isMetricThresholdRecord(queryTypeThresholds)) {
+        throw invalidThresholds(thresholdsPath, `queryTypes.${queryType} must be a metric threshold object`);
+      }
+    }
+  }
   if (!isRecord(value.nonBlocking)) {
     throw invalidThresholds(thresholdsPath, "nonBlocking must be an object");
   }
@@ -120,13 +142,15 @@ export function validateQualityThresholds(value: unknown, thresholdsPath: string
   return value as RetrievalEvalQualityThresholds;
 }
 
-function thresholdsForMode(
+function thresholdsForResult(
   thresholds: RetrievalEvalQualityThresholds,
-  mode: EvaluatedMode
+  result: RetrievalEvalQueryResult
 ): RetrievalEvalQualityMetricThresholds {
   return {
     ...thresholds.default,
-    ...(thresholds.modes[mode] ?? {})
+    ...(thresholds.queryTypes?.[result.queryType] ?? {}),
+    ...(thresholds.modes[result.mode] ?? {}),
+    ...(thresholds.fixtures?.[result.fixtureName] ?? {})
   };
 }
 

@@ -7,8 +7,32 @@
   },
   "modes": {
     "lexical": {},
-    "mock_vector": {},
-    "hybrid": {}
+    "mock_vector": {
+      "hitAtK": 0.0,
+      "expectedChunkFound": 0.0,
+      "meanReciprocalRank": 0.0
+    },
+    "hybrid": {
+      "hitAtK": 0.0,
+      "expectedChunkFound": 0.0,
+      "meanReciprocalRank": 0.0
+    }
+  },
+  "fixtures": {},
+  "queryTypes": {
+    "no_answer": {
+      "hitAtK": 1.0,
+      "expectedChunkFound": 1.0,
+      "meanReciprocalRank": 1.0
+    },
+    "ambiguous": {
+      "meanReciprocalRank": 0.333
+    },
+    "redaction": {
+      "hitAtK": 1.0,
+      "expectedChunkFound": 1.0,
+      "meanReciprocalRank": 0.5
+    }
   },
   "nonBlocking": {
     "precisionAtK": true,

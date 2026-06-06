@@ -41,6 +41,8 @@ function result(overrides: Partial<RetrievalEvalQueryResult> = {}): RetrievalEva
     fixtureName: "basic-security-corpus",
     mode: "lexical",
     query: "how was the phishing email detected",
+    queryType: "answerable",
+    tags: ["security"],
     k: 3,
     expectedChunkIds: ["chunk-1"],
     expectedDocumentTitles: ["Phishing incident notes"],
@@ -141,6 +143,50 @@ describe("retrieval quality gate", () => {
     expect(relaxed.passed).toBe(true);
   });
 
+  it("uses query type thresholds over defaults", () => {
+    const gate = evaluateQualityGate(report([
+      result({
+        queryType: "ambiguous",
+        tags: ["security", "ambiguous"],
+        metrics: { ...result().metrics, mean_reciprocal_rank: 0.25 }
+      })
+    ]), {
+      ...thresholds,
+      queryTypes: {
+        ambiguous: { meanReciprocalRank: 0.25 }
+      }
+    });
+
+    expect(gate.passed).toBe(true);
+  });
+
+  it("uses fixture thresholds over mode and query type thresholds", () => {
+    const gate = evaluateQualityGate(report([
+      result({
+        fixtureName: "no-answer-corpus",
+        queryType: "no_answer",
+        tags: ["no_answer"],
+        metrics: { ...result().metrics, mean_reciprocal_rank: 0.75 }
+      })
+    ]), {
+      ...thresholds,
+      queryTypes: {
+        no_answer: { meanReciprocalRank: 0.25 }
+      },
+      modes: {
+        ...thresholds.modes,
+        lexical: { meanReciprocalRank: 0.5 }
+      },
+      fixtures: {
+        "no-answer-corpus": { meanReciprocalRank: 1 }
+      }
+    });
+
+    expect(gate.failures).toMatchObject([
+      { fixture: "no-answer-corpus", metric: "meanReciprocalRank", expected: 1, actual: 0.75 }
+    ]);
+  });
+
   it("applies default thresholds when a mode has no explicit override", () => {
     const gate = evaluateQualityGate(report([
       result({
@@ -210,6 +256,10 @@ describe("retrieval quality gate", () => {
       ...thresholds,
       modes: { pgvector: {} }
     }, "thresholds.json")).toThrow('unsupported mode "pgvector"');
+    expect(() => validateQualityThresholds({
+      ...thresholds,
+      queryTypes: { pgvector: {} }
+    }, "thresholds.json")).toThrow('unsupported queryType "pgvector"');
     expect(() => validateQualityThresholds({
       ...thresholds,
       default: {

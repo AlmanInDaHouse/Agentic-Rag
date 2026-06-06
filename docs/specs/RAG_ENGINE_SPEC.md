@@ -337,6 +337,8 @@ meanReciprocalRank >= 0.5
 
 `precisionAtK`, `recallAtK` and `fallbackUsedRate` are reported but non-blocking initially. Full gate execution remains a black-box harness run and requires PostgreSQL. A manual retrieval-eval workflow can run the gate and upload reports without making pgvector or real models mandatory.
 
+Milestone 1.5G expands the corpus with `answerable`, `ambiguous`, `redaction` and `no_answer` query types plus tags for security, runtime, retention, redaction and ambiguity. No-answer queries use empty expected arrays explicitly and do not require search to return zero rows. They only assert that the evaluator should not invent an expected chunk match.
+
 ## Retrieval Modes
 
 Initial modes:
@@ -451,6 +453,14 @@ Fallback rules:
 - Keep precision, recall and fallback rate informational until fixture coverage grows.
 - Keep pgvector, LLM-as-judge and real model requirements out of the required gate.
 
+### Milestone 1.5G: Expanded Retrieval Eval Corpus
+
+- Add synthetic ambiguous, overlapping-keyword, redaction-adversarial, no-answer and agent-runtime fixtures.
+- Add query type and tag metadata.
+- Support explicit no-answer metrics without treating empty expected arrays as valid for normal queries.
+- Prepare query-type, mode and fixture threshold overrides.
+- Keep all data synthetic and keep LLM-as-judge, pgvector requirements and real models out of scope.
+
 ## Safe Execution and Data Policy
 
 - Embedding text already persisted from `manual_text`, `project_note` or `artifact` sources is medium risk when processed by an approved local/mock embedding adapter.
@@ -518,6 +528,15 @@ Fallback rules:
 - Full gate execution can run locally or manually in CI with PostgreSQL.
 - Required CI remains free of pgvector, external providers, LLM-as-judge and real model requirements.
 
+## Acceptance Criteria for Milestone 1.5G Expanded Retrieval Corpus
+
+- Expanded fixtures remain synthetic and contain no real secrets.
+- Fixture validation enforces query types, tags and explicit no-answer expected arrays.
+- No-answer metrics do not penalize empty expected results.
+- Reports show query type and tags.
+- Threshold and baseline JSON account for expanded fixtures and query metadata.
+- pgvector, LLM-as-judge, external providers and real model requirements remain out of scope.
+
 ## Risks
 
 - pgvector requires explicit extension/table setup and a fixed vector dimension.
@@ -529,4 +548,4 @@ Fallback rules:
 - Basic retention has no background pruning worker yet.
 - Existing retrieval snapshots may reference content selected before later deletion.
 - Approximate pgvector indexes and production-grade vector tuning are not configured yet.
-- Evaluation fixtures and quality gates are small and synthetic, so they do not prove production semantic quality.
+- Evaluation fixtures and quality gates are synthetic, so they do not prove production semantic quality.

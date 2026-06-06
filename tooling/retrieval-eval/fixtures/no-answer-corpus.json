@@ -1,0 +1,39 @@
+{
+  "name": "no-answer-corpus",
+  "documents": [
+    {
+      "title": "Context source lifecycle",
+      "content": "The context source lifecycle note covers creation, document ingestion, soft deletion, restore, and audit metadata for synthetic project context."
+    },
+    {
+      "title": "Retrieval evaluation scope",
+      "content": "The retrieval evaluation scope says fixtures are synthetic, reports are local artifacts, and no LLM-as-judge or external provider is used."
+    }
+  ],
+  "queries": [
+    {
+      "query": "which real customer account owns the project",
+      "expectedDocumentTitles": [],
+      "expectedChunkContains": [],
+      "queryType": "no_answer",
+      "tags": ["no_answer"],
+      "k": 3
+    },
+    {
+      "query": "what production secret value should be used",
+      "expectedDocumentTitles": [],
+      "expectedChunkContains": [],
+      "queryType": "no_answer",
+      "tags": ["no_answer", "security"],
+      "k": 3
+    },
+    {
+      "query": "which external provider judged the answer",
+      "expectedDocumentTitles": [],
+      "expectedChunkContains": [],
+      "queryType": "no_answer",
+      "tags": ["no_answer"],
+      "k": 3
+    }
+  ]
+}

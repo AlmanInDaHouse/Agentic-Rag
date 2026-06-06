@@ -13,6 +13,8 @@ It measures:
 
 The runner starts the existing black-box harness runtime, creates a temporary PostgreSQL schema, ingests fixture documents through HTTP, runs `lexical`, `mock_vector` and `hybrid` searches, and writes reports.
 
+Fixtures include `answerable`, `ambiguous`, `redaction` and `no_answer` queries. No-answer queries use empty expected arrays explicitly; they do not require search to return zero rows, only that the evaluator does not invent an expected match. Report summaries keep total query count separate from retrieval metric query count so no-answer cases do not inflate aggregate retrieval quality.
+
 ## Commands
 
 ```bash
@@ -59,6 +61,8 @@ The default threshold block must include `hitAtK`, `expectedChunkFound` and `mea
 
 To update thresholds, run the evaluation, inspect the generated JSON/Markdown reports, and commit only the intentional baseline or threshold JSON change. Do not commit generated `reports/retrieval-eval` outputs.
 
+Threshold overrides can be declared by query type, mode or fixture. Current vector-mode gates are conservative because mock embeddings are deterministic hashes, not semantic vectors.
+
 ## Scope
 
-This harness does not use LLM-as-judge, external providers, real local models, GraphRAG or Code Graph. Mock embeddings validate retrieval pipeline behavior only; they do not prove semantic quality. pgvector evaluation remains opt-in outside the required gate.
+This harness does not use LLM-as-judge, external providers, real local models, GraphRAG or Code Graph. Mock embeddings validate retrieval pipeline behavior only; they do not prove semantic quality. pgvector evaluation remains opt-in outside the required gate. Redaction fixtures use synthetic placeholders only and must not include real secrets.
