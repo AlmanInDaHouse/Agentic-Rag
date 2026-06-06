@@ -280,7 +280,7 @@ describe("ContextEngineService", () => {
       limit: 3,
       mode: "lexical",
       answerabilityPolicy: {
-        minRequiredScore: 99
+        minRequiredScore: 1
       }
     });
 
@@ -288,7 +288,7 @@ describe("ContextEngineService", () => {
     expect(retrieval.answerability).toMatchObject({
       shouldAnswer: false,
       reason: "low_score",
-      minRequiredScore: 99
+      minRequiredScore: 1
     });
   });
 

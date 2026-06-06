@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
+  ContextSearchSchema,
   RagAnswerabilityPolicySchema,
   RagAnswerabilityResultSchema,
   type ContextSearchResult
 } from "@triforge/shared";
 import {
-  evaluateAnswerability,
-  resolveAnswerabilityPolicy
+  evaluateAnswerability
 } from "../services/ragAnswerabilityService.js";
+import { resolveAnswerabilityPolicy } from "../services/ragAnswerabilityPolicyService.js";
 import { contextCandidate } from "./testContextFixtures.js";
 
 describe("RAG answerability service", () => {
@@ -146,16 +147,54 @@ describe("RAG answerability service", () => {
   });
 
   it("uses mode-specific default thresholds with overrides", () => {
-    expect(resolveAnswerabilityPolicy("lexical", undefined).minRequiredScore).toBe(3);
-    expect(resolveAnswerabilityPolicy("hybrid", undefined).minRequiredScore).toBe(0.5);
+    expect(resolveAnswerabilityPolicy("lexical", undefined).minRequiredScore).toBe(0.5);
+    expect(resolveAnswerabilityPolicy("hybrid", undefined).minRequiredScore).toBe(0.35);
     expect(resolveAnswerabilityPolicy("hybrid", { minRequiredScore: 0.9 }).minRequiredScore).toBe(0.9);
+  });
+
+  it("applies calibrated precedence from default to mode to queryType", () => {
+    const policy = resolveAnswerabilityPolicy({
+      mode: "lexical",
+      queryType: "no_answer",
+      fallbackUsed: false
+    });
+
+    expect(policy).toMatchObject({
+      minRequiredScore: 0.95,
+      fallbackAllowed: false,
+      effectivePolicySource: ["default", "mode:lexical", "queryType:no_answer"]
+    });
+  });
+
+  it("applies fallback penalty after calibrated overrides", () => {
+    const policy = resolveAnswerabilityPolicy({
+      mode: "hybrid",
+      queryType: "ambiguous",
+      fallbackUsed: true
+    });
+
+    expect(policy).toMatchObject({
+      minRequiredScore: 0.75,
+      fallbackAllowed: true,
+      fallbackPenalty: 0.1,
+      effectivePolicySource: ["default", "mode:hybrid", "queryType:ambiguous", "fallback"]
+    });
+  });
+
+  it("caps fallback-adjusted thresholds at 1", () => {
+    expect(resolveAnswerabilityPolicy({
+      mode: "lexical",
+      queryType: "no_answer",
+      fallbackUsed: true
+    }).minRequiredScore).toBe(1);
   });
 
   it("validates answerability Zod contracts", () => {
     expect(RagAnswerabilityPolicySchema.parse({})).toMatchObject({
-      minRequiredScore: 1,
+      minRequiredScore: 0.35,
       minSupportingResults: 1,
-      fallbackAllowed: true
+      fallbackAllowed: true,
+      fallbackPenalty: 0.1
     });
     expect(RagAnswerabilityResultSchema.safeParse({
       shouldAnswer: false,
@@ -178,6 +217,33 @@ describe("RAG answerability service", () => {
       warnings: []
     }).success).toBe(false);
   });
+
+  it("keeps search queryType optional but strict", () => {
+    expect(ContextSearchSchema.parse({
+      query: "approval context",
+      limit: 5,
+      mode: "lexical"
+    }).queryType).toBe("answerable");
+    expect(ContextSearchSchema.safeParse({
+      query: "approval context",
+      limit: 5,
+      mode: "lexical",
+      queryType: "no_answer"
+    }).success).toBe(true);
+    expect(ContextSearchSchema.safeParse({
+      query: "approval context",
+      limit: 5,
+      mode: "lexical",
+      queryType: "unknown"
+    }).success).toBe(false);
+    expect(ContextSearchSchema.safeParse({
+      query: "approval context",
+      limit: 5,
+      mode: "lexical",
+      queryType: "answerable",
+      unexpected: true
+    }).success).toBe(false);
+  });
 });
 
 function answerabilityCandidate(input: {
@@ -193,6 +259,8 @@ function answerabilityCandidate(input: {
     score: input.finalScore,
     finalScore: input.finalScore,
     lexicalScore: input.finalScore,
+    mode: "hybrid",
+    searchMode: "hybrid",
     fallbackUsed: input.fallbackUsed ?? false
   };
 }

@@ -23,7 +23,8 @@
     "no_answer": {
       "hitAtK": 1.0,
       "expectedChunkFound": 1.0,
-      "meanReciprocalRank": 1.0
+      "meanReciprocalRank": 1.0,
+      "abstentionAccuracy": 1.0
     },
     "ambiguous": {
       "meanReciprocalRank": 0.333
@@ -38,7 +39,6 @@
     "precisionAtK": true,
     "recallAtK": true,
     "fallbackUsedRate": true,
-    "abstentionAccuracy": true,
     "falseAnswerRate": true,
     "falseAbstentionRate": true
   }

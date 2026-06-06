@@ -6,7 +6,7 @@ import { startHarnessRuntime, type HarnessRuntime } from "../runner.js";
 
 const databaseUrl = process.env.DATABASE_URL ?? "postgres://triforge:triforge@localhost:5432/triforge";
 
-describe("harness: RAG low-score abstention", () => {
+describe("harness: RAG abstention calibration for no-answer queries", () => {
   let runtime: HarnessRuntime;
   let schemaName: string;
 
@@ -22,34 +22,34 @@ describe("harness: RAG low-score abstention", () => {
     }
   });
 
-  it("abstains when retrieved context does not pass the configured threshold", async () => {
+  it("uses the no_answer threshold and abstains despite lexical overlap", async () => {
     const goalFixture = await readFixture<CreateGoalRequest>("tests/fixtures/goals/basic-goal.json");
     const goal = await runtime.api.createGoal(goalFixture);
     const source = await runtime.api.createContextSource(goal.id, {
-      name: "RAG weak context",
+      name: "Calibration source",
       type: "manual_text",
       metadata: {}
     });
     await runtime.api.addContextDocument(source.id, {
-      title: "Weak approval note",
-      content: "approval",
+      title: "Approval token glossary",
+      content: "The approval token glossary defines a synthetic approval token phrase for calibration.",
       metadata: {}
     });
 
     const retrieval = await runtime.api.searchContext(goal.id, {
-      query: "approval",
+      query: "approval token missing answer",
       limit: 5,
       mode: "lexical",
-      answerabilityPolicy: {
-        minRequiredScore: 1
-      }
+      queryType: "no_answer"
     });
 
     expect(retrieval.results.length).toBeGreaterThan(0);
     expect(retrieval.answerability).toMatchObject({
       shouldAnswer: false,
       reason: "low_score",
-      minRequiredScore: 1
+      effectiveMinRequiredScore: 0.95,
+      effectiveFallbackAllowed: false
     });
+    expect(retrieval.answerability?.effectivePolicySource).toContain("queryType:no_answer");
   });
 });

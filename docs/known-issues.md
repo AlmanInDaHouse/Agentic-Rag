@@ -154,11 +154,11 @@ Target resolution: add larger and more realistic evaluation sets once real local
 
 ## RAG-013: Retrieval quality thresholds are intentionally minimal
 
-The initial quality gate blocks on `hitAtK`, `expectedChunkFound` and `meanReciprocalRank` only. `precisionAtK`, `recallAtK`, `fallbackUsedRate`, `abstentionAccuracy`, `falseAnswerRate` and `falseAbstentionRate` are reported but non-blocking while the fixture set is small.
+The current quality gate blocks on `hitAtK`, `expectedChunkFound`, `meanReciprocalRank` and no-answer `abstentionAccuracy`. `precisionAtK`, `recallAtK`, `fallbackUsedRate`, `falseAnswerRate` and `falseAbstentionRate` are reported but non-blocking while the fixture set is small.
 
 Status: open.
 
-Target resolution: add stronger thresholds and mode-specific baselines after fixture coverage grows and real local model evaluation is approved.
+Target resolution: add stronger thresholds and mode/query-type baselines after fixture coverage grows and real local model evaluation is approved.
 
 ## RAG-014: No-answer retrieval eval only partially proves answer abstention
 
@@ -168,13 +168,13 @@ Status: open.
 
 Target resolution: define answer-generation abstention evaluation only after answer generation and judge policy exist.
 
-## RAG-015: Abstention thresholds are heuristic
+## RAG-015: Abstention calibration is heuristic
 
-The RAG abstention policy uses deterministic score thresholds and retrieval metadata. This is useful for safety boundaries, but it is not semantic truth, not LLM-as-judge and not answer faithfulness validation.
+The RAG abstention policy uses deterministic score thresholds, query-type hints and retrieval metadata. Thresholds are calibrated by mode, query type and fallback use, but this is still heuristic. It is not semantic truth, not LLM-as-judge and not answer faithfulness validation.
 
 Status: open.
 
-Target resolution: tune thresholds with larger synthetic and local-model evaluation after real semantic retrieval is approved.
+Target resolution: tune thresholds with larger synthetic and local-model evaluation after real semantic retrieval is approved, and define generation faithfulness evaluation only after answer generation exists.
 
 ## DATA-001: Regex redaction is not complete DLP
 

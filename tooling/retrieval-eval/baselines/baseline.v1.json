@@ -40,14 +40,13 @@
     "precisionAtK",
     "recallAtK",
     "fallbackUsedRate",
-    "abstentionAccuracy",
     "falseAnswerRate",
     "falseAbstentionRate"
   ],
   "notes": [
     "Fixtures are synthetic and intentionally small.",
     "No-answer queries use empty expected arrays and assert that no expected match should be invented.",
-    "Answerability metrics connect no-answer fixtures to deterministic abstention policy but remain non-blocking initially.",
+    "No-answer abstention accuracy is blocking for queryType=no_answer; false answer and false abstention rates remain non-blocking while calibration is tuned.",
     "Mock vector and hybrid modes validate the retrieval pipeline, not semantic model quality.",
     "pgvector evaluation remains opt-in and outside the required gate."
   ]

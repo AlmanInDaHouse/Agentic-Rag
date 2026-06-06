@@ -1053,6 +1053,19 @@ export function App() {
                           <small>
                             {retrieval.answerability.reason} / confidence {retrieval.answerability.confidence.toFixed(3)}
                           </small>
+                          <small>
+                            min {(
+                              retrieval.answerability.effectiveMinRequiredScore ??
+                              retrieval.answerability.minRequiredScore
+                            ).toFixed(3)}
+                            {" / fallback "}
+                            {String(retrieval.answerability.effectiveFallbackAllowed ?? true)}
+                          </small>
+                          {retrieval.answerability.effectivePolicySource ? (
+                            <small>
+                              policy {retrieval.answerability.effectivePolicySource.join(", ")}
+                            </small>
+                          ) : null}
                           {retrieval.answerability.warnings.length > 0 ? (
                             <small>{retrieval.answerability.warnings.join("; ")}</small>
                           ) : null}

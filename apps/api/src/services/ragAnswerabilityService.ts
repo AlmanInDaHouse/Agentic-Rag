@@ -2,34 +2,33 @@ import {
   RagAnswerabilityPolicySchema,
   type ContextSearchResult,
   type RagAnswerabilityPolicy,
-  type RagAnswerabilityResult,
-  type RagSearchMode
+  type RagAnswerabilityResult
 } from "@triforge/shared";
+import {
+  ragAnswerabilityPolicyService,
+  type EffectiveRagAnswerabilityPolicy,
+  type ResolveRagAnswerabilityPolicyInput
+} from "./ragAnswerabilityPolicyService.js";
 
-export const defaultRagAnswerabilityPolicy: RagAnswerabilityPolicy =
-  RagAnswerabilityPolicySchema.parse({});
-
-export function defaultAnswerabilityPolicyForMode(mode: RagSearchMode): RagAnswerabilityPolicy {
-  return {
-    ...defaultRagAnswerabilityPolicy,
-    minRequiredScore: mode === "lexical" ? 3 : 0.5
-  };
-}
-
-export function resolveAnswerabilityPolicy(
-  mode: RagSearchMode,
-  overrides: Partial<RagAnswerabilityPolicy> | undefined
-): RagAnswerabilityPolicy {
-  return RagAnswerabilityPolicySchema.parse({
-    ...defaultAnswerabilityPolicyForMode(mode),
-    ...overrides
-  });
-}
+export type RagAnswerabilityEvaluationContext = ResolveRagAnswerabilityPolicyInput;
 
 export function evaluateAnswerability(
   searchResult: { results: ContextSearchResult[] },
-  policy: RagAnswerabilityPolicy = defaultRagAnswerabilityPolicy
+  context: RagAnswerabilityEvaluationContext | EffectiveRagAnswerabilityPolicy | Partial<RagAnswerabilityPolicy> = {
+    mode: "lexical",
+    queryType: "answerable",
+    fallbackUsed: false
+  }
 ): RagAnswerabilityResult {
+  const policy = isEffectivePolicy(context)
+    ? context
+    : isPlainPolicy(context)
+      ? {
+          ...RagAnswerabilityPolicySchema.parse(context),
+          effectivePolicySource: ["requestPolicy"]
+        }
+      : ragAnswerabilityPolicyService.resolve(context);
+
   if (searchResult.results.length === 0) {
     return abstain({
       reason: "no_results",
@@ -103,6 +102,9 @@ export function evaluateAnswerability(
     confidence: confidence(topScore, policy.minRequiredScore),
     topScore,
     minRequiredScore: policy.minRequiredScore,
+    effectiveMinRequiredScore: policy.minRequiredScore,
+    effectiveFallbackAllowed: policy.fallbackAllowed,
+    effectivePolicySource: policy.effectivePolicySource,
     supportingResultIds: supportingResults.map((result) => result.chunk.id),
     warnings: []
   };
@@ -112,7 +114,7 @@ function abstain(input: {
   reason: Exclude<RagAnswerabilityResult["reason"], "sufficient_context">;
   confidence: number;
   topScore: number | null;
-  policy: RagAnswerabilityPolicy;
+  policy: EffectiveRagAnswerabilityPolicy;
   supportingResultIds: string[];
   warnings: string[];
 }): RagAnswerabilityResult {
@@ -123,6 +125,9 @@ function abstain(input: {
     confidence: input.confidence,
     topScore: input.topScore,
     minRequiredScore: input.policy.minRequiredScore,
+    effectiveMinRequiredScore: input.policy.minRequiredScore,
+    effectiveFallbackAllowed: input.policy.fallbackAllowed,
+    effectivePolicySource: input.policy.effectivePolicySource,
     supportingResultIds: input.supportingResultIds,
     warnings: input.warnings
   };
@@ -142,7 +147,10 @@ function scoreOf(result: ContextSearchResult | undefined): number | null {
   if (!result || !Number.isFinite(result.finalScore)) {
     return null;
   }
-  return result.finalScore;
+  if (result.searchMode === "lexical") {
+    return result.finalScore / (result.finalScore + 1);
+  }
+  return Math.min(1, result.finalScore);
 }
 
 function isActiveResult(result: ContextSearchResult): boolean {
@@ -157,4 +165,16 @@ function isRestrictedOrBlocked(result: ContextSearchResult): boolean {
   return result.document.classification === "restricted" ||
     result.document.redactionStatus === "blocked" ||
     result.chunk.redactionStatus === "blocked";
+}
+
+function isEffectivePolicy(
+  value: RagAnswerabilityEvaluationContext | EffectiveRagAnswerabilityPolicy | Partial<RagAnswerabilityPolicy>
+): value is EffectiveRagAnswerabilityPolicy {
+  return "minRequiredScore" in value && "effectivePolicySource" in value;
+}
+
+function isPlainPolicy(
+  value: RagAnswerabilityEvaluationContext | EffectiveRagAnswerabilityPolicy | Partial<RagAnswerabilityPolicy>
+): value is Partial<RagAnswerabilityPolicy> {
+  return !("mode" in value) && !("effectivePolicySource" in value);
 }

@@ -21,7 +21,7 @@ Milestone 1.5B extends the context layer with deterministic mock embeddings and 
 
 Milestone 1.5C-A adds a basic deterministic context data policy and regex redaction layer before future pgvector or real embedding work. Milestone 1.5C-B adds retention quotas, soft delete/restore and context audit events.
 
-Milestone 1.5C adds optional pgvector capability reporting and a localhost/loopback-only embedding adapter boundary without making either required. Milestone 1.5D adds optional active pgvector retrieval when configured and available, while keeping JSONB/mock/lexical fallback mandatory. Milestone 1.5H adds deterministic answerability metadata to context search so clients can distinguish sufficient retrieved context from abstention cases before any answer generation exists.
+Milestone 1.5C adds optional pgvector capability reporting and a localhost/loopback-only embedding adapter boundary without making either required. Milestone 1.5D adds optional active pgvector retrieval when configured and available, while keeping JSONB/mock/lexical fallback mandatory. Milestone 1.5H adds deterministic answerability metadata to context search so clients can distinguish sufficient retrieved context from abstention cases before any answer generation exists. Milestone 1.5I calibrates abstention thresholds by search mode, query type and fallback use.
 
 ## Out of Scope
 
@@ -242,7 +242,27 @@ The runtime remains mock-only and does not read files, call networks or invoke r
 }
 ```
 
-`answerabilityPolicy` may override the initial score threshold, minimum supporting result count and fallback allowance. This policy does not generate a final answer.
+`queryType` is an optional policy hint:
+
+```json
+{
+  "queryType": "answerable | no_answer | ambiguous | redaction"
+}
+```
+
+Normal clients may omit it; search defaults to `answerable`. Retrieval evaluation passes fixture query types explicitly. The hint is not treated as ground truth.
+
+`answerabilityPolicy` may override the calibrated score threshold, minimum supporting result count and fallback allowance for tests and local experiments. This policy does not generate a final answer.
+
+Answerability responses include effective policy metadata when available:
+
+```json
+{
+  "effectiveMinRequiredScore": 0.95,
+  "effectiveFallbackAllowed": false,
+  "effectivePolicySource": ["default", "mode:lexical", "queryType:no_answer"]
+}
+```
 
 Error rules:
 
@@ -280,6 +300,10 @@ Shared Zod contracts live in `packages/shared/src/index.ts`:
 - `RagAnswerabilitySchema`
 - `RagAnswerabilityResultSchema`
 - `RagAnswerabilityPolicySchema`
+- `RagAnswerabilityModePolicySchema`
+- `RagAnswerabilityQueryTypePolicySchema`
+- `RagAnswerabilityCalibrationSchema`
+- `RagQueryTypeSchema`
 - `EmbeddingProviderSchema`
 - `EmbeddingModelSchema`
 - `EmbeddingVectorSchema`
@@ -309,6 +333,7 @@ All input schemas are strict.
 - Soft-deleted documents can be restored.
 - Context audit events are listable per goal.
 - Context search accepts `lexical`, `mock_vector` and `hybrid` modes.
+- Context search accepts optional `queryType` as an answerability policy hint and rejects unknown query types.
 - Mock embeddings can be generated for a document or a source.
 - Embedding generation is deterministic and idempotent.
 - Missing document/source returns `404`.
@@ -324,6 +349,7 @@ All input schemas are strict.
 - Runtime `load_context` can retrieve context and continue with no results.
 - Runtime `load_context` stores answerability and continues when answerability abstains.
 - Dashboard shows sources, documents, chunks, retrievals and `load_context` output.
+- Dashboard shows effective answerability threshold and policy source when present.
 - Harness validates ingest/search, runtime context loading and duplicate policy.
 - Harness validates mock embedding generation, idempotency, fallback and hybrid search.
 

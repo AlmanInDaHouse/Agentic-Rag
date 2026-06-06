@@ -2,7 +2,13 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { calculateRetrievalMetrics, parseCliArgs, validateFixture, validateModes } from "./runner.js";
+import {
+  calculateRetrievalMetrics,
+  evaluateQuery,
+  parseCliArgs,
+  validateFixture,
+  validateModes
+} from "./runner.js";
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const fixturesDir = path.resolve(currentDir, "../fixtures");
@@ -257,6 +263,46 @@ describe("retrieval eval runner validation", () => {
       false_answer_rate: 0,
       false_abstention_rate: 1
     });
+  });
+
+  it("passes queryType to the search endpoint input", async () => {
+    let observedQueryType: unknown;
+
+    await evaluateQuery({
+      fixtureName: "unit-fixture",
+      mode: "lexical",
+      goalId: "00000000-0000-4000-8000-000000000001",
+      query: {
+        query: "missing answer",
+        expectedDocumentTitles: [],
+        expectedChunkContains: [],
+        queryType: "no_answer",
+        tags: ["no_answer"],
+        k: 3
+      },
+      chunks: [],
+      search: async (_goalId, input) => {
+        observedQueryType = input.queryType;
+        return {
+          results: [],
+          answerability: {
+            shouldAnswer: false,
+            answerability: "abstain",
+            reason: "no_results",
+            confidence: 0,
+            topScore: null,
+            minRequiredScore: 0.95,
+            effectiveMinRequiredScore: 0.95,
+            effectiveFallbackAllowed: false,
+            effectivePolicySource: ["default", "queryType:no_answer"],
+            supportingResultIds: [],
+            warnings: []
+          }
+        };
+      }
+    });
+
+    expect(observedQueryType).toBe("no_answer");
   });
 
   it("validates every bundled fixture file", async () => {

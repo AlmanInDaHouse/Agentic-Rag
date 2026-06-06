@@ -29,7 +29,7 @@ Milestone 1.5G expands the synthetic corpus with:
 - explicit no-answer queries,
 - project-domain runtime and policy fixtures.
 
-Milestone 1.5H connects no-answer fixtures to deterministic RAG answerability metadata and records abstention metrics without adding LLM-as-judge or answer generation.
+Milestone 1.5H connects no-answer fixtures to deterministic RAG answerability metadata and records abstention metrics without adding LLM-as-judge or answer generation. Milestone 1.5I passes fixture `queryType` into search so answerability uses calibrated thresholds by mode, query type and fallback use.
 
 The evaluation harness measures pipeline behavior, not production semantic quality.
 
@@ -127,11 +127,10 @@ Initial non-blocking metrics:
 - `precisionAtK`,
 - `recallAtK`,
 - `fallbackUsedRate`,
-- `abstentionAccuracy`,
 - `falseAnswerRate`,
 - `falseAbstentionRate`.
 
-`fallbackUsedRate` remains reported but does not block because fallback can be acceptable while pgvector is optional. `precisionAtK` and `recallAtK` are informational initially because the fixture set is small and `k` is intentionally broad.
+`fallbackUsedRate` remains reported but does not block because fallback can be acceptable while pgvector is optional. `precisionAtK` and `recallAtK` are informational initially because the fixture set is small and `k` is intentionally broad. `abstentionAccuracy` is blocking only for `queryType=no_answer`, where the expected decision is stable and deterministic. `falseAnswerRate` and `falseAbstentionRate` remain non-blocking while calibration is still heuristic.
 
 `hitAtK`, `expectedChunkFound` and `meanReciprocalRank` must be present in the default threshold block. Other metrics may be omitted to leave them ungated. Threshold values are bounded to `0..1`. Blocking thresholds are minimums except `fallbackUsedRate`, which is treated as a maximum if it is ever made blocking.
 
@@ -252,7 +251,14 @@ The retrieval evaluation runner reads `answerability` from search responses. Exp
 - `true` for `queryType=answerable`,
 - configurable with `expectedShouldAnswer` for ambiguous and redaction queries.
 
-The runner records abstention metrics per query and summarizes them by mode. These metrics are non-blocking initially because score thresholds are heuristic and the corpus is still synthetic. They can become blocking later after behavior is stable.
+The runner sends fixture `queryType` to `POST /api/goals/:goalId/context/search`, records abstention metrics per query and summarizes them by mode. Reports show:
+
+- effective minimum required score,
+- effective fallback allowance,
+- effective policy source,
+- answerability reason and warnings.
+
+`queryType=no_answer` abstention accuracy is blocking in the current quality gate. Other abstention rates remain non-blocking because thresholds are still heuristic and the corpus is synthetic.
 
 ## Reports
 
@@ -263,7 +269,7 @@ reports/retrieval-eval/latest.json
 reports/retrieval-eval/latest.md
 ```
 
-The JSON report stores per-fixture, per-mode and per-query metrics plus aggregate metrics. When the quality gate is enabled, it also stores pass/fail status and blocking failures. The Markdown report includes fixture name, mode, query, metrics, fallback status, top results and a Quality Gate section when present.
+The JSON report stores per-fixture, per-mode and per-query metrics plus aggregate metrics. When the quality gate is enabled, it also stores pass/fail status and blocking failures. The Markdown report includes fixture name, mode, query, effective answerability policy, metrics, fallback status, top results and a Quality Gate section when present.
 
 Generated reports are runtime outputs and are not committed by default.
 
