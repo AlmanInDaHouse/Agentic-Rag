@@ -37,6 +37,9 @@
   "nonBlocking": {
     "precisionAtK": true,
     "recallAtK": true,
-    "fallbackUsedRate": true
+    "fallbackUsedRate": true,
+    "abstentionAccuracy": true,
+    "falseAnswerRate": true,
+    "falseAbstentionRate": true
   }
 }

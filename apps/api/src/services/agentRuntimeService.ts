@@ -655,7 +655,8 @@ export class AgentRuntimeService {
         runId: run.id,
         stepId: step.id,
         retrievalId: retrieval.id,
-        resultCount: retrieval.results.length
+        resultCount: retrieval.results.length,
+        answerability: retrieval.answerability
       }
     });
     return {
@@ -665,7 +666,8 @@ export class AgentRuntimeService {
       deterministic: true,
       retrievalId: retrieval.id,
       query: retrieval.query,
-      results: retrieval.results
+      results: retrieval.results,
+      answerability: retrieval.answerability
     };
   }
 }

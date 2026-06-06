@@ -27,6 +27,7 @@ import type {
   TimelineEventsRepository
 } from "../domain/ports.js";
 import { AgentRuntimeService } from "../services/agentRuntimeService.js";
+import type { ContextEngineService } from "../services/contextEngineService.js";
 
 const now = new Date("2026-06-01T10:00:00.000Z").toISOString();
 const goal: Goal = {
@@ -306,7 +307,7 @@ class MemoryTimelineEventsRepository implements TimelineEventsRepository {
   }
 }
 
-function createService(executeStep?: TestStepExecutor) {
+function createService(executeStep?: TestStepExecutor, contextEngineService?: ContextEngineService) {
   idCounter = 0;
   const runRepository = new MemoryAgentRunRepository();
   const stepRepository = new MemoryAgentStepRepository();
@@ -319,6 +320,10 @@ function createService(executeStep?: TestStepExecutor) {
     approvalGateRepository,
     timelineRepository,
     executeStep
+    ?? undefined,
+    undefined,
+    undefined,
+    contextEngineService
   );
   return { service, runRepository, stepRepository, approvalGateRepository, timelineRepository };
 }
@@ -363,6 +368,49 @@ describe("AgentRuntimeService", () => {
     expect(advanced.steps).toHaveLength(1);
     expect(advanced.steps[0].type).toBe("load_context");
     expect(advanced.steps[0].status).toBe("succeeded");
+  });
+
+  it("stores answerability in load_context output when context search is available", async () => {
+    const contextEngineService = {
+      search: async () => ({
+        id: "00000000-0000-4000-8000-000000000900",
+        goalId: goal.id,
+        query: "Create a traceable mock runtime.",
+        results: [],
+        answerability: {
+          shouldAnswer: false,
+          answerability: "abstain",
+          reason: "no_results",
+          confidence: 0,
+          topScore: null,
+          minRequiredScore: 3,
+          supportingResultIds: [],
+          warnings: ["No retrieved chunks are available"]
+        },
+        createdAt: now
+      })
+    } as unknown as ContextEngineService;
+    const { service, timelineRepository } = createService(undefined, contextEngineService);
+    const run = await createStartedRun(service);
+
+    const advanced = await service.advanceRunOneStep(run.id);
+
+    expect(advanced.steps[0].output).toMatchObject({
+      retrievalId: "00000000-0000-4000-8000-000000000900",
+      answerability: {
+        shouldAnswer: false,
+        reason: "no_results"
+      }
+    });
+    const retrievalEvent = timelineRepository.events.find((event) => (
+      event.type === "context_retrieval_created"
+    ));
+    expect(retrievalEvent?.payload).toMatchObject({
+      answerability: {
+        shouldAnswer: false,
+        reason: "no_results"
+      }
+    });
   });
 
   it("completes the run after the initial step sequence", async () => {

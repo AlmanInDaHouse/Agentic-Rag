@@ -50,10 +50,10 @@ export function renderMarkdownReport(report: RetrievalEvalReport): string {
     "",
     "## Summary",
     "",
-    "| Mode | Queries | Retrieval Queries | Precision@k | Recall@k | Hit@k | MRR | Expected Found Rate | Fallback Used Rate |",
-    "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+    "| Mode | Queries | Retrieval Queries | Precision@k | Recall@k | Hit@k | MRR | Expected Found Rate | Fallback Used Rate | Abstention Accuracy | False Answer Rate | False Abstention Rate |",
+    "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ...report.summaries.map((summary) => (
-      `| ${summary.mode} | ${summary.queryCount} | ${summary.retrievalQueryCount} | ${format(summary.precisionAtK)} | ${format(summary.recallAtK)} | ${format(summary.hitAtK)} | ${format(summary.meanReciprocalRank)} | ${format(summary.expectedChunkFoundRate)} | ${format(summary.fallbackUsedRate)} |`
+      `| ${summary.mode} | ${summary.queryCount} | ${summary.retrievalQueryCount} | ${format(summary.precisionAtK)} | ${format(summary.recallAtK)} | ${format(summary.hitAtK)} | ${format(summary.meanReciprocalRank)} | ${format(summary.expectedChunkFoundRate)} | ${format(summary.fallbackUsedRate)} | ${format(summary.abstentionAccuracy)} | ${format(summary.falseAnswerRate)} | ${format(summary.falseAbstentionRate)} |`
     )),
     ""
   ];
@@ -69,12 +69,18 @@ export function renderMarkdownReport(report: RetrievalEvalReport): string {
       `Query: ${result.query}`,
       `Query type: ${result.queryType}`,
       `Tags: ${result.tags.join(", ")}`,
+      `Expected should answer: ${String(result.expectedShouldAnswer)}`,
+      `Answerability: ${result.answerability.reason} / shouldAnswer=${String(result.answerability.shouldAnswer)} / confidence=${format(result.answerability.confidence)}`,
+      `Answerability warnings: ${result.answerability.warnings.length === 0 ? "none" : result.answerability.warnings.join("; ")}`,
       "",
       `precision@k: ${format(result.metrics.precision_at_k)}`,
       `recall@k: ${format(result.metrics.recall_at_k)}`,
       `hit@k: ${format(result.metrics.hit_at_k)}`,
       `MRR: ${format(result.metrics.mean_reciprocal_rank)}`,
       `expected_chunk_found: ${String(result.metrics.expected_chunk_found)}`,
+      `abstention_accuracy: ${format(result.metrics.abstention_accuracy)}`,
+      `false_answer_rate: ${format(result.metrics.false_answer_rate)}`,
+      `false_abstention_rate: ${format(result.metrics.false_abstention_rate)}`,
       `fallbackUsed: ${String(result.fallbackUsed)}`,
       "",
       "| Rank | Document | Final | Lexical | Vector | Fallback | Storage | Excerpt |",
@@ -130,7 +136,10 @@ function summarizeMode(
     hitAtK: average(retrievalResults.map((result) => result.metrics.hit_at_k)),
     meanReciprocalRank: average(retrievalResults.map((result) => result.metrics.mean_reciprocal_rank)),
     expectedChunkFoundRate: average(retrievalResults.map((result) => result.metrics.expected_chunk_found ? 1 : 0)),
-    fallbackUsedRate: average(modeResults.map((result) => result.fallbackUsed ? 1 : 0))
+    fallbackUsedRate: average(modeResults.map((result) => result.fallbackUsed ? 1 : 0)),
+    abstentionAccuracy: average(modeResults.map((result) => result.metrics.abstention_accuracy)),
+    falseAnswerRate: average(modeResults.map((result) => result.metrics.false_answer_rate)),
+    falseAbstentionRate: average(modeResults.map((result) => result.metrics.false_abstention_rate))
   };
 }
 

@@ -29,6 +29,8 @@ Milestone 1.5G expands the synthetic corpus with:
 - explicit no-answer queries,
 - project-domain runtime and policy fixtures.
 
+Milestone 1.5H connects no-answer fixtures to deterministic RAG answerability metadata and records abstention metrics without adding LLM-as-judge or answer generation.
+
 The evaluation harness measures pipeline behavior, not production semantic quality.
 
 ## Out of Scope
@@ -53,6 +55,9 @@ Minimum metrics:
 - `mean_reciprocal_rank`: reciprocal rank of the first expected chunk, or `0`.
 - `expected_chunk_found`: boolean equivalent of `hit_at_k > 0`.
 - `fallback_used_rate`: fraction of evaluated query/mode runs where any top result reported fallback.
+- `abstention_accuracy`: `1` when the search answerability decision matches `expectedShouldAnswer`, otherwise `0`.
+- `false_answer_rate`: `1` when a query expected abstention but answerability returned `shouldAnswer=true`, otherwise `0`.
+- `false_abstention_rate`: `1` when a query expected an answer but answerability returned `shouldAnswer=false`, otherwise `0`.
 
 Metrics are calculated over expected chunk ids resolved after ingestion and deterministic chunking.
 
@@ -121,7 +126,10 @@ Initial non-blocking metrics:
 
 - `precisionAtK`,
 - `recallAtK`,
-- `fallbackUsedRate`.
+- `fallbackUsedRate`,
+- `abstentionAccuracy`,
+- `falseAnswerRate`,
+- `falseAbstentionRate`.
 
 `fallbackUsedRate` remains reported but does not block because fallback can be acceptable while pgvector is optional. `precisionAtK` and `recallAtK` are informational initially because the fixture set is small and `k` is intentionally broad.
 
@@ -203,6 +211,7 @@ Rules:
 
 - `answerable`, `ambiguous` and `redaction` queries require expected document titles and expected chunk substrings.
 - `no_answer` queries must use empty `expectedDocumentTitles` and `expectedChunkContains` arrays.
+- `expectedShouldAnswer` may be provided explicitly. Defaults are `false` for `no_answer` and `true` for other query types.
 - `no_answer` does not mean search must return zero rows. It means the fixture has no expected relevant chunk and the evaluator must not invent an expected match.
 - Aggregate retrieval metrics exclude `no_answer` queries and report their count separately from total query count.
 - `redaction` queries must assert retrieval facts that remain after redaction; expected substrings must not be original secret-like placeholder values.
@@ -234,6 +243,16 @@ No-answer queries are represented explicitly with `queryType: no_answer`, `tags`
 - `precision_at_k` remains `0`.
 
 This prevents empty expected arrays from penalizing the corpus while preserving a clear distinction from answerable queries.
+
+## Answerability Evaluation
+
+The retrieval evaluation runner reads `answerability` from search responses. Expected answerability is:
+
+- `false` for `queryType=no_answer`,
+- `true` for `queryType=answerable`,
+- configurable with `expectedShouldAnswer` for ambiguous and redaction queries.
+
+The runner records abstention metrics per query and summarizes them by mode. These metrics are non-blocking initially because score thresholds are heuristic and the corpus is still synthetic. They can become blocking later after behavior is stable.
 
 ## Reports
 

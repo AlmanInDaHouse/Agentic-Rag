@@ -347,6 +347,35 @@ export const GenerateEmbeddingsRequestSchema = z.object({
 
 export const RagSearchModeSchema = z.enum(["lexical", "mock_vector", "hybrid"]);
 
+export const RagAbstentionReasonSchema = z.enum([
+  "sufficient_context",
+  "insufficient_context",
+  "no_results",
+  "low_score",
+  "fallback_only",
+  "redacted_or_restricted",
+  "deleted_context_excluded"
+]);
+
+export const RagAnswerabilitySchema = z.enum(["answerable", "abstain"]);
+
+export const RagAnswerabilityPolicySchema = z.object({
+  minRequiredScore: z.number().finite().nonnegative().default(1),
+  minSupportingResults: z.number().int().positive().max(20).default(1),
+  fallbackAllowed: z.boolean().default(true)
+}).strict();
+
+export const RagAnswerabilityResultSchema = z.object({
+  shouldAnswer: z.boolean(),
+  answerability: RagAnswerabilitySchema,
+  reason: RagAbstentionReasonSchema,
+  confidence: z.number().min(0).max(1),
+  topScore: z.number().finite().nonnegative().nullable(),
+  minRequiredScore: z.number().finite().nonnegative(),
+  supportingResultIds: z.array(z.string().uuid()),
+  warnings: z.array(z.string())
+});
+
 export const RagStatusSchema = z.object({
   activeEmbeddingProvider: EmbeddingProviderSchema,
   configuredEmbeddingProvider: EmbeddingProviderSchema,
@@ -368,7 +397,8 @@ export const RagStatusSchema = z.object({
 export const ContextSearchSchema = z.object({
   query: z.string().trim().min(1).max(5000),
   limit: z.number().int().positive().max(20).default(5),
-  mode: RagSearchModeSchema.default("lexical")
+  mode: RagSearchModeSchema.default("lexical"),
+  answerabilityPolicy: RagAnswerabilityPolicySchema.partial().optional()
 }).strict();
 
 export const ContextSearchResultSchema = z.object({
@@ -391,6 +421,7 @@ export const ContextRetrievalSchema = z.object({
   goalId: z.string().uuid().nullable(),
   query: z.string(),
   results: z.array(ContextSearchResultSchema),
+  answerability: RagAnswerabilityResultSchema.optional(),
   createdAt: z.string().datetime()
 });
 
@@ -541,6 +572,10 @@ export type EmbeddingRequest = z.infer<typeof EmbeddingRequestSchema>;
 export type EmbeddingResult = z.infer<typeof EmbeddingResultSchema>;
 export type GenerateEmbeddingsRequest = z.infer<typeof GenerateEmbeddingsRequestSchema>;
 export type RagSearchMode = z.infer<typeof RagSearchModeSchema>;
+export type RagAbstentionReason = z.infer<typeof RagAbstentionReasonSchema>;
+export type RagAnswerability = z.infer<typeof RagAnswerabilitySchema>;
+export type RagAnswerabilityPolicy = z.infer<typeof RagAnswerabilityPolicySchema>;
+export type RagAnswerabilityResult = z.infer<typeof RagAnswerabilityResultSchema>;
 export type RagStatus = z.infer<typeof RagStatusSchema>;
 export type ContextSearch = z.infer<typeof ContextSearchSchema>;
 export type ContextSearchResult = z.infer<typeof ContextSearchResultSchema>;

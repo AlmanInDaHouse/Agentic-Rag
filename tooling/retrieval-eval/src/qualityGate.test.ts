@@ -47,13 +47,27 @@ function result(overrides: Partial<RetrievalEvalQueryResult> = {}): RetrievalEva
     expectedChunkIds: ["chunk-1"],
     expectedDocumentTitles: ["Phishing incident notes"],
     expectedChunkContains: ["mail gateway flagged the sender domain"],
+    expectedShouldAnswer: true,
+    answerability: {
+      shouldAnswer: true,
+      answerability: "answerable",
+      reason: "sufficient_context",
+      confidence: 1,
+      topScore: 1,
+      minRequiredScore: 0.5,
+      supportingResultIds: ["chunk-1"],
+      warnings: []
+    },
     fallbackUsed: false,
     metrics: {
       precision_at_k: 1 / 3,
       recall_at_k: 1,
       hit_at_k: 1,
       mean_reciprocal_rank: 1,
-      expected_chunk_found: true
+      expected_chunk_found: true,
+      abstention_accuracy: 1,
+      false_answer_rate: 0,
+      false_abstention_rate: 0
     },
     topResults: [],
     ...overrides
@@ -240,6 +254,35 @@ describe("retrieval quality gate", () => {
     expect(gate.failures).toMatchObject([
       { metric: "fallbackUsedRate", expected: 0, actual: 1 }
     ]);
+  });
+
+  it("keeps abstention metrics non-blocking when configured that way", () => {
+    const gate = evaluateQualityGate(report([
+      result({
+        metrics: {
+          ...result().metrics,
+          abstention_accuracy: 0,
+          false_answer_rate: 1,
+          false_abstention_rate: 1
+        }
+      })
+    ]), {
+      ...thresholds,
+      default: {
+        ...thresholds.default,
+        abstentionAccuracy: 1,
+        falseAnswerRate: 0,
+        falseAbstentionRate: 0
+      },
+      nonBlocking: {
+        ...thresholds.nonBlocking,
+        abstentionAccuracy: true,
+        falseAnswerRate: true,
+        falseAbstentionRate: true
+      }
+    });
+
+    expect(gate.passed).toBe(true);
   });
 
   it("allows tiny floating point differences at the threshold boundary", () => {

@@ -154,19 +154,27 @@ Target resolution: add larger and more realistic evaluation sets once real local
 
 ## RAG-013: Retrieval quality thresholds are intentionally minimal
 
-The initial quality gate blocks on `hitAtK`, `expectedChunkFound` and `meanReciprocalRank` only. `precisionAtK`, `recallAtK` and `fallbackUsedRate` are reported but non-blocking while the fixture set is small.
+The initial quality gate blocks on `hitAtK`, `expectedChunkFound` and `meanReciprocalRank` only. `precisionAtK`, `recallAtK`, `fallbackUsedRate`, `abstentionAccuracy`, `falseAnswerRate` and `falseAbstentionRate` are reported but non-blocking while the fixture set is small.
 
 Status: open.
 
 Target resolution: add stronger thresholds and mode-specific baselines after fixture coverage grows and real local model evaluation is approved.
 
-## RAG-014: No-answer retrieval eval is not answer abstention
+## RAG-014: No-answer retrieval eval only partially proves answer abstention
 
-No-answer fixtures use empty expected arrays and prevent the evaluator from inventing expected matches. They do not prove that a future answer generator will abstain or that search will return zero rows.
+No-answer fixtures now connect to deterministic retrieval answerability metrics, but they still do not prove that a future answer generator will abstain faithfully or that search will return zero rows.
 
 Status: open.
 
 Target resolution: define answer-generation abstention evaluation only after answer generation and judge policy exist.
+
+## RAG-015: Abstention thresholds are heuristic
+
+The RAG abstention policy uses deterministic score thresholds and retrieval metadata. This is useful for safety boundaries, but it is not semantic truth, not LLM-as-judge and not answer faithfulness validation.
+
+Status: open.
+
+Target resolution: tune thresholds with larger synthetic and local-model evaluation after real semantic retrieval is approved.
 
 ## DATA-001: Regex redaction is not complete DLP
 

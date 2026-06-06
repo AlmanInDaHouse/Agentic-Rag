@@ -222,6 +222,10 @@ describe("ContextEngineService", () => {
     });
 
     expect(retrieval.results).toEqual([]);
+    expect(retrieval.answerability).toMatchObject({
+      shouldAnswer: false,
+      reason: "no_results"
+    });
     expect(await fixture.service.listRetrievals(goal.id)).toHaveLength(1);
   });
 
@@ -247,6 +251,40 @@ describe("ContextEngineService", () => {
     expect(retrieval.results).toHaveLength(1);
     expect(retrieval.results[0].chunk.content).toContain("approval gate");
     expect(retrieval.results[0].score).toBeGreaterThan(0);
+    expect(retrieval.answerability).toMatchObject({
+      shouldAnswer: true,
+      reason: "sufficient_context"
+    });
+  });
+
+  it("includes low-score answerability when the search policy threshold is raised", async () => {
+    const fixture = createContextFixture();
+    const source = await fixture.service.createSource(goal.id, {
+      name: "Runtime source",
+      type: "manual_text",
+      metadata: {}
+    });
+    await fixture.service.addDocument(source.id, {
+      title: "Runtime context",
+      content: "approval gate context",
+      metadata: {}
+    });
+
+    const retrieval = await fixture.service.search(goal.id, {
+      query: "approval",
+      limit: 3,
+      mode: "lexical",
+      answerabilityPolicy: {
+        minRequiredScore: 99
+      }
+    });
+
+    expect(retrieval.results).toHaveLength(1);
+    expect(retrieval.answerability).toMatchObject({
+      shouldAnswer: false,
+      reason: "low_score",
+      minRequiredScore: 99
+    });
   });
 
   it("falls back to lexical ranking for hybrid search without embeddings", async () => {

@@ -20,6 +20,7 @@ import type {
   RetrievalEvalQueryTag,
   RetrievalEvalQueryType,
   RetrievalEvalTopResult,
+  SearchResponseLike,
   SearchResultLike
 } from "./types.js";
 
@@ -131,7 +132,7 @@ async function evaluateQuery(input: {
   search: (
     goalId: string,
     input: { query: string; limit: number; mode: EvaluatedMode }
-  ) => Promise<{ results: SearchResultLike[] }>;
+  ) => Promise<SearchResponseLike>;
 }): Promise<RetrievalEvalQueryResult> {
   const expectedChunkIds = resolveExpectedChunkIds(input.chunks, input.query);
   if (expectedChunkIds.length === 0 && input.query.queryType !== "no_answer") {
@@ -144,11 +145,24 @@ async function evaluateQuery(input: {
     mode: input.mode
   });
   const resultChunkIds = retrieval.results.map((result) => result.chunk.id);
+  const expectedShouldAnswer = expectedShouldAnswerForQuery(input.query);
+  const answerability = retrieval.answerability ?? {
+    shouldAnswer: retrieval.results.length > 0,
+    answerability: retrieval.results.length > 0 ? "answerable" : "abstain",
+    reason: retrieval.results.length > 0 ? "sufficient_context" : "no_results",
+    confidence: retrieval.results.length > 0 ? 1 : 0,
+    topScore: retrieval.results[0]?.finalScore ?? null,
+    minRequiredScore: 0,
+    supportingResultIds: retrieval.results.map((result) => result.chunk.id),
+    warnings: ["Search response did not include answerability metadata"]
+  } as const;
   const metrics = calculateRetrievalMetrics(
     resultChunkIds,
     expectedChunkIds,
     input.query.k,
-    input.query.queryType
+    input.query.queryType,
+    expectedShouldAnswer,
+    answerability.shouldAnswer
   );
 
   return {
@@ -161,6 +175,8 @@ async function evaluateQuery(input: {
     expectedChunkIds,
     expectedDocumentTitles: input.query.expectedDocumentTitles,
     expectedChunkContains: input.query.expectedChunkContains,
+    expectedShouldAnswer,
+    answerability,
     fallbackUsed: retrieval.results.some((result) => result.fallbackUsed),
     metrics,
     topResults: retrieval.results.map(toTopResult)
@@ -171,15 +187,19 @@ export function calculateRetrievalMetrics(
   resultChunkIds: string[],
   expectedChunkIds: string[],
   k: number,
-  queryType: RetrievalEvalQueryType
+  queryType: RetrievalEvalQueryType,
+  expectedShouldAnswer = queryType !== "no_answer",
+  actualShouldAnswer = expectedShouldAnswer
 ) {
+  const abstentionMetrics = calculateAbstentionMetrics(expectedShouldAnswer, actualShouldAnswer);
   if (queryType === "no_answer") {
     return {
       precision_at_k: 0,
       recall_at_k: 1,
       hit_at_k: 1,
       mean_reciprocal_rank: 1,
-      expected_chunk_found: true
+      expected_chunk_found: true,
+      ...abstentionMetrics
     };
   }
 
@@ -189,7 +209,16 @@ export function calculateRetrievalMetrics(
     recall_at_k: recallAtK(resultChunkIds, expectedChunkIds, k),
     hit_at_k: hit,
     mean_reciprocal_rank: meanReciprocalRank(resultChunkIds, expectedChunkIds, k),
-    expected_chunk_found: hit === 1
+    expected_chunk_found: hit === 1,
+    ...abstentionMetrics
+  };
+}
+
+function calculateAbstentionMetrics(expectedShouldAnswer: boolean, actualShouldAnswer: boolean) {
+  return {
+    abstention_accuracy: expectedShouldAnswer === actualShouldAnswer ? 1 : 0,
+    false_answer_rate: !expectedShouldAnswer && actualShouldAnswer ? 1 : 0,
+    false_abstention_rate: expectedShouldAnswer && !actualShouldAnswer ? 1 : 0
   };
 }
 
@@ -341,6 +370,9 @@ export function validateFixture(value: unknown, fixturePath: string): RetrievalE
     if (query.queryType === "no_answer" && !query.tags.includes("no_answer")) {
       throw invalidFixture(fixturePath, `queries[${index}].tags must include no_answer for no_answer queries`);
     }
+    if (query.expectedShouldAnswer !== undefined && typeof query.expectedShouldAnswer !== "boolean") {
+      throw invalidFixture(fixturePath, `queries[${index}].expectedShouldAnswer must be a boolean when provided`);
+    }
     if (!Number.isInteger(query.k) || query.k <= 0) {
       throw invalidFixture(fixturePath, `queries[${index}].k must be a positive integer`);
     }
@@ -373,6 +405,13 @@ function isTagArray(value: unknown): value is RetrievalEvalQueryTag[] {
   return Array.isArray(value) &&
     value.length > 0 &&
     value.every((tag) => typeof tag === "string" && allowedTags.has(tag));
+}
+
+function expectedShouldAnswerForQuery(query: RetrievalEvalQueryFixture): boolean {
+  if (query.expectedShouldAnswer !== undefined) {
+    return query.expectedShouldAnswer;
+  }
+  return query.queryType !== "no_answer";
 }
 
 export function parseCliArgs(argv: readonly string[]): {

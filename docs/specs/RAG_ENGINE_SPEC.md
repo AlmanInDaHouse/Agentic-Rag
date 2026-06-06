@@ -339,6 +339,8 @@ meanReciprocalRank >= 0.5
 
 Milestone 1.5G expands the corpus with `answerable`, `ambiguous`, `redaction` and `no_answer` query types plus tags for security, runtime, retention, redaction and ambiguity. No-answer queries use empty expected arrays explicitly and do not require search to return zero rows. They only assert that the evaluator should not invent an expected chunk match.
 
+Milestone 1.5H adds deterministic RAG answerability and abstention policy. Search responses include an `answerability` object that decides whether retrieved context is sufficient before any future answer generation. This policy is based only on retrieval metadata and does not call an LLM.
+
 ## Retrieval Modes
 
 Initial modes:
@@ -381,6 +383,49 @@ Fallback rules:
 - If query embedding fails, use lexical-only retrieval and record a warning/fallback reason.
 - Fallback metadata is stored in persisted retrieval result snapshots as `fallbackUsed` and `fallbackReason`.
 - Runtime `load_context` remains lexical by default.
+
+## Abstention Policy
+
+Context search evaluates answerability after ranking. The structured result is:
+
+```json
+{
+  "shouldAnswer": false,
+  "answerability": "abstain",
+  "reason": "insufficient_context",
+  "confidence": 0.21,
+  "topScore": 0.21,
+  "minRequiredScore": 1,
+  "supportingResultIds": [],
+  "warnings": ["No retrieved chunk passed the minimum relevance threshold"]
+}
+```
+
+Initial reasons:
+
+```text
+sufficient_context
+insufficient_context
+no_results
+low_score
+fallback_only
+redacted_or_restricted
+deleted_context_excluded
+```
+
+Initial criteria:
+
+- no results => `shouldAnswer=false`, reason `no_results`,
+- top `finalScore` below `minRequiredScore` => `shouldAnswer=false`, reason `low_score`,
+- useful supporting result count below `minSupportingResults` => `shouldAnswer=false`, reason `insufficient_context`,
+- fallback lexical can answer when fallback is allowed and the top score passes threshold,
+- fallback-only results abstain when `fallbackAllowed=false`,
+- redacted chunks can answer if they remain active and relevant,
+- restricted, blocked or deleted context must not support an answer.
+
+Default score thresholds are simple and mode-aware: lexical defaults to a higher threshold than mock-vector or hybrid because lexical scores are unbounded term counts while vector/hybrid scores are normalized. Thresholds are configurable per request through `answerabilityPolicy`.
+
+This policy does not generate a final answer. It only decides whether retrieved context is sufficient for a future answer step.
 
 ## Phased Roadmap
 
@@ -461,6 +506,15 @@ Fallback rules:
 - Prepare query-type, mode and fixture threshold overrides.
 - Keep all data synthetic and keep LLM-as-judge, pgvector requirements and real models out of scope.
 
+### Milestone 1.5H: RAG Abstention Policy
+
+- Add deterministic answerability contracts and service.
+- Include answerability metadata in context search responses.
+- Store answerability in runtime `load_context` step output.
+- Add retrieval-eval abstention metrics for no-answer and answerable queries.
+- Keep abstention metrics non-blocking initially.
+- Keep LLM answer generation, GraphRAG, Code Graph, LLM-as-judge and real models out of scope.
+
 ## Safe Execution and Data Policy
 
 - Embedding text already persisted from `manual_text`, `project_note` or `artifact` sources is medium risk when processed by an approved local/mock embedding adapter.
@@ -536,6 +590,16 @@ Fallback rules:
 - Reports show query type and tags.
 - Threshold and baseline JSON account for expanded fixtures and query metadata.
 - pgvector, LLM-as-judge, external providers and real model requirements remain out of scope.
+
+## Acceptance Criteria for Milestone 1.5H RAG Abstention Policy
+
+- Shared Zod contracts define abstention reasons, answerability result and policy.
+- Context search returns `answerability` without changing the existing `results` payload.
+- Runtime `load_context` stores `answerability` and continues when `shouldAnswer=false`.
+- No-results, low-score, sufficient-context and fallback-only policy cases have unit coverage.
+- Retrieval evaluation records `abstention_accuracy`, `false_answer_rate` and `false_abstention_rate`.
+- Abstention metrics remain informational until thresholds are proven stable.
+- No LLM-as-judge, LLM answer generation, GraphRAG, Code Graph, external providers or required real models are added.
 
 ## Risks
 

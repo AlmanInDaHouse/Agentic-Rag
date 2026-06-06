@@ -63,7 +63,7 @@ load_context -> plan -> debate -> judge -> execute_mock_task -> validate -> summ
 
 `execute_mock_task` simulates one configured action from `requestedActions[0]`. If no action is provided, it uses a safe mock `write_artifact` action.
 
-`load_context` uses Context Engine v0 when available. It searches context for the run goal using `run.objective`, stores retrieval results in the step output and continues with `results: []` when no chunks match.
+`load_context` uses Context Engine v0 when available. It searches context for the run goal using `run.objective`, stores retrieval results and answerability in the step output and continues with `results: []` plus `shouldAnswer=false` when no chunks match.
 
 ## Stop Conditions
 
@@ -239,6 +239,7 @@ Approve/reject payload:
 - Harness validates runtime behavior through public HTTP endpoints only.
 - Dashboard can inspect gates, approve, reject and see `waiting_for_approval`.
 - Runtime `load_context` can attach persisted Context Engine retrieval results without external adapters.
+- Runtime `load_context` records answerability and does not fail when the retrieval policy abstains.
 
 ## Risks
 
