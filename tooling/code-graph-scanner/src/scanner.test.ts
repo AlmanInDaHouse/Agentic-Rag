@@ -7,6 +7,14 @@ import { createContextPack } from "./contextPack.js";
 import { normalizeArtifact } from "./normalize.js";
 import { normalizeContextPack } from "./normalizeContextPack.js";
 import { parsePackArgs, runPack } from "./pack.js";
+import {
+  defaultPackEvalThresholds,
+  enforcePackEvalGate,
+  evaluateContextPack,
+  loadEvalCases,
+  normalizePackEvalReport,
+  searchPackChunks
+} from "./packEval.js";
 import { parseArgs } from "./runner.js";
 import { scanRepository } from "./scanner.js";
 
@@ -259,6 +267,80 @@ describe("code graph scanner", () => {
       out: "tmp/pack.json"
     });
   });
+
+  it("evaluates context pack fixture cases against the normalized baseline", async () => {
+    const contextPack = createFixtureContextPack(await scanFixture());
+    const cases = await loadEvalCases(path.join(fixtureRoot, "eval/code-context-pack.eval.json"));
+    const report = evaluateContextPack(contextPack, cases);
+    const expected = JSON.parse(await fs.readFile(
+      path.join(fixtureRoot, "expected/code-context-pack-eval.normalized.json"),
+      "utf8"
+    )) as unknown;
+
+    enforcePackEvalGate(report);
+    expect(normalizePackEvalReport(report)).toEqual(expected);
+  });
+
+  it("orders pack lexical retrieval deterministically", () => {
+    const chunks = [
+      {
+        id: "chunk:z",
+        documentId: "document:z",
+        text: "File b.ts imports c.ts.",
+        metadata: { generatedFrom: "code_graph" }
+      },
+      {
+        id: "chunk:a",
+        documentId: "document:a",
+        text: "File a.ts imports c.ts.",
+        metadata: { generatedFrom: "code_graph" }
+      }
+    ];
+
+    expect(searchPackChunks(chunks, "imports c", 2).map((result) => result.chunkId)).toEqual(["chunk:a", "chunk:z"]);
+  });
+
+  it("marks no-answer pack eval cases as abstentions", async () => {
+    const report = evaluateContextPack(createFixtureContextPack(await scanFixture()), await loadFixtureEvalCases());
+    const noAnswer = report.cases.find((result) => result.id === "missing-users-route-no-answer");
+
+    expect(noAnswer).toEqual(expect.objectContaining({
+      queryType: "no_answer",
+      shouldAnswer: false,
+      needsClarification: false
+    }));
+  });
+
+  it("marks ambiguous pack eval cases as needing clarification", async () => {
+    const report = evaluateContextPack(createFixtureContextPack(await scanFixture()), await loadFixtureEvalCases());
+    const ambiguous = report.cases.find((result) => result.id === "ambiguous-goal-file");
+
+    expect(ambiguous).toEqual(expect.objectContaining({
+      queryType: "ambiguous",
+      shouldAnswer: false,
+      needsClarification: true,
+      warnings: expect.arrayContaining(["ambiguous_query_needs_clarification"])
+    }));
+  });
+
+  it("fails the pack eval gate when thresholds are not met", async () => {
+    const contextPack = createFixtureContextPack(await scanFixture());
+    const cases = await loadFixtureEvalCases();
+    const report = evaluateContextPack(contextPack, cases, {
+      ...defaultPackEvalThresholds,
+      hitAtK: 1.01
+    });
+
+    expect(() => enforcePackEvalGate(report)).toThrow("hitAtK");
+  });
+
+  it("rejects empty pack eval inputs", async () => {
+    const contextPack = createFixtureContextPack(await scanFixture());
+    const cases = await loadFixtureEvalCases();
+
+    expect(() => evaluateContextPack({ ...contextPack, chunks: [] }, cases)).toThrow("requires at least one chunk");
+    expect(() => evaluateContextPack(contextPack, [])).toThrow("requires at least one eval case");
+  });
 });
 
 function scanFixture() {
@@ -275,6 +357,10 @@ function createFixtureContextPack(artifact: Awaited<ReturnType<typeof scanFixtur
     sourceArtifactPath: "artifacts/code-graph/code-graph.json",
     generatedAt: "2026-06-08T00:00:00.000Z"
   });
+}
+
+function loadFixtureEvalCases() {
+  return loadEvalCases(path.join(fixtureRoot, "eval/code-context-pack.eval.json"));
 }
 
 async function createTempRepo(): Promise<string> {

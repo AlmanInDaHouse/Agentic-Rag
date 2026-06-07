@@ -157,6 +157,8 @@ artifacts/code-graph/code-context-pack.json
 
 The context pack contains derived candidate documents and chunks following this spec, with stable ids and traceable metadata. It does not persist anything to PostgreSQL, does not add a `code_graph` source type to the Context Engine, does not create API endpoints, does not touch runtime `load_context` and does not implement GraphRAG.
 
+Milestone 1.6G adds a local lexical evaluation gate for the context pack before real ingestion. The eval uses synthetic fixture cases to check route lookup, symbol export lookup, import relationships, migration/table lookup, test mapping, documentation relationships, scanner warnings, ambiguous queries and no-answer abstention. It remains local tooling only: no PostgreSQL persistence, no Context Engine integration, no runtime integration, no endpoints, no LLM-as-judge and no GraphRAG.
+
 Future implementation should treat Code Graph context as a derived Context Engine source. The conceptual source type is:
 
 ```text

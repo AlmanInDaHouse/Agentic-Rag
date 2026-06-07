@@ -9,6 +9,7 @@ pnpm code-graph:scan
 pnpm code-graph:check
 pnpm code-graph:pack
 pnpm code-graph:pack:check
+pnpm code-graph:pack:eval
 ```
 
 `pnpm code-graph:scan` scans the repository root and writes:
@@ -53,6 +54,27 @@ tooling/code-graph-fixtures/basic-api/expected/code-context-pack.normalized.json
 ```
 
 The pack check fails on unexpected context-pack drift and is part of the main CI Validate workflow.
+
+`pnpm code-graph:pack:eval` scans the synthetic fixture, creates a context pack in memory and runs a local lexical evaluation over its chunks. The eval cases live at:
+
+```text
+tooling/code-graph-fixtures/basic-api/eval/code-context-pack.eval.json
+```
+
+The normalized eval baseline is:
+
+```text
+tooling/code-graph-fixtures/basic-api/expected/code-context-pack-eval.normalized.json
+```
+
+The eval measures structural retrieval behavior before real Context Engine ingestion. It reports `hitAtK`, expected-term coverage, no-answer abstention, false answer rate and false abstention rate. The current gate requires:
+
+- `hitAtK >= 0.80`
+- `expectedTermsFound >= 0.80`
+- `falseAnswerRate == 0`
+- `falseAbstentionRate <= 0.20`
+
+The eval is lexical-only and local. It does not use PostgreSQL, the real Context Engine, embeddings, LLM-as-judge, providers or GraphRAG.
 
 ## Output
 
@@ -130,6 +152,7 @@ The scanner is intentionally conservative. It does not run the TypeScript compil
 pnpm test:code-graph-scanner
 pnpm code-graph:check
 pnpm code-graph:pack:check
+pnpm code-graph:pack:eval
 ```
 
 Fixtures live under:
@@ -150,8 +173,14 @@ The expected context pack fixture output is:
 tooling/code-graph-fixtures/basic-api/expected/code-context-pack.normalized.json
 ```
 
+The expected context pack eval output is:
+
+```text
+tooling/code-graph-fixtures/basic-api/expected/code-context-pack-eval.normalized.json
+```
+
 When scanner or context pack behavior changes intentionally, update the relevant expected JSON in the same PR as the behavior change.
 
 ## Out of Scope
 
-This scanner and context pack tooling does not persist Code Graph data, create migrations, expose API endpoints, integrate with the runtime or Context Engine, render dashboard views, implement GraphRAG, call external providers, require pgvector or include full source-file content in generated artifacts.
+This scanner, context pack tooling and local pack eval does not persist Code Graph data, create migrations, expose API endpoints, integrate with the runtime or Context Engine, render dashboard views, implement GraphRAG, call external providers, require pgvector, run LLM-as-judge or include full source-file content in generated artifacts.

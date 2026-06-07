@@ -1,0 +1,152 @@
+[
+  {
+    "id": "route-goals-defined-file",
+    "query": "Which file defines POST /api/goals?",
+    "queryType": "answerable",
+    "expectedChunkIds": [
+      "chunk:route:apps/api/src/routes/goals.ts:route:post:/api/goals"
+    ],
+    "expectedTerms": [
+      "POST /api/goals",
+      "apps/api/src/routes/goals.ts"
+    ],
+    "tags": [
+      "route",
+      "api",
+      "answerable"
+    ],
+    "k": 3
+  },
+  {
+    "id": "service-symbol-export",
+    "query": "Which service symbol is exported from goalService?",
+    "queryType": "answerable",
+    "expectedChunkIds": [
+      "chunk:symbol:apps/api/src/services/goalservice.ts:service:creategoal"
+    ],
+    "expectedTerms": [
+      "createGoal",
+      "apps/api/src/services/goalService.ts"
+    ],
+    "tags": [
+      "symbol",
+      "service",
+      "answerable"
+    ],
+    "k": 5
+  },
+  {
+    "id": "route-imports-service",
+    "query": "What import connects the goals route and goal service?",
+    "queryType": "answerable",
+    "expectedChunkIds": [
+      "chunk:edge:imports:apps/api/src/routes/goals.ts:apps/api/src/services/goalservice.ts"
+    ],
+    "expectedTerms": [
+      "apps/api/src/routes/goals.ts",
+      "apps/api/src/services/goalService.ts"
+    ],
+    "tags": [
+      "import",
+      "route",
+      "service",
+      "answerable"
+    ],
+    "k": 5
+  },
+  {
+    "id": "migration-goals-table",
+    "query": "Which migration references the goals table?",
+    "queryType": "answerable",
+    "expectedChunkIds": [
+      "chunk:migration:infra/sql/0001_create_goals.sql:migration:create:goals"
+    ],
+    "expectedTerms": [
+      "infra/sql/0001_create_goals.sql",
+      "goals"
+    ],
+    "tags": [
+      "migration",
+      "table",
+      "answerable"
+    ],
+    "k": 5
+  },
+  {
+    "id": "test-maps-service",
+    "query": "Which test covers goalService?",
+    "queryType": "answerable",
+    "expectedChunkIds": [
+      "chunk:test:tests:apps/api/src/__tests__/goalservice.test.ts:apps/api/src/services/goalservice.ts"
+    ],
+    "expectedTerms": [
+      "apps/api/src/__tests__/goalService.test.ts",
+      "apps/api/src/services/goalService.ts"
+    ],
+    "tags": [
+      "test",
+      "service",
+      "answerable"
+    ],
+    "k": 5
+  },
+  {
+    "id": "spec-documents-route",
+    "query": "Which spec documents the goals route file?",
+    "queryType": "answerable",
+    "expectedChunkIds": [
+      "chunk:doc_relationship:documents:docs/specs/goals_spec.md:apps/api/src/routes/goals.ts"
+    ],
+    "expectedTerms": [
+      "docs/specs/GOALS_SPEC.md",
+      "apps/api/src/routes/goals.ts"
+    ],
+    "tags": [
+      "docs",
+      "spec",
+      "answerable"
+    ],
+    "k": 5
+  },
+  {
+    "id": "missing-users-route-no-answer",
+    "query": "Which file defines DELETE /api/users?",
+    "queryType": "no_answer",
+    "expectedChunkIds": [],
+    "expectedTerms": [],
+    "tags": [
+      "route",
+      "no_answer"
+    ],
+    "k": 3
+  },
+  {
+    "id": "ambiguous-goal-file",
+    "query": "Which goal file should I inspect?",
+    "queryType": "ambiguous",
+    "expectedChunkIds": [],
+    "expectedTerms": [],
+    "tags": [
+      "ambiguous",
+      "goal"
+    ],
+    "k": 5
+  },
+  {
+    "id": "scanner-warning-dynamic-import",
+    "query": "What scanner warning exists for dynamic imports?",
+    "queryType": "ambiguous",
+    "expectedChunkIds": [
+      "chunk:warning_summary:scanner-warnings"
+    ],
+    "expectedTerms": [
+      "unsupported_dynamic_import",
+      "apps/api/src/ambiguous/dynamic.ts"
+    ],
+    "tags": [
+      "warning",
+      "ambiguous"
+    ],
+    "k": 5
+  }
+]
