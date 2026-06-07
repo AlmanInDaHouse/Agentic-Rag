@@ -143,6 +143,20 @@ The artifact must be local, generated inside the repository and validated before
 
 ## Proposed Ingestion Model
 
+Milestone 1.6F introduces a local Code Graph context pack as an intermediate artifact before real ingestion. The pack generator reads the validated scanner artifact at:
+
+```text
+artifacts/code-graph/code-graph.json
+```
+
+and writes:
+
+```text
+artifacts/code-graph/code-context-pack.json
+```
+
+The context pack contains derived candidate documents and chunks following this spec, with stable ids and traceable metadata. It does not persist anything to PostgreSQL, does not add a `code_graph` source type to the Context Engine, does not create API endpoints, does not touch runtime `load_context` and does not implement GraphRAG.
+
 Future implementation should treat Code Graph context as a derived Context Engine source. The conceptual source type is:
 
 ```text

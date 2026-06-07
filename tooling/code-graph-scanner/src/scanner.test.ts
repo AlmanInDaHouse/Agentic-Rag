@@ -3,7 +3,10 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
+import { createContextPack } from "./contextPack.js";
 import { normalizeArtifact } from "./normalize.js";
+import { normalizeContextPack } from "./normalizeContextPack.js";
+import { parsePackArgs, runPack } from "./pack.js";
 import { parseArgs } from "./runner.js";
 import { scanRepository } from "./scanner.js";
 
@@ -136,6 +139,126 @@ describe("code graph scanner", () => {
       maxFileSizeBytes: 1024
     });
   });
+
+  it("generates context pack documents and chunks from the fixture", async () => {
+    const artifact = await scanFixture();
+    const contextPack = createFixtureContextPack(artifact);
+
+    expect(contextPack.pack.packVersion).toBe("code-graph-context-pack-v0");
+    expect(contextPack.documents.length).toBeGreaterThan(0);
+    expect(contextPack.chunks.length).toBeGreaterThan(0);
+    expect(contextPack.documents).toContainEqual(expect.objectContaining({
+      kind: "file",
+      sourcePath: "apps/api/src/routes/goals.ts"
+    }));
+    expect(contextPack.chunks).toContainEqual(expect.objectContaining({
+      text: "Fastify route POST /api/goals is defined in apps/api/src/routes/goals.ts."
+    }));
+    expect(contextPack.chunks).toContainEqual(expect.objectContaining({
+      text: "Test apps/api/src/__tests__/goalService.test.ts covers apps/api/src/services/goalService.ts by direct import."
+    }));
+    expect(contextPack.chunks).toContainEqual(expect.objectContaining({
+      text: "Spec docs/specs/GOALS_SPEC.md documents apps/api/src/routes/goals.ts."
+    }));
+  });
+
+  it("keeps context pack chunk metadata traceable to code graph", async () => {
+    const contextPack = createFixtureContextPack(await scanFixture());
+
+    expect(contextPack.chunks.every((chunk) => chunk.metadata.generatedFrom === "code_graph")).toBe(true);
+    expect(contextPack.chunks.every((chunk) => chunk.metadata.scannerVersion === "code-graph-scanner-v0")).toBe(true);
+    expect(contextPack.chunks).toContainEqual(expect.objectContaining({
+      metadata: expect.objectContaining({
+        edgeType: "imports",
+        sourcePath: "apps/api/src/routes/goals.ts",
+        targetPath: "apps/api/src/services/goalService.ts",
+        confidence: 1
+      })
+    }));
+  });
+
+  it("does not include full source content in the context pack", async () => {
+    const tempRepo = await createTempRepo();
+    await fs.mkdir(path.join(tempRepo, "src"), { recursive: true });
+    await fs.writeFile(
+      path.join(tempRepo, "src/secret.ts"),
+      "const token = 'fixture-secret-token-value';\nexport function readName() { return 'safe'; }\n",
+      "utf8"
+    );
+
+    const artifact = await scanRepository({ repoRoot: tempRepo, commitSha: "fixture" });
+    const contextPack = createContextPack(artifact, {
+      sourceArtifactPath: "artifacts/code-graph/code-graph.json",
+      generatedAt: "2026-06-08T00:00:00.000Z"
+    });
+
+    expect(JSON.stringify(contextPack)).not.toContain("fixture-secret-token-value");
+  });
+
+  it("keeps scanner warnings as low-authority context", async () => {
+    const contextPack = createFixtureContextPack(await scanFixture());
+    const warningChunk = contextPack.chunks.find((chunk) => chunk.documentId.includes("warning_summary"));
+
+    expect(warningChunk).toEqual(expect.objectContaining({
+      text: expect.stringContaining("not positive evidence"),
+      metadata: expect.objectContaining({
+        authority: "warning_only"
+      })
+    }));
+    expect(contextPack.chunks).not.toContainEqual(expect.objectContaining({
+      documentId: expect.not.stringContaining("warning_summary"),
+      text: expect.stringContaining("unsupported_dynamic_import")
+    }));
+  });
+
+  it("produces stable normalized context pack output", async () => {
+    const first = createFixtureContextPack(await scanFixture());
+    const second = createFixtureContextPack(await scanFixture());
+    const expected = JSON.parse(await fs.readFile(
+      path.join(fixtureRoot, "expected/code-context-pack.normalized.json"),
+      "utf8"
+    )) as unknown;
+
+    expect(normalizeContextPack(first)).toEqual(normalizeContextPack(second));
+    expect(normalizeContextPack(first)).toEqual(expected);
+  });
+
+  it("fails clearly when the source artifact is missing", async () => {
+    const tempRepo = await createTempRepo();
+
+    await expect(runPack({
+      repoRoot: tempRepo,
+      artifact: "artifacts/code-graph/code-graph.json",
+      out: "artifacts/code-graph/code-context-pack.json"
+    })).rejects.toThrow("Run pnpm code-graph:scan first");
+  });
+
+  it("keeps context pack source paths repository-relative", async () => {
+    const contextPack = createFixtureContextPack(await scanFixture());
+    const sourcePaths = [
+      ...contextPack.documents.map((document) => document.sourcePath),
+      ...contextPack.chunks.flatMap((chunk) => [chunk.metadata.sourcePath, chunk.metadata.targetPath])
+    ].filter((value): value is string => typeof value === "string");
+
+    expect(sourcePaths.length).toBeGreaterThan(0);
+    expect(sourcePaths.every((sourcePath) => !path.isAbsolute(sourcePath))).toBe(true);
+    expect(sourcePaths.every((sourcePath) => !sourcePath.startsWith("../"))).toBe(true);
+  });
+
+  it("parses context pack CLI options", () => {
+    expect(parsePackArgs([
+      "--repo-root",
+      "fixture",
+      "--artifact",
+      "tmp/graph.json",
+      "--out",
+      "tmp/pack.json"
+    ])).toEqual({
+      repoRoot: "fixture",
+      artifact: "tmp/graph.json",
+      out: "tmp/pack.json"
+    });
+  });
 });
 
 function scanFixture() {
@@ -144,6 +267,13 @@ function scanFixture() {
     commitSha: "fixture",
     startedAt: "2026-06-07T00:00:00.000Z",
     completedAt: "2026-06-07T00:00:00.000Z"
+  });
+}
+
+function createFixtureContextPack(artifact: Awaited<ReturnType<typeof scanFixture>>) {
+  return createContextPack(artifact, {
+    sourceArtifactPath: "artifacts/code-graph/code-graph.json",
+    generatedAt: "2026-06-08T00:00:00.000Z"
   });
 }
 

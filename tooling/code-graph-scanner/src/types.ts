@@ -61,6 +61,47 @@ export type CodeGraphArtifact = {
   warnings: CodeGraphWarning[];
 };
 
+export type CodeGraphContextPackDocumentKind =
+  | "file"
+  | "symbol"
+  | "edge"
+  | "route"
+  | "migration"
+  | "test"
+  | "doc_relationship"
+  | "warning_summary";
+
+export type CodeGraphContextPackDocument = {
+  id: string;
+  kind: CodeGraphContextPackDocumentKind;
+  title: string;
+  sourcePath: string | null;
+  metadata: Record<string, unknown>;
+};
+
+export type CodeGraphContextPackChunk = {
+  id: string;
+  documentId: string;
+  text: string;
+  metadata: Record<string, unknown>;
+};
+
+export type CodeGraphContextPack = {
+  pack: {
+    packVersion: "code-graph-context-pack-v0";
+    generatedAt: string;
+    sourceArtifactPath: string;
+    scannerVersion: "code-graph-scanner-v0";
+    commitSha: string;
+    documents: number;
+    chunks: number;
+    warnings: number;
+  };
+  documents: CodeGraphContextPackDocument[];
+  chunks: CodeGraphContextPackChunk[];
+  warnings: CodeGraphWarning[];
+};
+
 export type ScanOptions = {
   repoRoot: string;
   startedAt?: string;

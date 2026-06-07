@@ -1,0 +1,1433 @@
+{
+  "pack": {
+    "packVersion": "code-graph-context-pack-v0",
+    "sourceArtifactPath": "artifacts/code-graph/code-graph.json",
+    "scannerVersion": "code-graph-scanner-v0",
+    "commitSha": "fixture",
+    "documents": 37,
+    "chunks": 37,
+    "warnings": 1
+  },
+  "documents": [
+    {
+      "id": "document:doc_relationship:documents:docs/adr/0001-goals.md:apps/api/src/repositories/goalrepository.ts",
+      "kind": "doc_relationship",
+      "title": "Documentation relationship docs/adr/0001-goals.md to apps/api/src/repositories/goalRepository.ts",
+      "sourcePath": "docs/adr/0001-goals.md",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "docs/adr/0001-goals.md",
+        "sourceId": "file:docs/adr/0001-goals.md",
+        "targetPath": "apps/api/src/repositories/goalRepository.ts",
+        "targetId": "file:apps/api/src/repositories/goalRepository.ts",
+        "edgeType": "documents",
+        "confidence": 0.6,
+        "scannerMetadata": {
+          "evidence": "explicit file name mention"
+        },
+        "symbolName": null,
+        "symbolKind": null
+      }
+    },
+    {
+      "id": "document:doc_relationship:documents:docs/specs/goals_spec.md:apps/api/src/routes/goals.ts",
+      "kind": "doc_relationship",
+      "title": "Documentation relationship docs/specs/GOALS_SPEC.md to apps/api/src/routes/goals.ts",
+      "sourcePath": "docs/specs/GOALS_SPEC.md",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "docs/specs/GOALS_SPEC.md",
+        "sourceId": "file:docs/specs/GOALS_SPEC.md",
+        "targetPath": "apps/api/src/routes/goals.ts",
+        "targetId": "file:apps/api/src/routes/goals.ts",
+        "edgeType": "documents",
+        "confidence": 0.8,
+        "scannerMetadata": {
+          "evidence": "explicit repository path mention"
+        },
+        "symbolName": null,
+        "symbolKind": null
+      }
+    },
+    {
+      "id": "document:edge:exports:apps/api/src/__tests__/goalservice.test.ts:apps/api/src/__tests__/goalservice.test.ts:function:testcreategoal",
+      "kind": "edge",
+      "title": "exports relationship apps/api/src/__tests__/goalService.test.ts to testCreateGoal in apps/api/src/__tests__/goalService.test.ts",
+      "sourcePath": "apps/api/src/__tests__/goalService.test.ts",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/__tests__/goalService.test.ts",
+        "sourceId": "file:apps/api/src/__tests__/goalService.test.ts",
+        "targetPath": "apps/api/src/__tests__/goalService.test.ts",
+        "targetId": "symbol:apps/api/src/__tests__/goalService.test.ts:function:testcreategoal",
+        "edgeType": "exports",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "static export declaration",
+          "exportKind": "named"
+        },
+        "symbolName": "testCreateGoal",
+        "symbolKind": "function"
+      }
+    },
+    {
+      "id": "document:edge:exports:apps/api/src/ambiguous/dynamic.ts:apps/api/src/ambiguous/dynamic.ts:function:loaddynamicservice",
+      "kind": "edge",
+      "title": "exports relationship apps/api/src/ambiguous/dynamic.ts to loadDynamicService in apps/api/src/ambiguous/dynamic.ts",
+      "sourcePath": "apps/api/src/ambiguous/dynamic.ts",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/ambiguous/dynamic.ts",
+        "sourceId": "file:apps/api/src/ambiguous/dynamic.ts",
+        "targetPath": "apps/api/src/ambiguous/dynamic.ts",
+        "targetId": "symbol:apps/api/src/ambiguous/dynamic.ts:function:loaddynamicservice",
+        "edgeType": "exports",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "static export declaration",
+          "exportKind": "named"
+        },
+        "symbolName": "loadDynamicService",
+        "symbolKind": "function"
+      }
+    },
+    {
+      "id": "document:edge:exports:apps/api/src/repositories/goalrepository.ts:apps/api/src/repositories/goalrepository.ts:repository:insertgoal",
+      "kind": "edge",
+      "title": "exports relationship apps/api/src/repositories/goalRepository.ts to insertGoal in apps/api/src/repositories/goalRepository.ts",
+      "sourcePath": "apps/api/src/repositories/goalRepository.ts",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/repositories/goalRepository.ts",
+        "sourceId": "file:apps/api/src/repositories/goalRepository.ts",
+        "targetPath": "apps/api/src/repositories/goalRepository.ts",
+        "targetId": "symbol:apps/api/src/repositories/goalRepository.ts:repository:insertgoal",
+        "edgeType": "exports",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "static export declaration",
+          "exportKind": "named"
+        },
+        "symbolName": "insertGoal",
+        "symbolKind": "repository"
+      }
+    },
+    {
+      "id": "document:edge:exports:apps/api/src/routes/goals.ts:apps/api/src/routes/goals.ts:function:registergoalroutes",
+      "kind": "edge",
+      "title": "exports relationship apps/api/src/routes/goals.ts to registerGoalRoutes in apps/api/src/routes/goals.ts",
+      "sourcePath": "apps/api/src/routes/goals.ts",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/routes/goals.ts",
+        "sourceId": "file:apps/api/src/routes/goals.ts",
+        "targetPath": "apps/api/src/routes/goals.ts",
+        "targetId": "symbol:apps/api/src/routes/goals.ts:function:registergoalroutes",
+        "edgeType": "exports",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "static export declaration",
+          "exportKind": "named"
+        },
+        "symbolName": "registerGoalRoutes",
+        "symbolKind": "function"
+      }
+    },
+    {
+      "id": "document:edge:exports:apps/api/src/services/goalservice.ts:apps/api/src/services/goalservice.ts:service:creategoal",
+      "kind": "edge",
+      "title": "exports relationship apps/api/src/services/goalService.ts to createGoal in apps/api/src/services/goalService.ts",
+      "sourcePath": "apps/api/src/services/goalService.ts",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/services/goalService.ts",
+        "sourceId": "file:apps/api/src/services/goalService.ts",
+        "targetPath": "apps/api/src/services/goalService.ts",
+        "targetId": "symbol:apps/api/src/services/goalService.ts:service:creategoal",
+        "edgeType": "exports",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "static export declaration",
+          "exportKind": "named"
+        },
+        "symbolName": "createGoal",
+        "symbolKind": "service"
+      }
+    },
+    {
+      "id": "document:edge:exports:apps/api/src/services/goalservice.ts:apps/api/src/services/goalservice.ts:service:goaldraft",
+      "kind": "edge",
+      "title": "exports relationship apps/api/src/services/goalService.ts to GoalDraft in apps/api/src/services/goalService.ts",
+      "sourcePath": "apps/api/src/services/goalService.ts",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/services/goalService.ts",
+        "sourceId": "file:apps/api/src/services/goalService.ts",
+        "targetPath": "apps/api/src/services/goalService.ts",
+        "targetId": "symbol:apps/api/src/services/goalService.ts:service:goaldraft",
+        "edgeType": "exports",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "static export declaration",
+          "exportKind": "type"
+        },
+        "symbolName": "GoalDraft",
+        "symbolKind": "service"
+      }
+    },
+    {
+      "id": "document:edge:exports:packages/shared/src/index.ts:packages/shared/src/index.ts:type:goalinput",
+      "kind": "edge",
+      "title": "exports relationship packages/shared/src/index.ts to GoalInput in packages/shared/src/index.ts",
+      "sourcePath": "packages/shared/src/index.ts",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "packages/shared/src/index.ts",
+        "sourceId": "file:packages/shared/src/index.ts",
+        "targetPath": "packages/shared/src/index.ts",
+        "targetId": "symbol:packages/shared/src/index.ts:type:goalinput",
+        "edgeType": "exports",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "static export declaration",
+          "exportKind": "type"
+        },
+        "symbolName": "GoalInput",
+        "symbolKind": "type"
+      }
+    },
+    {
+      "id": "document:edge:imports:apps/api/src/__tests__/goalservice.test.ts:apps/api/src/services/goalservice.ts",
+      "kind": "edge",
+      "title": "imports relationship apps/api/src/__tests__/goalService.test.ts to apps/api/src/services/goalService.ts",
+      "sourcePath": "apps/api/src/__tests__/goalService.test.ts",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/__tests__/goalService.test.ts",
+        "sourceId": "file:apps/api/src/__tests__/goalService.test.ts",
+        "targetPath": "apps/api/src/services/goalService.ts",
+        "targetId": "file:apps/api/src/services/goalService.ts",
+        "edgeType": "imports",
+        "confidence": 1,
+        "scannerMetadata": {
+          "importSource": "../services/goalService",
+          "evidence": "static relative import"
+        },
+        "symbolName": null,
+        "symbolKind": null
+      }
+    },
+    {
+      "id": "document:edge:imports:apps/api/src/routes/goals.ts:apps/api/src/services/goalservice.ts",
+      "kind": "edge",
+      "title": "imports relationship apps/api/src/routes/goals.ts to apps/api/src/services/goalService.ts",
+      "sourcePath": "apps/api/src/routes/goals.ts",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/routes/goals.ts",
+        "sourceId": "file:apps/api/src/routes/goals.ts",
+        "targetPath": "apps/api/src/services/goalService.ts",
+        "targetId": "file:apps/api/src/services/goalService.ts",
+        "edgeType": "imports",
+        "confidence": 1,
+        "scannerMetadata": {
+          "importSource": "../services/goalService",
+          "evidence": "static relative import"
+        },
+        "symbolName": null,
+        "symbolKind": null
+      }
+    },
+    {
+      "id": "document:edge:imports:apps/api/src/routes/goals.ts:packages/shared/src/index.ts",
+      "kind": "edge",
+      "title": "imports relationship apps/api/src/routes/goals.ts to packages/shared/src/index.ts",
+      "sourcePath": "apps/api/src/routes/goals.ts",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/routes/goals.ts",
+        "sourceId": "file:apps/api/src/routes/goals.ts",
+        "targetPath": "packages/shared/src/index.ts",
+        "targetId": "file:packages/shared/src/index.ts",
+        "edgeType": "imports",
+        "confidence": 1,
+        "scannerMetadata": {
+          "importSource": "../../../../packages/shared/src/index",
+          "evidence": "static relative import"
+        },
+        "symbolName": null,
+        "symbolKind": null
+      }
+    },
+    {
+      "id": "document:edge:imports:apps/api/src/services/goalservice.ts:apps/api/src/repositories/goalrepository.ts",
+      "kind": "edge",
+      "title": "imports relationship apps/api/src/services/goalService.ts to apps/api/src/repositories/goalRepository.ts",
+      "sourcePath": "apps/api/src/services/goalService.ts",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/services/goalService.ts",
+        "sourceId": "file:apps/api/src/services/goalService.ts",
+        "targetPath": "apps/api/src/repositories/goalRepository.ts",
+        "targetId": "file:apps/api/src/repositories/goalRepository.ts",
+        "edgeType": "imports",
+        "confidence": 1,
+        "scannerMetadata": {
+          "importSource": "../repositories/goalRepository",
+          "evidence": "static relative import"
+        },
+        "symbolName": null,
+        "symbolKind": null
+      }
+    },
+    {
+      "id": "document:file:apps/api/src/__tests__/goalservice.test.ts",
+      "kind": "file",
+      "title": "File apps/api/src/__tests__/goalService.test.ts",
+      "sourcePath": "apps/api/src/__tests__/goalService.test.ts",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/__tests__/goalService.test.ts",
+        "fileKind": "test",
+        "language": "typescript",
+        "packageName": "apps/api"
+      }
+    },
+    {
+      "id": "document:file:apps/api/src/ambiguous/dynamic.ts",
+      "kind": "file",
+      "title": "File apps/api/src/ambiguous/dynamic.ts",
+      "sourcePath": "apps/api/src/ambiguous/dynamic.ts",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/ambiguous/dynamic.ts",
+        "fileKind": "source",
+        "language": "typescript",
+        "packageName": "apps/api"
+      }
+    },
+    {
+      "id": "document:file:apps/api/src/repositories/goalrepository.ts",
+      "kind": "file",
+      "title": "File apps/api/src/repositories/goalRepository.ts",
+      "sourcePath": "apps/api/src/repositories/goalRepository.ts",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/repositories/goalRepository.ts",
+        "fileKind": "source",
+        "language": "typescript",
+        "packageName": "apps/api"
+      }
+    },
+    {
+      "id": "document:file:apps/api/src/routes/goals.ts",
+      "kind": "file",
+      "title": "File apps/api/src/routes/goals.ts",
+      "sourcePath": "apps/api/src/routes/goals.ts",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/routes/goals.ts",
+        "fileKind": "source",
+        "language": "typescript",
+        "packageName": "apps/api"
+      }
+    },
+    {
+      "id": "document:file:apps/api/src/services/goalservice.ts",
+      "kind": "file",
+      "title": "File apps/api/src/services/goalService.ts",
+      "sourcePath": "apps/api/src/services/goalService.ts",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/services/goalService.ts",
+        "fileKind": "source",
+        "language": "typescript",
+        "packageName": "apps/api"
+      }
+    },
+    {
+      "id": "document:file:docs/adr/0001-goals.md",
+      "kind": "file",
+      "title": "File docs/adr/0001-goals.md",
+      "sourcePath": "docs/adr/0001-goals.md",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "docs/adr/0001-goals.md",
+        "fileKind": "adr",
+        "language": "markdown",
+        "packageName": null
+      }
+    },
+    {
+      "id": "document:file:docs/specs/goals_spec.md",
+      "kind": "file",
+      "title": "File docs/specs/GOALS_SPEC.md",
+      "sourcePath": "docs/specs/GOALS_SPEC.md",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "docs/specs/GOALS_SPEC.md",
+        "fileKind": "spec",
+        "language": "markdown",
+        "packageName": null
+      }
+    },
+    {
+      "id": "document:file:infra/sql/0001_create_goals.sql",
+      "kind": "file",
+      "title": "File infra/sql/0001_create_goals.sql",
+      "sourcePath": "infra/sql/0001_create_goals.sql",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "infra/sql/0001_create_goals.sql",
+        "fileKind": "migration",
+        "language": "sql",
+        "packageName": null
+      }
+    },
+    {
+      "id": "document:file:package.json",
+      "kind": "file",
+      "title": "File package.json",
+      "sourcePath": "package.json",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "package.json",
+        "fileKind": "config",
+        "language": "json",
+        "packageName": null
+      }
+    },
+    {
+      "id": "document:file:packages/shared/src/index.ts",
+      "kind": "file",
+      "title": "File packages/shared/src/index.ts",
+      "sourcePath": "packages/shared/src/index.ts",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "packages/shared/src/index.ts",
+        "fileKind": "source",
+        "language": "typescript",
+        "packageName": "packages/shared"
+      }
+    },
+    {
+      "id": "document:migration:infra/sql/0001_create_goals.sql:migration:create:goals",
+      "kind": "migration",
+      "title": "Migration CREATE TABLE goals",
+      "sourcePath": "infra/sql/0001_create_goals.sql",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "infra/sql/0001_create_goals.sql",
+        "symbolName": "CREATE TABLE goals",
+        "symbolKind": "migration",
+        "exportKind": "none",
+        "confidence": 1,
+        "scannerMetadata": {
+          "operation": "CREATE",
+          "tableName": "goals",
+          "evidence": "literal SQL table statement"
+        }
+      }
+    },
+    {
+      "id": "document:migration:migrates:infra/sql/0001_create_goals.sql:infra/sql/0001_create_goals.sql:migration:create:goals",
+      "kind": "migration",
+      "title": "migrates relationship infra/sql/0001_create_goals.sql to CREATE TABLE goals in infra/sql/0001_create_goals.sql",
+      "sourcePath": "infra/sql/0001_create_goals.sql",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "infra/sql/0001_create_goals.sql",
+        "sourceId": "file:infra/sql/0001_create_goals.sql",
+        "targetPath": "infra/sql/0001_create_goals.sql",
+        "targetId": "symbol:infra/sql/0001_create_goals.sql:migration:create:goals",
+        "edgeType": "migrates",
+        "confidence": 1,
+        "scannerMetadata": {
+          "operation": "CREATE",
+          "tableName": "goals",
+          "evidence": "literal SQL table statement"
+        },
+        "symbolName": "CREATE TABLE goals",
+        "symbolKind": "migration"
+      }
+    },
+    {
+      "id": "document:route:apps/api/src/routes/goals.ts:route:post:/api/goals",
+      "kind": "route",
+      "title": "Route POST /api/goals",
+      "sourcePath": "apps/api/src/routes/goals.ts",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/routes/goals.ts",
+        "symbolName": "POST /api/goals",
+        "symbolKind": "route",
+        "exportKind": "none",
+        "confidence": 1,
+        "scannerMetadata": {
+          "routeMethod": "POST",
+          "routePath": "/api/goals",
+          "evidence": "direct Fastify literal route declaration"
+        }
+      }
+    },
+    {
+      "id": "document:symbol:apps/api/src/__tests__/goalservice.test.ts:function:testcreategoal",
+      "kind": "symbol",
+      "title": "Symbol testCreateGoal",
+      "sourcePath": "apps/api/src/__tests__/goalService.test.ts",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/__tests__/goalService.test.ts",
+        "symbolName": "testCreateGoal",
+        "symbolKind": "function",
+        "exportKind": "named",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "static export declaration"
+        }
+      }
+    },
+    {
+      "id": "document:symbol:apps/api/src/ambiguous/dynamic.ts:function:loaddynamicservice",
+      "kind": "symbol",
+      "title": "Symbol loadDynamicService",
+      "sourcePath": "apps/api/src/ambiguous/dynamic.ts",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/ambiguous/dynamic.ts",
+        "symbolName": "loadDynamicService",
+        "symbolKind": "function",
+        "exportKind": "named",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "static export declaration"
+        }
+      }
+    },
+    {
+      "id": "document:symbol:apps/api/src/repositories/goalrepository.ts:repository:insertgoal",
+      "kind": "symbol",
+      "title": "Symbol insertGoal",
+      "sourcePath": "apps/api/src/repositories/goalRepository.ts",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/repositories/goalRepository.ts",
+        "symbolName": "insertGoal",
+        "symbolKind": "repository",
+        "exportKind": "named",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "static export declaration"
+        }
+      }
+    },
+    {
+      "id": "document:symbol:apps/api/src/routes/goals.ts:function:registergoalroutes",
+      "kind": "symbol",
+      "title": "Symbol registerGoalRoutes",
+      "sourcePath": "apps/api/src/routes/goals.ts",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/routes/goals.ts",
+        "symbolName": "registerGoalRoutes",
+        "symbolKind": "function",
+        "exportKind": "named",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "static export declaration"
+        }
+      }
+    },
+    {
+      "id": "document:symbol:apps/api/src/routes/goals.ts:route:post:/api/goals",
+      "kind": "symbol",
+      "title": "Symbol POST /api/goals",
+      "sourcePath": "apps/api/src/routes/goals.ts",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/routes/goals.ts",
+        "symbolName": "POST /api/goals",
+        "symbolKind": "route",
+        "exportKind": "none",
+        "confidence": 1,
+        "scannerMetadata": {
+          "routeMethod": "POST",
+          "routePath": "/api/goals",
+          "evidence": "direct Fastify literal route declaration"
+        }
+      }
+    },
+    {
+      "id": "document:symbol:apps/api/src/services/goalservice.ts:service:creategoal",
+      "kind": "symbol",
+      "title": "Symbol createGoal",
+      "sourcePath": "apps/api/src/services/goalService.ts",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/services/goalService.ts",
+        "symbolName": "createGoal",
+        "symbolKind": "service",
+        "exportKind": "named",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "static export declaration"
+        }
+      }
+    },
+    {
+      "id": "document:symbol:apps/api/src/services/goalservice.ts:service:goaldraft",
+      "kind": "symbol",
+      "title": "Symbol GoalDraft",
+      "sourcePath": "apps/api/src/services/goalService.ts",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/services/goalService.ts",
+        "symbolName": "GoalDraft",
+        "symbolKind": "service",
+        "exportKind": "type",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "static export declaration"
+        }
+      }
+    },
+    {
+      "id": "document:symbol:infra/sql/0001_create_goals.sql:migration:create:goals",
+      "kind": "symbol",
+      "title": "Symbol CREATE TABLE goals",
+      "sourcePath": "infra/sql/0001_create_goals.sql",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "infra/sql/0001_create_goals.sql",
+        "symbolName": "CREATE TABLE goals",
+        "symbolKind": "migration",
+        "exportKind": "none",
+        "confidence": 1,
+        "scannerMetadata": {
+          "operation": "CREATE",
+          "tableName": "goals",
+          "evidence": "literal SQL table statement"
+        }
+      }
+    },
+    {
+      "id": "document:symbol:packages/shared/src/index.ts:type:goalinput",
+      "kind": "symbol",
+      "title": "Symbol GoalInput",
+      "sourcePath": "packages/shared/src/index.ts",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "packages/shared/src/index.ts",
+        "symbolName": "GoalInput",
+        "symbolKind": "type",
+        "exportKind": "type",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "static export declaration"
+        }
+      }
+    },
+    {
+      "id": "document:test:tests:apps/api/src/__tests__/goalservice.test.ts:apps/api/src/services/goalservice.ts",
+      "kind": "test",
+      "title": "Test relationship apps/api/src/__tests__/goalService.test.ts to apps/api/src/services/goalService.ts",
+      "sourcePath": "apps/api/src/__tests__/goalService.test.ts",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/__tests__/goalService.test.ts",
+        "sourceId": "file:apps/api/src/__tests__/goalService.test.ts",
+        "targetPath": "apps/api/src/services/goalService.ts",
+        "targetId": "file:apps/api/src/services/goalService.ts",
+        "edgeType": "tests",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "test file imports source file"
+        },
+        "symbolName": null,
+        "symbolKind": null
+      }
+    },
+    {
+      "id": "document:warning_summary:scanner-warnings",
+      "kind": "warning_summary",
+      "title": "Code Graph scanner warnings",
+      "sourcePath": null,
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "warningCount": 1,
+        "authority": "warning_only"
+      }
+    }
+  ],
+  "chunks": [
+    {
+      "id": "chunk:doc_relationship:documents:docs/adr/0001-goals.md:apps/api/src/repositories/goalrepository.ts",
+      "documentId": "document:doc_relationship:documents:docs/adr/0001-goals.md:apps/api/src/repositories/goalrepository.ts",
+      "text": "ADR docs/adr/0001-goals.md documents apps/api/src/repositories/goalRepository.ts.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "docs/adr/0001-goals.md",
+        "sourceId": "file:docs/adr/0001-goals.md",
+        "targetPath": "apps/api/src/repositories/goalRepository.ts",
+        "targetId": "file:apps/api/src/repositories/goalRepository.ts",
+        "edgeType": "documents",
+        "confidence": 0.6,
+        "scannerMetadata": {
+          "evidence": "explicit file name mention"
+        },
+        "symbolName": null,
+        "symbolKind": null
+      }
+    },
+    {
+      "id": "chunk:doc_relationship:documents:docs/specs/goals_spec.md:apps/api/src/routes/goals.ts",
+      "documentId": "document:doc_relationship:documents:docs/specs/goals_spec.md:apps/api/src/routes/goals.ts",
+      "text": "Spec docs/specs/GOALS_SPEC.md documents apps/api/src/routes/goals.ts.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "docs/specs/GOALS_SPEC.md",
+        "sourceId": "file:docs/specs/GOALS_SPEC.md",
+        "targetPath": "apps/api/src/routes/goals.ts",
+        "targetId": "file:apps/api/src/routes/goals.ts",
+        "edgeType": "documents",
+        "confidence": 0.8,
+        "scannerMetadata": {
+          "evidence": "explicit repository path mention"
+        },
+        "symbolName": null,
+        "symbolKind": null
+      }
+    },
+    {
+      "id": "chunk:edge:exports:apps/api/src/__tests__/goalservice.test.ts:apps/api/src/__tests__/goalservice.test.ts:function:testcreategoal",
+      "documentId": "document:edge:exports:apps/api/src/__tests__/goalservice.test.ts:apps/api/src/__tests__/goalservice.test.ts:function:testcreategoal",
+      "text": "apps/api/src/__tests__/goalService.test.ts exports testCreateGoal in apps/api/src/__tests__/goalService.test.ts.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/__tests__/goalService.test.ts",
+        "sourceId": "file:apps/api/src/__tests__/goalService.test.ts",
+        "targetPath": "apps/api/src/__tests__/goalService.test.ts",
+        "targetId": "symbol:apps/api/src/__tests__/goalService.test.ts:function:testcreategoal",
+        "edgeType": "exports",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "static export declaration",
+          "exportKind": "named"
+        },
+        "symbolName": "testCreateGoal",
+        "symbolKind": "function"
+      }
+    },
+    {
+      "id": "chunk:edge:exports:apps/api/src/ambiguous/dynamic.ts:apps/api/src/ambiguous/dynamic.ts:function:loaddynamicservice",
+      "documentId": "document:edge:exports:apps/api/src/ambiguous/dynamic.ts:apps/api/src/ambiguous/dynamic.ts:function:loaddynamicservice",
+      "text": "apps/api/src/ambiguous/dynamic.ts exports loadDynamicService in apps/api/src/ambiguous/dynamic.ts.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/ambiguous/dynamic.ts",
+        "sourceId": "file:apps/api/src/ambiguous/dynamic.ts",
+        "targetPath": "apps/api/src/ambiguous/dynamic.ts",
+        "targetId": "symbol:apps/api/src/ambiguous/dynamic.ts:function:loaddynamicservice",
+        "edgeType": "exports",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "static export declaration",
+          "exportKind": "named"
+        },
+        "symbolName": "loadDynamicService",
+        "symbolKind": "function"
+      }
+    },
+    {
+      "id": "chunk:edge:exports:apps/api/src/repositories/goalrepository.ts:apps/api/src/repositories/goalrepository.ts:repository:insertgoal",
+      "documentId": "document:edge:exports:apps/api/src/repositories/goalrepository.ts:apps/api/src/repositories/goalrepository.ts:repository:insertgoal",
+      "text": "apps/api/src/repositories/goalRepository.ts exports insertGoal in apps/api/src/repositories/goalRepository.ts.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/repositories/goalRepository.ts",
+        "sourceId": "file:apps/api/src/repositories/goalRepository.ts",
+        "targetPath": "apps/api/src/repositories/goalRepository.ts",
+        "targetId": "symbol:apps/api/src/repositories/goalRepository.ts:repository:insertgoal",
+        "edgeType": "exports",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "static export declaration",
+          "exportKind": "named"
+        },
+        "symbolName": "insertGoal",
+        "symbolKind": "repository"
+      }
+    },
+    {
+      "id": "chunk:edge:exports:apps/api/src/routes/goals.ts:apps/api/src/routes/goals.ts:function:registergoalroutes",
+      "documentId": "document:edge:exports:apps/api/src/routes/goals.ts:apps/api/src/routes/goals.ts:function:registergoalroutes",
+      "text": "apps/api/src/routes/goals.ts exports registerGoalRoutes in apps/api/src/routes/goals.ts.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/routes/goals.ts",
+        "sourceId": "file:apps/api/src/routes/goals.ts",
+        "targetPath": "apps/api/src/routes/goals.ts",
+        "targetId": "symbol:apps/api/src/routes/goals.ts:function:registergoalroutes",
+        "edgeType": "exports",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "static export declaration",
+          "exportKind": "named"
+        },
+        "symbolName": "registerGoalRoutes",
+        "symbolKind": "function"
+      }
+    },
+    {
+      "id": "chunk:edge:exports:apps/api/src/services/goalservice.ts:apps/api/src/services/goalservice.ts:service:creategoal",
+      "documentId": "document:edge:exports:apps/api/src/services/goalservice.ts:apps/api/src/services/goalservice.ts:service:creategoal",
+      "text": "apps/api/src/services/goalService.ts exports createGoal in apps/api/src/services/goalService.ts.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/services/goalService.ts",
+        "sourceId": "file:apps/api/src/services/goalService.ts",
+        "targetPath": "apps/api/src/services/goalService.ts",
+        "targetId": "symbol:apps/api/src/services/goalService.ts:service:creategoal",
+        "edgeType": "exports",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "static export declaration",
+          "exportKind": "named"
+        },
+        "symbolName": "createGoal",
+        "symbolKind": "service"
+      }
+    },
+    {
+      "id": "chunk:edge:exports:apps/api/src/services/goalservice.ts:apps/api/src/services/goalservice.ts:service:goaldraft",
+      "documentId": "document:edge:exports:apps/api/src/services/goalservice.ts:apps/api/src/services/goalservice.ts:service:goaldraft",
+      "text": "apps/api/src/services/goalService.ts exports GoalDraft in apps/api/src/services/goalService.ts.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/services/goalService.ts",
+        "sourceId": "file:apps/api/src/services/goalService.ts",
+        "targetPath": "apps/api/src/services/goalService.ts",
+        "targetId": "symbol:apps/api/src/services/goalService.ts:service:goaldraft",
+        "edgeType": "exports",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "static export declaration",
+          "exportKind": "type"
+        },
+        "symbolName": "GoalDraft",
+        "symbolKind": "service"
+      }
+    },
+    {
+      "id": "chunk:edge:exports:packages/shared/src/index.ts:packages/shared/src/index.ts:type:goalinput",
+      "documentId": "document:edge:exports:packages/shared/src/index.ts:packages/shared/src/index.ts:type:goalinput",
+      "text": "packages/shared/src/index.ts exports GoalInput in packages/shared/src/index.ts.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "packages/shared/src/index.ts",
+        "sourceId": "file:packages/shared/src/index.ts",
+        "targetPath": "packages/shared/src/index.ts",
+        "targetId": "symbol:packages/shared/src/index.ts:type:goalinput",
+        "edgeType": "exports",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "static export declaration",
+          "exportKind": "type"
+        },
+        "symbolName": "GoalInput",
+        "symbolKind": "type"
+      }
+    },
+    {
+      "id": "chunk:edge:imports:apps/api/src/__tests__/goalservice.test.ts:apps/api/src/services/goalservice.ts",
+      "documentId": "document:edge:imports:apps/api/src/__tests__/goalservice.test.ts:apps/api/src/services/goalservice.ts",
+      "text": "apps/api/src/__tests__/goalService.test.ts imports apps/api/src/services/goalService.ts.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/__tests__/goalService.test.ts",
+        "sourceId": "file:apps/api/src/__tests__/goalService.test.ts",
+        "targetPath": "apps/api/src/services/goalService.ts",
+        "targetId": "file:apps/api/src/services/goalService.ts",
+        "edgeType": "imports",
+        "confidence": 1,
+        "scannerMetadata": {
+          "importSource": "../services/goalService",
+          "evidence": "static relative import"
+        },
+        "symbolName": null,
+        "symbolKind": null
+      }
+    },
+    {
+      "id": "chunk:edge:imports:apps/api/src/routes/goals.ts:apps/api/src/services/goalservice.ts",
+      "documentId": "document:edge:imports:apps/api/src/routes/goals.ts:apps/api/src/services/goalservice.ts",
+      "text": "apps/api/src/routes/goals.ts imports apps/api/src/services/goalService.ts.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/routes/goals.ts",
+        "sourceId": "file:apps/api/src/routes/goals.ts",
+        "targetPath": "apps/api/src/services/goalService.ts",
+        "targetId": "file:apps/api/src/services/goalService.ts",
+        "edgeType": "imports",
+        "confidence": 1,
+        "scannerMetadata": {
+          "importSource": "../services/goalService",
+          "evidence": "static relative import"
+        },
+        "symbolName": null,
+        "symbolKind": null
+      }
+    },
+    {
+      "id": "chunk:edge:imports:apps/api/src/routes/goals.ts:packages/shared/src/index.ts",
+      "documentId": "document:edge:imports:apps/api/src/routes/goals.ts:packages/shared/src/index.ts",
+      "text": "apps/api/src/routes/goals.ts imports packages/shared/src/index.ts.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/routes/goals.ts",
+        "sourceId": "file:apps/api/src/routes/goals.ts",
+        "targetPath": "packages/shared/src/index.ts",
+        "targetId": "file:packages/shared/src/index.ts",
+        "edgeType": "imports",
+        "confidence": 1,
+        "scannerMetadata": {
+          "importSource": "../../../../packages/shared/src/index",
+          "evidence": "static relative import"
+        },
+        "symbolName": null,
+        "symbolKind": null
+      }
+    },
+    {
+      "id": "chunk:edge:imports:apps/api/src/services/goalservice.ts:apps/api/src/repositories/goalrepository.ts",
+      "documentId": "document:edge:imports:apps/api/src/services/goalservice.ts:apps/api/src/repositories/goalrepository.ts",
+      "text": "apps/api/src/services/goalService.ts imports apps/api/src/repositories/goalRepository.ts.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/services/goalService.ts",
+        "sourceId": "file:apps/api/src/services/goalService.ts",
+        "targetPath": "apps/api/src/repositories/goalRepository.ts",
+        "targetId": "file:apps/api/src/repositories/goalRepository.ts",
+        "edgeType": "imports",
+        "confidence": 1,
+        "scannerMetadata": {
+          "importSource": "../repositories/goalRepository",
+          "evidence": "static relative import"
+        },
+        "symbolName": null,
+        "symbolKind": null
+      }
+    },
+    {
+      "id": "chunk:file:apps/api/src/__tests__/goalservice.test.ts",
+      "documentId": "document:file:apps/api/src/__tests__/goalservice.test.ts",
+      "text": "File apps/api/src/__tests__/goalService.test.ts is a TypeScript test file in package apps/api.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/__tests__/goalService.test.ts",
+        "fileKind": "test",
+        "language": "typescript",
+        "packageName": "apps/api"
+      }
+    },
+    {
+      "id": "chunk:file:apps/api/src/ambiguous/dynamic.ts",
+      "documentId": "document:file:apps/api/src/ambiguous/dynamic.ts",
+      "text": "File apps/api/src/ambiguous/dynamic.ts is a TypeScript source file in package apps/api.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/ambiguous/dynamic.ts",
+        "fileKind": "source",
+        "language": "typescript",
+        "packageName": "apps/api"
+      }
+    },
+    {
+      "id": "chunk:file:apps/api/src/repositories/goalrepository.ts",
+      "documentId": "document:file:apps/api/src/repositories/goalrepository.ts",
+      "text": "File apps/api/src/repositories/goalRepository.ts is a TypeScript source file in package apps/api.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/repositories/goalRepository.ts",
+        "fileKind": "source",
+        "language": "typescript",
+        "packageName": "apps/api"
+      }
+    },
+    {
+      "id": "chunk:file:apps/api/src/routes/goals.ts",
+      "documentId": "document:file:apps/api/src/routes/goals.ts",
+      "text": "File apps/api/src/routes/goals.ts is a route file in package apps/api.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/routes/goals.ts",
+        "fileKind": "source",
+        "language": "typescript",
+        "packageName": "apps/api"
+      }
+    },
+    {
+      "id": "chunk:file:apps/api/src/services/goalservice.ts",
+      "documentId": "document:file:apps/api/src/services/goalservice.ts",
+      "text": "File apps/api/src/services/goalService.ts is a TypeScript source file in package apps/api.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/services/goalService.ts",
+        "fileKind": "source",
+        "language": "typescript",
+        "packageName": "apps/api"
+      }
+    },
+    {
+      "id": "chunk:file:docs/adr/0001-goals.md",
+      "documentId": "document:file:docs/adr/0001-goals.md",
+      "text": "File docs/adr/0001-goals.md is a Markdown adr file without a workspace package.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "docs/adr/0001-goals.md",
+        "fileKind": "adr",
+        "language": "markdown",
+        "packageName": null
+      }
+    },
+    {
+      "id": "chunk:file:docs/specs/goals_spec.md",
+      "documentId": "document:file:docs/specs/goals_spec.md",
+      "text": "File docs/specs/GOALS_SPEC.md is a Markdown spec file without a workspace package.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "docs/specs/GOALS_SPEC.md",
+        "fileKind": "spec",
+        "language": "markdown",
+        "packageName": null
+      }
+    },
+    {
+      "id": "chunk:file:infra/sql/0001_create_goals.sql",
+      "documentId": "document:file:infra/sql/0001_create_goals.sql",
+      "text": "File infra/sql/0001_create_goals.sql is a SQL migration file without a workspace package.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "infra/sql/0001_create_goals.sql",
+        "fileKind": "migration",
+        "language": "sql",
+        "packageName": null
+      }
+    },
+    {
+      "id": "chunk:file:package.json",
+      "documentId": "document:file:package.json",
+      "text": "File package.json is a JSON config file without a workspace package.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "package.json",
+        "fileKind": "config",
+        "language": "json",
+        "packageName": null
+      }
+    },
+    {
+      "id": "chunk:file:packages/shared/src/index.ts",
+      "documentId": "document:file:packages/shared/src/index.ts",
+      "text": "File packages/shared/src/index.ts is a TypeScript source file in package packages/shared.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "packages/shared/src/index.ts",
+        "fileKind": "source",
+        "language": "typescript",
+        "packageName": "packages/shared"
+      }
+    },
+    {
+      "id": "chunk:migration:infra/sql/0001_create_goals.sql:migration:create:goals",
+      "documentId": "document:migration:infra/sql/0001_create_goals.sql:migration:create:goals",
+      "text": "Migration infra/sql/0001_create_goals.sql references table goals through CREATE TABLE.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "infra/sql/0001_create_goals.sql",
+        "symbolName": "CREATE TABLE goals",
+        "symbolKind": "migration",
+        "exportKind": "none",
+        "confidence": 1,
+        "scannerMetadata": {
+          "operation": "CREATE",
+          "tableName": "goals",
+          "evidence": "literal SQL table statement"
+        }
+      }
+    },
+    {
+      "id": "chunk:migration:migrates:infra/sql/0001_create_goals.sql:infra/sql/0001_create_goals.sql:migration:create:goals",
+      "documentId": "document:migration:migrates:infra/sql/0001_create_goals.sql:infra/sql/0001_create_goals.sql:migration:create:goals",
+      "text": "Migration infra/sql/0001_create_goals.sql references table goals through CREATE TABLE.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "infra/sql/0001_create_goals.sql",
+        "sourceId": "file:infra/sql/0001_create_goals.sql",
+        "targetPath": "infra/sql/0001_create_goals.sql",
+        "targetId": "symbol:infra/sql/0001_create_goals.sql:migration:create:goals",
+        "edgeType": "migrates",
+        "confidence": 1,
+        "scannerMetadata": {
+          "operation": "CREATE",
+          "tableName": "goals",
+          "evidence": "literal SQL table statement"
+        },
+        "symbolName": "CREATE TABLE goals",
+        "symbolKind": "migration"
+      }
+    },
+    {
+      "id": "chunk:route:apps/api/src/routes/goals.ts:route:post:/api/goals",
+      "documentId": "document:route:apps/api/src/routes/goals.ts:route:post:/api/goals",
+      "text": "Fastify route POST /api/goals is defined in apps/api/src/routes/goals.ts.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/routes/goals.ts",
+        "symbolName": "POST /api/goals",
+        "symbolKind": "route",
+        "exportKind": "none",
+        "confidence": 1,
+        "scannerMetadata": {
+          "routeMethod": "POST",
+          "routePath": "/api/goals",
+          "evidence": "direct Fastify literal route declaration"
+        }
+      }
+    },
+    {
+      "id": "chunk:symbol:apps/api/src/__tests__/goalservice.test.ts:function:testcreategoal",
+      "documentId": "document:symbol:apps/api/src/__tests__/goalservice.test.ts:function:testcreategoal",
+      "text": "Symbol testCreateGoal is a named exported function in apps/api/src/__tests__/goalService.test.ts.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/__tests__/goalService.test.ts",
+        "symbolName": "testCreateGoal",
+        "symbolKind": "function",
+        "exportKind": "named",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "static export declaration"
+        }
+      }
+    },
+    {
+      "id": "chunk:symbol:apps/api/src/ambiguous/dynamic.ts:function:loaddynamicservice",
+      "documentId": "document:symbol:apps/api/src/ambiguous/dynamic.ts:function:loaddynamicservice",
+      "text": "Symbol loadDynamicService is a named exported function in apps/api/src/ambiguous/dynamic.ts.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/ambiguous/dynamic.ts",
+        "symbolName": "loadDynamicService",
+        "symbolKind": "function",
+        "exportKind": "named",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "static export declaration"
+        }
+      }
+    },
+    {
+      "id": "chunk:symbol:apps/api/src/repositories/goalrepository.ts:repository:insertgoal",
+      "documentId": "document:symbol:apps/api/src/repositories/goalrepository.ts:repository:insertgoal",
+      "text": "Symbol insertGoal is a named exported repository in apps/api/src/repositories/goalRepository.ts.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/repositories/goalRepository.ts",
+        "symbolName": "insertGoal",
+        "symbolKind": "repository",
+        "exportKind": "named",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "static export declaration"
+        }
+      }
+    },
+    {
+      "id": "chunk:symbol:apps/api/src/routes/goals.ts:function:registergoalroutes",
+      "documentId": "document:symbol:apps/api/src/routes/goals.ts:function:registergoalroutes",
+      "text": "Symbol registerGoalRoutes is a named exported function in apps/api/src/routes/goals.ts.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/routes/goals.ts",
+        "symbolName": "registerGoalRoutes",
+        "symbolKind": "function",
+        "exportKind": "named",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "static export declaration"
+        }
+      }
+    },
+    {
+      "id": "chunk:symbol:apps/api/src/routes/goals.ts:route:post:/api/goals",
+      "documentId": "document:symbol:apps/api/src/routes/goals.ts:route:post:/api/goals",
+      "text": "Symbol POST /api/goals is a not exported route in apps/api/src/routes/goals.ts.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/routes/goals.ts",
+        "symbolName": "POST /api/goals",
+        "symbolKind": "route",
+        "exportKind": "none",
+        "confidence": 1,
+        "scannerMetadata": {
+          "routeMethod": "POST",
+          "routePath": "/api/goals",
+          "evidence": "direct Fastify literal route declaration"
+        }
+      }
+    },
+    {
+      "id": "chunk:symbol:apps/api/src/services/goalservice.ts:service:creategoal",
+      "documentId": "document:symbol:apps/api/src/services/goalservice.ts:service:creategoal",
+      "text": "Symbol createGoal is a named exported service in apps/api/src/services/goalService.ts.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/services/goalService.ts",
+        "symbolName": "createGoal",
+        "symbolKind": "service",
+        "exportKind": "named",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "static export declaration"
+        }
+      }
+    },
+    {
+      "id": "chunk:symbol:apps/api/src/services/goalservice.ts:service:goaldraft",
+      "documentId": "document:symbol:apps/api/src/services/goalservice.ts:service:goaldraft",
+      "text": "Symbol GoalDraft is a type exported service in apps/api/src/services/goalService.ts.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/services/goalService.ts",
+        "symbolName": "GoalDraft",
+        "symbolKind": "service",
+        "exportKind": "type",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "static export declaration"
+        }
+      }
+    },
+    {
+      "id": "chunk:symbol:infra/sql/0001_create_goals.sql:migration:create:goals",
+      "documentId": "document:symbol:infra/sql/0001_create_goals.sql:migration:create:goals",
+      "text": "Symbol CREATE TABLE goals is a not exported migration in infra/sql/0001_create_goals.sql.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "infra/sql/0001_create_goals.sql",
+        "symbolName": "CREATE TABLE goals",
+        "symbolKind": "migration",
+        "exportKind": "none",
+        "confidence": 1,
+        "scannerMetadata": {
+          "operation": "CREATE",
+          "tableName": "goals",
+          "evidence": "literal SQL table statement"
+        }
+      }
+    },
+    {
+      "id": "chunk:symbol:packages/shared/src/index.ts:type:goalinput",
+      "documentId": "document:symbol:packages/shared/src/index.ts:type:goalinput",
+      "text": "Symbol GoalInput is a type exported type in packages/shared/src/index.ts.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "packages/shared/src/index.ts",
+        "symbolName": "GoalInput",
+        "symbolKind": "type",
+        "exportKind": "type",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "static export declaration"
+        }
+      }
+    },
+    {
+      "id": "chunk:test:tests:apps/api/src/__tests__/goalservice.test.ts:apps/api/src/services/goalservice.ts",
+      "documentId": "document:test:tests:apps/api/src/__tests__/goalservice.test.ts:apps/api/src/services/goalservice.ts",
+      "text": "Test apps/api/src/__tests__/goalService.test.ts covers apps/api/src/services/goalService.ts by direct import.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "sourcePath": "apps/api/src/__tests__/goalService.test.ts",
+        "sourceId": "file:apps/api/src/__tests__/goalService.test.ts",
+        "targetPath": "apps/api/src/services/goalService.ts",
+        "targetId": "file:apps/api/src/services/goalService.ts",
+        "edgeType": "tests",
+        "confidence": 1,
+        "scannerMetadata": {
+          "evidence": "test file imports source file"
+        },
+        "symbolName": null,
+        "symbolKind": null
+      }
+    },
+    {
+      "id": "chunk:warning_summary:scanner-warnings",
+      "documentId": "document:warning_summary:scanner-warnings",
+      "text": "Code Graph scanner emitted warnings; treat these as scanner limitations, not positive evidence: unsupported_dynamic_import at apps/api/src/ambiguous/dynamic.ts.",
+      "metadata": {
+        "generatedFrom": "code_graph",
+        "scannerVersion": "code-graph-scanner-v0",
+        "commitSha": "fixture",
+        "warningCount": 1,
+        "warningCodes": [
+          "unsupported_dynamic_import"
+        ],
+        "authority": "warning_only"
+      }
+    }
+  ],
+  "warnings": [
+    {
+      "code": "unsupported_dynamic_import",
+      "path": "apps/api/src/ambiguous/dynamic.ts"
+    }
+  ]
+}

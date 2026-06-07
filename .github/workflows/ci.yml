@@ -72,6 +72,9 @@ jobs:
       - name: Code Graph quality gate
         run: pnpm code-graph:check
 
+      - name: Code Graph context pack quality gate
+        run: pnpm code-graph:pack:check
+
       - name: Harness tests
         run: pnpm test:harness
 
