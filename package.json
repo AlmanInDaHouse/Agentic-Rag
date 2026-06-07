@@ -15,6 +15,7 @@
     "test:retrieval-eval": "vitest --config tooling/retrieval-eval/vitest.config.ts",
     "test:code-graph-scanner": "vitest --config tooling/code-graph-scanner/vitest.config.ts",
     "code-graph:scan": "corepack pnpm --filter @triforge/api exec tsx ../../tooling/code-graph-scanner/src/runner.ts --repo-root ../..",
+    "code-graph:check": "corepack pnpm --filter @triforge/api exec tsx ../../tooling/code-graph-scanner/src/check.ts",
     "eval:retrieval": "corepack pnpm --filter @triforge/api exec tsx ../../tooling/retrieval-eval/src/runner.ts",
     "eval:retrieval:gate": "corepack pnpm --filter @triforge/api exec tsx ../../tooling/retrieval-eval/src/runner.ts --gate --thresholds tooling/retrieval-eval/baselines/thresholds.v1.json --out reports/retrieval-eval/latest.json",
     "harness:mvp": "corepack pnpm --filter @triforge/shared build && vitest --config tooling/harness/vitest.config.ts tooling/harness/src/scenarios/mvpDebate.scenario.ts",

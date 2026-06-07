@@ -57,6 +57,18 @@ Fixture design principles:
 
 The scanner should be evaluated against expected JSON artifacts rather than by visual inspection. The expected artifact should represent the accepted graph for the fixture and should omit edges that are intentionally too weak to trust.
 
+Milestone 1.6D implements the initial executable fixture gate with:
+
+```bash
+pnpm code-graph:check
+```
+
+The command scans the synthetic fixture, normalizes unstable fields and compares the result against:
+
+```text
+tooling/code-graph-fixtures/basic-api/expected/code-graph.normalized.json
+```
+
 ## Proposed Fixture Layout
 
 Future fixtures may live under:
@@ -360,6 +372,8 @@ Initial blocking behavior should be conservative:
 - unexpected high-confidence edges should block,
 - warnings may be required for known unsupported patterns,
 - low-confidence exploratory output should not be persisted by default.
+
+The first executable quality gate is intentionally narrow: it blocks on normalized fixture drift and deterministic scanner behavior, but it does not persist graph data or prove semantic correctness.
 
 ## Confidence Model
 

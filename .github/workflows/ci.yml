@@ -69,6 +69,9 @@ jobs:
       - name: Unit tests
         run: pnpm test
 
+      - name: Code Graph quality gate
+        run: pnpm code-graph:check
+
       - name: Harness tests
         run: pnpm test:harness
 

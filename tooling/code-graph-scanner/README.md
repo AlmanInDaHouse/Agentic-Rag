@@ -2,13 +2,14 @@
 
 Local deterministic prototype for Code Graph v0.
 
-## Command
+## Commands
 
 ```bash
 pnpm code-graph:scan
+pnpm code-graph:check
 ```
 
-By default this scans the repository root and writes:
+`pnpm code-graph:scan` scans the repository root and writes:
 
 ```text
 artifacts/code-graph/code-graph.json
@@ -21,6 +22,14 @@ pnpm code-graph:scan -- --repo-root tooling/code-graph-fixtures/basic-api --out 
 pnpm code-graph:scan -- --max-file-size-bytes 262144
 ```
 
+`pnpm code-graph:check` scans the synthetic fixture, normalizes the output and compares it with:
+
+```text
+tooling/code-graph-fixtures/basic-api/expected/code-graph.normalized.json
+```
+
+The check fails on unexpected fixture drift and is part of the main CI Validate workflow.
+
 ## Output
 
 The artifact contains:
@@ -31,7 +40,24 @@ The artifact contains:
 - `edges`
 - `warnings`
 
-IDs and paths are stable and repository-relative. Arrays are sorted by stable IDs. The scanner records timestamps for real scan runs, so tests compare a normalized artifact without timestamps.
+IDs and paths are stable and repository-relative. Arrays are sorted by stable IDs. The scanner records timestamps for real scan runs, so tests and quality gates compare a normalized artifact without timestamps.
+
+Normalization removes or stabilizes:
+
+- `startedAt`,
+- `completedAt`,
+- file hashes,
+- file sizes,
+- full metadata that is not needed for fixture assertions.
+
+Normalization preserves:
+
+- relative paths,
+- file classifications,
+- symbol kind/export kind,
+- edge type/source/target,
+- confidence,
+- warning code/path.
 
 ## Detection
 
@@ -67,6 +93,7 @@ The scanner is intentionally conservative. It does not run the TypeScript compil
 
 ```bash
 pnpm test:code-graph-scanner
+pnpm code-graph:check
 ```
 
 Fixtures live under:
@@ -80,3 +107,9 @@ The expected fixture output is a normalized JSON expectation at:
 ```text
 tooling/code-graph-fixtures/basic-api/expected/code-graph.normalized.json
 ```
+
+When scanner behavior changes intentionally, update this expected JSON in the same PR as the scanner change.
+
+## Out of Scope
+
+This scanner does not persist Code Graph data, create migrations, expose API endpoints, integrate with the runtime or Context Engine, render dashboard views, implement GraphRAG, call external providers or require pgvector.
