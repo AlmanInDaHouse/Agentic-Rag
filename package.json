@@ -10,9 +10,11 @@
   ],
   "scripts": {
     "build": "corepack pnpm -r build",
-    "test": "corepack pnpm -r --if-present test && corepack pnpm test:retrieval-eval",
+    "test": "corepack pnpm -r --if-present test && corepack pnpm test:retrieval-eval && corepack pnpm test:code-graph-scanner",
     "test:harness": "corepack pnpm --filter @triforge/shared build && vitest --config tooling/harness/vitest.config.ts",
     "test:retrieval-eval": "vitest --config tooling/retrieval-eval/vitest.config.ts",
+    "test:code-graph-scanner": "vitest --config tooling/code-graph-scanner/vitest.config.ts",
+    "code-graph:scan": "corepack pnpm --filter @triforge/api exec tsx ../../tooling/code-graph-scanner/src/runner.ts --repo-root ../..",
     "eval:retrieval": "corepack pnpm --filter @triforge/api exec tsx ../../tooling/retrieval-eval/src/runner.ts",
     "eval:retrieval:gate": "corepack pnpm --filter @triforge/api exec tsx ../../tooling/retrieval-eval/src/runner.ts --gate --thresholds tooling/retrieval-eval/baselines/thresholds.v1.json --out reports/retrieval-eval/latest.json",
     "harness:mvp": "corepack pnpm --filter @triforge/shared build && vitest --config tooling/harness/vitest.config.ts tooling/harness/src/scenarios/mvpDebate.scenario.ts",

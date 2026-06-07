@@ -7,6 +7,35 @@ import { quoteIdentifier, searchPathSql } from "./schema.js";
 
 const currentFile = fileURLToPath(import.meta.url);
 const migrationsDir = path.resolve(path.dirname(currentFile), "../../migrations");
+const migrationLockKey = "triforge_migrations";
+
+async function withMigrationLock<T>(operation: () => Promise<T>): Promise<T> {
+  const client = await pool.connect();
+  let operationError: unknown;
+
+  try {
+    // Extensions are database-wide, so schema-per-run harness isolation still needs serialized migrations.
+    await client.query("SELECT pg_advisory_lock(hashtext($1::text))", [migrationLockKey]);
+
+    try {
+      return await operation();
+    } catch (error) {
+      operationError = error;
+      throw error;
+    } finally {
+      try {
+        await client.query("SELECT pg_advisory_unlock(hashtext($1::text))", [migrationLockKey]);
+      } catch (unlockError) {
+        if (operationError === undefined) {
+          throw unlockError;
+        }
+        console.error("Failed to release migration advisory lock after migration error", unlockError);
+      }
+    }
+  } finally {
+    client.release();
+  }
+}
 
 async function ensureMigrationTable(): Promise<void> {
   await pool.query(`CREATE SCHEMA IF NOT EXISTS ${quoteIdentifier(env.TRIFORGE_DB_SCHEMA)}`);
@@ -27,35 +56,37 @@ async function appliedVersions(): Promise<Set<string>> {
 }
 
 export async function runMigrations(): Promise<void> {
-  await ensureMigrationTable();
-  const applied = await appliedVersions();
-  const files = (await fs.readdir(migrationsDir))
-    .filter((file) => file.endsWith(".sql"))
-    .sort();
+  await withMigrationLock(async () => {
+    await ensureMigrationTable();
+    const applied = await appliedVersions();
+    const files = (await fs.readdir(migrationsDir))
+      .filter((file) => file.endsWith(".sql"))
+      .sort();
 
-  for (const file of files) {
-    const version = file.replace(/\.sql$/, "");
-    if (applied.has(version)) {
-      continue;
-    }
+    for (const file of files) {
+      const version = file.replace(/\.sql$/, "");
+      if (applied.has(version)) {
+        continue;
+      }
 
-    const sql = await fs.readFile(path.join(migrationsDir, file), "utf8");
-    const client = await pool.connect();
-    try {
-      await client.query("BEGIN");
-      await client.query(`CREATE SCHEMA IF NOT EXISTS ${quoteIdentifier(env.TRIFORGE_DB_SCHEMA)}`);
-      await client.query(`SET LOCAL search_path TO ${searchPathSql(env.TRIFORGE_DB_SCHEMA)}`);
-      await client.query(sql);
-      await client.query("INSERT INTO triforge_migrations (version) VALUES ($1)", [version]);
-      await client.query("COMMIT");
-      console.log(`Applied migration ${version}`);
-    } catch (error) {
-      await client.query("ROLLBACK");
-      throw error;
-    } finally {
-      client.release();
+      const sql = await fs.readFile(path.join(migrationsDir, file), "utf8");
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        await client.query(`CREATE SCHEMA IF NOT EXISTS ${quoteIdentifier(env.TRIFORGE_DB_SCHEMA)}`);
+        await client.query(`SET LOCAL search_path TO ${searchPathSql(env.TRIFORGE_DB_SCHEMA)}`);
+        await client.query(sql);
+        await client.query("INSERT INTO triforge_migrations (version) VALUES ($1)", [version]);
+        await client.query("COMMIT");
+        console.log(`Applied migration ${version}`);
+      } catch (error) {
+        await client.query("ROLLBACK");
+        throw error;
+      } finally {
+        client.release();
+      }
     }
-  }
+  });
 }
 
 const isDirectExecution =
