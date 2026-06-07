@@ -18,6 +18,7 @@
     "code-graph:check": "corepack pnpm --filter @triforge/api exec tsx ../../tooling/code-graph-scanner/src/check.ts",
     "code-graph:pack": "corepack pnpm --filter @triforge/api exec tsx ../../tooling/code-graph-scanner/src/pack.ts --repo-root ../..",
     "code-graph:pack:check": "corepack pnpm --filter @triforge/api exec tsx ../../tooling/code-graph-scanner/src/packCheck.ts",
+    "code-graph:pack:eval": "corepack pnpm --filter @triforge/api exec tsx ../../tooling/code-graph-scanner/src/packEval.ts",
     "eval:retrieval": "corepack pnpm --filter @triforge/api exec tsx ../../tooling/retrieval-eval/src/runner.ts",
     "eval:retrieval:gate": "corepack pnpm --filter @triforge/api exec tsx ../../tooling/retrieval-eval/src/runner.ts --gate --thresholds tooling/retrieval-eval/baselines/thresholds.v1.json --out reports/retrieval-eval/latest.json",
     "harness:mvp": "corepack pnpm --filter @triforge/shared build && vitest --config tooling/harness/vitest.config.ts tooling/harness/src/scenarios/mvpDebate.scenario.ts",

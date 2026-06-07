@@ -1,0 +1,702 @@
+{
+  "summary": {
+    "cases": 9,
+    "passed": 9,
+    "failed": 0,
+    "hitAtK": 1,
+    "expectedTermsFound": 1,
+    "noAnswerAbstention": 1,
+    "falseAnswerRate": 0,
+    "falseAbstentionRate": 0
+  },
+  "thresholds": {
+    "hitAtK": 0.8,
+    "expectedTermsFound": 0.8,
+    "falseAnswerRate": 0,
+    "falseAbstentionRate": 0.2
+  },
+  "cases": [
+    {
+      "id": "ambiguous-goal-file",
+      "query": "Which goal file should I inspect?",
+      "queryType": "ambiguous",
+      "tags": [
+        "ambiguous",
+        "goal"
+      ],
+      "k": 5,
+      "expectedChunkIds": [],
+      "expectedTerms": [],
+      "expectedTermsFound": true,
+      "hitAtK": 0,
+      "shouldAnswer": false,
+      "needsClarification": true,
+      "warnings": [
+        "ambiguous_query_needs_clarification"
+      ],
+      "topResults": [
+        {
+          "rank": 1,
+          "chunkId": "chunk:edge:exports:apps/api/src/routes/goals.ts:apps/api/src/routes/goals.ts:function:registergoalroutes",
+          "documentId": "document:edge:exports:apps/api/src/routes/goals.ts:apps/api/src/routes/goals.ts:function:registergoalroutes",
+          "score": 0.5333,
+          "matchedTerms": [
+            "goal"
+          ],
+          "text": "apps/api/src/routes/goals.ts exports registerGoalRoutes in apps/api/src/routes/goals.ts."
+        },
+        {
+          "rank": 2,
+          "chunkId": "chunk:migration:migrates:infra/sql/0001_create_goals.sql:infra/sql/0001_create_goals.sql:migration:create:goals",
+          "documentId": "document:migration:migrates:infra/sql/0001_create_goals.sql:infra/sql/0001_create_goals.sql:migration:create:goals",
+          "score": 0.5333,
+          "matchedTerms": [
+            "goal"
+          ],
+          "text": "Migration infra/sql/0001_create_goals.sql references table goals through CREATE TABLE."
+        },
+        {
+          "rank": 3,
+          "chunkId": "chunk:doc_relationship:documents:docs/adr/0001-goals.md:apps/api/src/repositories/goalrepository.ts",
+          "documentId": "document:doc_relationship:documents:docs/adr/0001-goals.md:apps/api/src/repositories/goalrepository.ts",
+          "score": 0.4833,
+          "matchedTerms": [
+            "goal"
+          ],
+          "text": "ADR docs/adr/0001-goals.md documents apps/api/src/repositories/goalRepository.ts."
+        },
+        {
+          "rank": 4,
+          "chunkId": "chunk:doc_relationship:documents:docs/specs/goals_spec.md:apps/api/src/routes/goals.ts",
+          "documentId": "document:doc_relationship:documents:docs/specs/goals_spec.md:apps/api/src/routes/goals.ts",
+          "score": 0.4833,
+          "matchedTerms": [
+            "goal"
+          ],
+          "text": "Spec docs/specs/GOALS_SPEC.md documents apps/api/src/routes/goals.ts."
+        },
+        {
+          "rank": 5,
+          "chunkId": "chunk:edge:imports:apps/api/src/routes/goals.ts:apps/api/src/services/goalservice.ts",
+          "documentId": "document:edge:imports:apps/api/src/routes/goals.ts:apps/api/src/services/goalservice.ts",
+          "score": 0.4833,
+          "matchedTerms": [
+            "goal"
+          ],
+          "text": "apps/api/src/routes/goals.ts imports apps/api/src/services/goalService.ts."
+        }
+      ]
+    },
+    {
+      "id": "migration-goals-table",
+      "query": "Which migration references the goals table?",
+      "queryType": "answerable",
+      "tags": [
+        "answerable",
+        "migration",
+        "table"
+      ],
+      "k": 5,
+      "expectedChunkIds": [
+        "chunk:migration:infra/sql/0001_create_goals.sql:migration:create:goals"
+      ],
+      "expectedTerms": [
+        "goals",
+        "infra/sql/0001_create_goals.sql"
+      ],
+      "expectedTermsFound": true,
+      "hitAtK": 1,
+      "shouldAnswer": true,
+      "needsClarification": false,
+      "warnings": [],
+      "topResults": [
+        {
+          "rank": 1,
+          "chunkId": "chunk:migration:infra/sql/0001_create_goals.sql:migration:create:goals",
+          "documentId": "document:migration:infra/sql/0001_create_goals.sql:migration:create:goals",
+          "score": 1,
+          "matchedTerms": [
+            "goal",
+            "migration",
+            "reference",
+            "table"
+          ],
+          "text": "Migration infra/sql/0001_create_goals.sql references table goals through CREATE TABLE."
+        },
+        {
+          "rank": 2,
+          "chunkId": "chunk:migration:migrates:infra/sql/0001_create_goals.sql:infra/sql/0001_create_goals.sql:migration:create:goals",
+          "documentId": "document:migration:migrates:infra/sql/0001_create_goals.sql:infra/sql/0001_create_goals.sql:migration:create:goals",
+          "score": 1,
+          "matchedTerms": [
+            "goal",
+            "migration",
+            "reference",
+            "table"
+          ],
+          "text": "Migration infra/sql/0001_create_goals.sql references table goals through CREATE TABLE."
+        },
+        {
+          "rank": 3,
+          "chunkId": "chunk:symbol:infra/sql/0001_create_goals.sql:migration:create:goals",
+          "documentId": "document:symbol:infra/sql/0001_create_goals.sql:migration:create:goals",
+          "score": 0.9,
+          "matchedTerms": [
+            "goal",
+            "migration",
+            "table"
+          ],
+          "text": "Symbol CREATE TABLE goals is a not exported migration in infra/sql/0001_create_goals.sql."
+        },
+        {
+          "rank": 4,
+          "chunkId": "chunk:file:infra/sql/0001_create_goals.sql",
+          "documentId": "document:file:infra/sql/0001_create_goals.sql",
+          "score": 0.55,
+          "matchedTerms": [
+            "goal",
+            "migration"
+          ],
+          "text": "File infra/sql/0001_create_goals.sql is a SQL migration file without a workspace package."
+        },
+        {
+          "rank": 5,
+          "chunkId": "chunk:edge:exports:apps/api/src/routes/goals.ts:apps/api/src/routes/goals.ts:function:registergoalroutes",
+          "documentId": "document:edge:exports:apps/api/src/routes/goals.ts:apps/api/src/routes/goals.ts:function:registergoalroutes",
+          "score": 0.45,
+          "matchedTerms": [
+            "goal"
+          ],
+          "text": "apps/api/src/routes/goals.ts exports registerGoalRoutes in apps/api/src/routes/goals.ts."
+        }
+      ]
+    },
+    {
+      "id": "missing-users-route-no-answer",
+      "query": "Which file defines DELETE /api/users?",
+      "queryType": "no_answer",
+      "tags": [
+        "no_answer",
+        "route"
+      ],
+      "k": 3,
+      "expectedChunkIds": [],
+      "expectedTerms": [],
+      "expectedTermsFound": true,
+      "hitAtK": 0,
+      "shouldAnswer": false,
+      "needsClarification": false,
+      "warnings": [
+        "no_answer_query_has_lexical_overlap"
+      ],
+      "topResults": [
+        {
+          "rank": 1,
+          "chunkId": "chunk:edge:exports:apps/api/src/__tests__/goalservice.test.ts:apps/api/src/__tests__/goalservice.test.ts:function:testcreategoal",
+          "documentId": "document:edge:exports:apps/api/src/__tests__/goalservice.test.ts:apps/api/src/__tests__/goalservice.test.ts:function:testcreategoal",
+          "score": 0.45,
+          "matchedTerms": [
+            "api"
+          ],
+          "text": "apps/api/src/__tests__/goalService.test.ts exports testCreateGoal in apps/api/src/__tests__/goalService.test.ts."
+        },
+        {
+          "rank": 2,
+          "chunkId": "chunk:edge:exports:apps/api/src/ambiguous/dynamic.ts:apps/api/src/ambiguous/dynamic.ts:function:loaddynamicservice",
+          "documentId": "document:edge:exports:apps/api/src/ambiguous/dynamic.ts:apps/api/src/ambiguous/dynamic.ts:function:loaddynamicservice",
+          "score": 0.45,
+          "matchedTerms": [
+            "api"
+          ],
+          "text": "apps/api/src/ambiguous/dynamic.ts exports loadDynamicService in apps/api/src/ambiguous/dynamic.ts."
+        },
+        {
+          "rank": 3,
+          "chunkId": "chunk:edge:exports:apps/api/src/repositories/goalrepository.ts:apps/api/src/repositories/goalrepository.ts:repository:insertgoal",
+          "documentId": "document:edge:exports:apps/api/src/repositories/goalrepository.ts:apps/api/src/repositories/goalrepository.ts:repository:insertgoal",
+          "score": 0.45,
+          "matchedTerms": [
+            "api"
+          ],
+          "text": "apps/api/src/repositories/goalRepository.ts exports insertGoal in apps/api/src/repositories/goalRepository.ts."
+        }
+      ]
+    },
+    {
+      "id": "route-goals-defined-file",
+      "query": "Which file defines POST /api/goals?",
+      "queryType": "answerable",
+      "tags": [
+        "answerable",
+        "api",
+        "route"
+      ],
+      "k": 3,
+      "expectedChunkIds": [
+        "chunk:route:apps/api/src/routes/goals.ts:route:post:/api/goals"
+      ],
+      "expectedTerms": [
+        "POST /api/goals",
+        "apps/api/src/routes/goals.ts"
+      ],
+      "expectedTermsFound": true,
+      "hitAtK": 1,
+      "shouldAnswer": true,
+      "needsClarification": false,
+      "warnings": [],
+      "topResults": [
+        {
+          "rank": 1,
+          "chunkId": "chunk:route:apps/api/src/routes/goals.ts:route:post:/api/goals",
+          "documentId": "document:route:apps/api/src/routes/goals.ts:route:post:/api/goals",
+          "score": 0.9,
+          "matchedTerms": [
+            "api",
+            "goal",
+            "post"
+          ],
+          "text": "Fastify route POST /api/goals is defined in apps/api/src/routes/goals.ts."
+        },
+        {
+          "rank": 2,
+          "chunkId": "chunk:symbol:apps/api/src/routes/goals.ts:route:post:/api/goals",
+          "documentId": "document:symbol:apps/api/src/routes/goals.ts:route:post:/api/goals",
+          "score": 0.9,
+          "matchedTerms": [
+            "api",
+            "goal",
+            "post"
+          ],
+          "text": "Symbol POST /api/goals is a not exported route in apps/api/src/routes/goals.ts."
+        },
+        {
+          "rank": 3,
+          "chunkId": "chunk:edge:exports:apps/api/src/routes/goals.ts:apps/api/src/routes/goals.ts:function:registergoalroutes",
+          "documentId": "document:edge:exports:apps/api/src/routes/goals.ts:apps/api/src/routes/goals.ts:function:registergoalroutes",
+          "score": 0.7,
+          "matchedTerms": [
+            "api",
+            "goal"
+          ],
+          "text": "apps/api/src/routes/goals.ts exports registerGoalRoutes in apps/api/src/routes/goals.ts."
+        }
+      ]
+    },
+    {
+      "id": "route-imports-service",
+      "query": "What import connects the goals route and goal service?",
+      "queryType": "answerable",
+      "tags": [
+        "answerable",
+        "import",
+        "route",
+        "service"
+      ],
+      "k": 5,
+      "expectedChunkIds": [
+        "chunk:edge:imports:apps/api/src/routes/goals.ts:apps/api/src/services/goalservice.ts"
+      ],
+      "expectedTerms": [
+        "apps/api/src/routes/goals.ts",
+        "apps/api/src/services/goalService.ts"
+      ],
+      "expectedTermsFound": true,
+      "hitAtK": 1,
+      "shouldAnswer": true,
+      "needsClarification": false,
+      "warnings": [],
+      "topResults": [
+        {
+          "rank": 1,
+          "chunkId": "chunk:edge:imports:apps/api/src/routes/goals.ts:apps/api/src/services/goalservice.ts",
+          "documentId": "document:edge:imports:apps/api/src/routes/goals.ts:apps/api/src/services/goalservice.ts",
+          "score": 0.95,
+          "matchedTerms": [
+            "goal",
+            "import",
+            "route",
+            "service"
+          ],
+          "text": "apps/api/src/routes/goals.ts imports apps/api/src/services/goalService.ts."
+        },
+        {
+          "rank": 2,
+          "chunkId": "chunk:edge:imports:apps/api/src/routes/goals.ts:packages/shared/src/index.ts",
+          "documentId": "document:edge:imports:apps/api/src/routes/goals.ts:packages/shared/src/index.ts",
+          "score": 0.75,
+          "matchedTerms": [
+            "goal",
+            "import",
+            "route"
+          ],
+          "text": "apps/api/src/routes/goals.ts imports packages/shared/src/index.ts."
+        },
+        {
+          "rank": 3,
+          "chunkId": "chunk:edge:exports:apps/api/src/routes/goals.ts:apps/api/src/routes/goals.ts:function:registergoalroutes",
+          "documentId": "document:edge:exports:apps/api/src/routes/goals.ts:apps/api/src/routes/goals.ts:function:registergoalroutes",
+          "score": 0.6,
+          "matchedTerms": [
+            "goal",
+            "route"
+          ],
+          "text": "apps/api/src/routes/goals.ts exports registerGoalRoutes in apps/api/src/routes/goals.ts."
+        },
+        {
+          "rank": 4,
+          "chunkId": "chunk:doc_relationship:documents:docs/specs/goals_spec.md:apps/api/src/routes/goals.ts",
+          "documentId": "document:doc_relationship:documents:docs/specs/goals_spec.md:apps/api/src/routes/goals.ts",
+          "score": 0.55,
+          "matchedTerms": [
+            "goal",
+            "route"
+          ],
+          "text": "Spec docs/specs/GOALS_SPEC.md documents apps/api/src/routes/goals.ts."
+        },
+        {
+          "rank": 5,
+          "chunkId": "chunk:edge:imports:apps/api/src/__tests__/goalservice.test.ts:apps/api/src/services/goalservice.ts",
+          "documentId": "document:edge:imports:apps/api/src/__tests__/goalservice.test.ts:apps/api/src/services/goalservice.ts",
+          "score": 0.55,
+          "matchedTerms": [
+            "import",
+            "service"
+          ],
+          "text": "apps/api/src/__tests__/goalService.test.ts imports apps/api/src/services/goalService.ts."
+        }
+      ]
+    },
+    {
+      "id": "scanner-warning-dynamic-import",
+      "query": "What scanner warning exists for dynamic imports?",
+      "queryType": "ambiguous",
+      "tags": [
+        "ambiguous",
+        "warning"
+      ],
+      "k": 5,
+      "expectedChunkIds": [
+        "chunk:warning_summary:scanner-warnings"
+      ],
+      "expectedTerms": [
+        "apps/api/src/ambiguous/dynamic.ts",
+        "unsupported_dynamic_import"
+      ],
+      "expectedTermsFound": true,
+      "hitAtK": 1,
+      "shouldAnswer": false,
+      "needsClarification": true,
+      "warnings": [
+        "ambiguous_query_needs_clarification",
+        "scanner_warning_is_not_positive_evidence"
+      ],
+      "topResults": [
+        {
+          "rank": 1,
+          "chunkId": "chunk:warning_summary:scanner-warnings",
+          "documentId": "document:warning_summary:scanner-warnings",
+          "score": 0.8,
+          "matchedTerms": [
+            "dynamic",
+            "import",
+            "scanner",
+            "warning"
+          ],
+          "text": "Code Graph scanner emitted warnings; treat these as scanner limitations, not positive evidence: unsupported_dynamic_import at apps/api/src/ambiguous/dynamic.ts."
+        },
+        {
+          "rank": 2,
+          "chunkId": "chunk:edge:exports:apps/api/src/ambiguous/dynamic.ts:apps/api/src/ambiguous/dynamic.ts:function:loaddynamicservice",
+          "documentId": "document:edge:exports:apps/api/src/ambiguous/dynamic.ts:apps/api/src/ambiguous/dynamic.ts:function:loaddynamicservice",
+          "score": 0.4,
+          "matchedTerms": [
+            "dynamic"
+          ],
+          "text": "apps/api/src/ambiguous/dynamic.ts exports loadDynamicService in apps/api/src/ambiguous/dynamic.ts."
+        },
+        {
+          "rank": 3,
+          "chunkId": "chunk:edge:imports:apps/api/src/__tests__/goalservice.test.ts:apps/api/src/services/goalservice.ts",
+          "documentId": "document:edge:imports:apps/api/src/__tests__/goalservice.test.ts:apps/api/src/services/goalservice.ts",
+          "score": 0.35,
+          "matchedTerms": [
+            "import"
+          ],
+          "text": "apps/api/src/__tests__/goalService.test.ts imports apps/api/src/services/goalService.ts."
+        },
+        {
+          "rank": 4,
+          "chunkId": "chunk:edge:imports:apps/api/src/routes/goals.ts:apps/api/src/services/goalservice.ts",
+          "documentId": "document:edge:imports:apps/api/src/routes/goals.ts:apps/api/src/services/goalservice.ts",
+          "score": 0.35,
+          "matchedTerms": [
+            "import"
+          ],
+          "text": "apps/api/src/routes/goals.ts imports apps/api/src/services/goalService.ts."
+        },
+        {
+          "rank": 5,
+          "chunkId": "chunk:edge:imports:apps/api/src/routes/goals.ts:packages/shared/src/index.ts",
+          "documentId": "document:edge:imports:apps/api/src/routes/goals.ts:packages/shared/src/index.ts",
+          "score": 0.35,
+          "matchedTerms": [
+            "import"
+          ],
+          "text": "apps/api/src/routes/goals.ts imports packages/shared/src/index.ts."
+        }
+      ]
+    },
+    {
+      "id": "service-symbol-export",
+      "query": "Which service symbol is exported from goalService?",
+      "queryType": "answerable",
+      "tags": [
+        "answerable",
+        "service",
+        "symbol"
+      ],
+      "k": 5,
+      "expectedChunkIds": [
+        "chunk:symbol:apps/api/src/services/goalservice.ts:service:creategoal"
+      ],
+      "expectedTerms": [
+        "apps/api/src/services/goalService.ts",
+        "createGoal"
+      ],
+      "expectedTermsFound": true,
+      "hitAtK": 1,
+      "shouldAnswer": true,
+      "needsClarification": false,
+      "warnings": [],
+      "topResults": [
+        {
+          "rank": 1,
+          "chunkId": "chunk:symbol:apps/api/src/services/goalservice.ts:service:creategoal",
+          "documentId": "document:symbol:apps/api/src/services/goalservice.ts:service:creategoal",
+          "score": 1,
+          "matchedTerms": [
+            "exported",
+            "goalservice",
+            "service",
+            "symbol"
+          ],
+          "text": "Symbol createGoal is a named exported service in apps/api/src/services/goalService.ts."
+        },
+        {
+          "rank": 2,
+          "chunkId": "chunk:symbol:apps/api/src/services/goalservice.ts:service:goaldraft",
+          "documentId": "document:symbol:apps/api/src/services/goalservice.ts:service:goaldraft",
+          "score": 1,
+          "matchedTerms": [
+            "exported",
+            "goalservice",
+            "service",
+            "symbol"
+          ],
+          "text": "Symbol GoalDraft is a type exported service in apps/api/src/services/goalService.ts."
+        },
+        {
+          "rank": 3,
+          "chunkId": "chunk:symbol:apps/api/src/__tests__/goalservice.test.ts:function:testcreategoal",
+          "documentId": "document:symbol:apps/api/src/__tests__/goalservice.test.ts:function:testcreategoal",
+          "score": 0.9,
+          "matchedTerms": [
+            "exported",
+            "goalservice",
+            "symbol"
+          ],
+          "text": "Symbol testCreateGoal is a named exported function in apps/api/src/__tests__/goalService.test.ts."
+        },
+        {
+          "rank": 4,
+          "chunkId": "chunk:edge:exports:apps/api/src/services/goalservice.ts:apps/api/src/services/goalservice.ts:service:creategoal",
+          "documentId": "document:edge:exports:apps/api/src/services/goalservice.ts:apps/api/src/services/goalservice.ts:service:creategoal",
+          "score": 0.7,
+          "matchedTerms": [
+            "goalservice",
+            "service"
+          ],
+          "text": "apps/api/src/services/goalService.ts exports createGoal in apps/api/src/services/goalService.ts."
+        },
+        {
+          "rank": 5,
+          "chunkId": "chunk:edge:exports:apps/api/src/services/goalservice.ts:apps/api/src/services/goalservice.ts:service:goaldraft",
+          "documentId": "document:edge:exports:apps/api/src/services/goalservice.ts:apps/api/src/services/goalservice.ts:service:goaldraft",
+          "score": 0.7,
+          "matchedTerms": [
+            "goalservice",
+            "service"
+          ],
+          "text": "apps/api/src/services/goalService.ts exports GoalDraft in apps/api/src/services/goalService.ts."
+        }
+      ]
+    },
+    {
+      "id": "spec-documents-route",
+      "query": "Which spec documents the goals route file?",
+      "queryType": "answerable",
+      "tags": [
+        "answerable",
+        "docs",
+        "spec"
+      ],
+      "k": 5,
+      "expectedChunkIds": [
+        "chunk:doc_relationship:documents:docs/specs/goals_spec.md:apps/api/src/routes/goals.ts"
+      ],
+      "expectedTerms": [
+        "apps/api/src/routes/goals.ts",
+        "docs/specs/GOALS_SPEC.md"
+      ],
+      "expectedTermsFound": true,
+      "hitAtK": 1,
+      "shouldAnswer": true,
+      "needsClarification": false,
+      "warnings": [],
+      "topResults": [
+        {
+          "rank": 1,
+          "chunkId": "chunk:doc_relationship:documents:docs/specs/goals_spec.md:apps/api/src/routes/goals.ts",
+          "documentId": "document:doc_relationship:documents:docs/specs/goals_spec.md:apps/api/src/routes/goals.ts",
+          "score": 1,
+          "matchedTerms": [
+            "document",
+            "goal",
+            "route",
+            "spec"
+          ],
+          "text": "Spec docs/specs/GOALS_SPEC.md documents apps/api/src/routes/goals.ts."
+        },
+        {
+          "rank": 2,
+          "chunkId": "chunk:edge:exports:apps/api/src/routes/goals.ts:apps/api/src/routes/goals.ts:function:registergoalroutes",
+          "documentId": "document:edge:exports:apps/api/src/routes/goals.ts:apps/api/src/routes/goals.ts:function:registergoalroutes",
+          "score": 0.95,
+          "matchedTerms": [
+            "document",
+            "goal",
+            "route"
+          ],
+          "text": "apps/api/src/routes/goals.ts exports registerGoalRoutes in apps/api/src/routes/goals.ts."
+        },
+        {
+          "rank": 3,
+          "chunkId": "chunk:edge:imports:apps/api/src/routes/goals.ts:apps/api/src/services/goalservice.ts",
+          "documentId": "document:edge:imports:apps/api/src/routes/goals.ts:apps/api/src/services/goalservice.ts",
+          "score": 0.9,
+          "matchedTerms": [
+            "document",
+            "goal",
+            "route"
+          ],
+          "text": "apps/api/src/routes/goals.ts imports apps/api/src/services/goalService.ts."
+        },
+        {
+          "rank": 4,
+          "chunkId": "chunk:edge:imports:apps/api/src/routes/goals.ts:packages/shared/src/index.ts",
+          "documentId": "document:edge:imports:apps/api/src/routes/goals.ts:packages/shared/src/index.ts",
+          "score": 0.9,
+          "matchedTerms": [
+            "document",
+            "goal",
+            "route"
+          ],
+          "text": "apps/api/src/routes/goals.ts imports packages/shared/src/index.ts."
+        },
+        {
+          "rank": 5,
+          "chunkId": "chunk:route:apps/api/src/routes/goals.ts:route:post:/api/goals",
+          "documentId": "document:route:apps/api/src/routes/goals.ts:route:post:/api/goals",
+          "score": 0.9,
+          "matchedTerms": [
+            "document",
+            "goal",
+            "route"
+          ],
+          "text": "Fastify route POST /api/goals is defined in apps/api/src/routes/goals.ts."
+        }
+      ]
+    },
+    {
+      "id": "test-maps-service",
+      "query": "Which test covers goalService?",
+      "queryType": "answerable",
+      "tags": [
+        "answerable",
+        "service",
+        "test"
+      ],
+      "k": 5,
+      "expectedChunkIds": [
+        "chunk:test:tests:apps/api/src/__tests__/goalservice.test.ts:apps/api/src/services/goalservice.ts"
+      ],
+      "expectedTerms": [
+        "apps/api/src/__tests__/goalService.test.ts",
+        "apps/api/src/services/goalService.ts"
+      ],
+      "expectedTermsFound": true,
+      "hitAtK": 1,
+      "shouldAnswer": true,
+      "needsClarification": false,
+      "warnings": [],
+      "topResults": [
+        {
+          "rank": 1,
+          "chunkId": "chunk:test:tests:apps/api/src/__tests__/goalservice.test.ts:apps/api/src/services/goalservice.ts",
+          "documentId": "document:test:tests:apps/api/src/__tests__/goalservice.test.ts:apps/api/src/services/goalservice.ts",
+          "score": 1,
+          "matchedTerms": [
+            "cover",
+            "goalservice",
+            "test"
+          ],
+          "text": "Test apps/api/src/__tests__/goalService.test.ts covers apps/api/src/services/goalService.ts by direct import."
+        },
+        {
+          "rank": 2,
+          "chunkId": "chunk:edge:exports:apps/api/src/__tests__/goalservice.test.ts:apps/api/src/__tests__/goalservice.test.ts:function:testcreategoal",
+          "documentId": "document:edge:exports:apps/api/src/__tests__/goalservice.test.ts:apps/api/src/__tests__/goalservice.test.ts:function:testcreategoal",
+          "score": 0.8667,
+          "matchedTerms": [
+            "goalservice",
+            "test"
+          ],
+          "text": "apps/api/src/__tests__/goalService.test.ts exports testCreateGoal in apps/api/src/__tests__/goalService.test.ts."
+        },
+        {
+          "rank": 3,
+          "chunkId": "chunk:edge:imports:apps/api/src/__tests__/goalservice.test.ts:apps/api/src/services/goalservice.ts",
+          "documentId": "document:edge:imports:apps/api/src/__tests__/goalservice.test.ts:apps/api/src/services/goalservice.ts",
+          "score": 0.8167,
+          "matchedTerms": [
+            "goalservice",
+            "test"
+          ],
+          "text": "apps/api/src/__tests__/goalService.test.ts imports apps/api/src/services/goalService.ts."
+        },
+        {
+          "rank": 4,
+          "chunkId": "chunk:symbol:apps/api/src/__tests__/goalservice.test.ts:function:testcreategoal",
+          "documentId": "document:symbol:apps/api/src/__tests__/goalservice.test.ts:function:testcreategoal",
+          "score": 0.8167,
+          "matchedTerms": [
+            "goalservice",
+            "test"
+          ],
+          "text": "Symbol testCreateGoal is a named exported function in apps/api/src/__tests__/goalService.test.ts."
+        },
+        {
+          "rank": 5,
+          "chunkId": "chunk:file:apps/api/src/__tests__/goalservice.test.ts",
+          "documentId": "document:file:apps/api/src/__tests__/goalservice.test.ts",
+          "score": 0.7167,
+          "matchedTerms": [
+            "goalservice",
+            "test"
+          ],
+          "text": "File apps/api/src/__tests__/goalService.test.ts is a TypeScript test file in package apps/api."
+        }
+      ]
+    }
+  ]
+}
