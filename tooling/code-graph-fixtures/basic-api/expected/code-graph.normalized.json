@@ -1,0 +1,354 @@
+{
+  "scanRun": {
+    "scannerVersion": "code-graph-scanner-v0",
+    "repoRoot": ".",
+    "commitSha": "fixture",
+    "status": "completed",
+    "filesScanned": 10,
+    "filesSkipped": 0
+  },
+  "files": [
+    {
+      "path": "apps/api/src/__tests__/goalService.test.ts",
+      "language": "typescript",
+      "fileKind": "test",
+      "isTest": true,
+      "isMigration": false,
+      "isSpec": false,
+      "isAdr": false
+    },
+    {
+      "path": "apps/api/src/ambiguous/dynamic.ts",
+      "language": "typescript",
+      "fileKind": "source",
+      "isTest": false,
+      "isMigration": false,
+      "isSpec": false,
+      "isAdr": false
+    },
+    {
+      "path": "apps/api/src/repositories/goalRepository.ts",
+      "language": "typescript",
+      "fileKind": "source",
+      "isTest": false,
+      "isMigration": false,
+      "isSpec": false,
+      "isAdr": false
+    },
+    {
+      "path": "apps/api/src/routes/goals.ts",
+      "language": "typescript",
+      "fileKind": "source",
+      "isTest": false,
+      "isMigration": false,
+      "isSpec": false,
+      "isAdr": false
+    },
+    {
+      "path": "apps/api/src/services/goalService.ts",
+      "language": "typescript",
+      "fileKind": "source",
+      "isTest": false,
+      "isMigration": false,
+      "isSpec": false,
+      "isAdr": false
+    },
+    {
+      "path": "docs/adr/0001-goals.md",
+      "language": "markdown",
+      "fileKind": "adr",
+      "isTest": false,
+      "isMigration": false,
+      "isSpec": false,
+      "isAdr": true
+    },
+    {
+      "path": "docs/specs/GOALS_SPEC.md",
+      "language": "markdown",
+      "fileKind": "spec",
+      "isTest": false,
+      "isMigration": false,
+      "isSpec": true,
+      "isAdr": false
+    },
+    {
+      "path": "infra/sql/0001_create_goals.sql",
+      "language": "sql",
+      "fileKind": "migration",
+      "isTest": false,
+      "isMigration": true,
+      "isSpec": false,
+      "isAdr": false
+    },
+    {
+      "path": "package.json",
+      "language": "json",
+      "fileKind": "config",
+      "isTest": false,
+      "isMigration": false,
+      "isSpec": false,
+      "isAdr": false
+    },
+    {
+      "path": "packages/shared/src/index.ts",
+      "language": "typescript",
+      "fileKind": "source",
+      "isTest": false,
+      "isMigration": false,
+      "isSpec": false,
+      "isAdr": false
+    }
+  ],
+  "symbols": [
+    {
+      "fileId": "file:apps/api/src/__tests__/goalService.test.ts",
+      "name": "testCreateGoal",
+      "symbolKind": "function",
+      "exportKind": "named",
+      "confidence": 1,
+      "metadata": {
+        "evidence": "static export declaration"
+      }
+    },
+    {
+      "fileId": "file:apps/api/src/ambiguous/dynamic.ts",
+      "name": "loadDynamicService",
+      "symbolKind": "function",
+      "exportKind": "named",
+      "confidence": 1,
+      "metadata": {
+        "evidence": "static export declaration"
+      }
+    },
+    {
+      "fileId": "file:apps/api/src/repositories/goalRepository.ts",
+      "name": "insertGoal",
+      "symbolKind": "repository",
+      "exportKind": "named",
+      "confidence": 1,
+      "metadata": {
+        "evidence": "static export declaration"
+      }
+    },
+    {
+      "fileId": "file:apps/api/src/routes/goals.ts",
+      "name": "registerGoalRoutes",
+      "symbolKind": "function",
+      "exportKind": "named",
+      "confidence": 1,
+      "metadata": {
+        "evidence": "static export declaration"
+      }
+    },
+    {
+      "fileId": "file:apps/api/src/routes/goals.ts",
+      "name": "POST /api/goals",
+      "symbolKind": "route",
+      "exportKind": "none",
+      "confidence": 1,
+      "metadata": {
+        "routeMethod": "POST",
+        "routePath": "/api/goals",
+        "evidence": "direct Fastify literal route declaration"
+      }
+    },
+    {
+      "fileId": "file:apps/api/src/services/goalService.ts",
+      "name": "createGoal",
+      "symbolKind": "service",
+      "exportKind": "named",
+      "confidence": 1,
+      "metadata": {
+        "evidence": "static export declaration"
+      }
+    },
+    {
+      "fileId": "file:apps/api/src/services/goalService.ts",
+      "name": "GoalDraft",
+      "symbolKind": "service",
+      "exportKind": "type",
+      "confidence": 1,
+      "metadata": {
+        "evidence": "static export declaration"
+      }
+    },
+    {
+      "fileId": "file:infra/sql/0001_create_goals.sql",
+      "name": "CREATE TABLE goals",
+      "symbolKind": "migration",
+      "exportKind": "none",
+      "confidence": 1,
+      "metadata": {
+        "operation": "CREATE",
+        "tableName": "goals",
+        "evidence": "literal SQL table statement"
+      }
+    },
+    {
+      "fileId": "file:packages/shared/src/index.ts",
+      "name": "GoalInput",
+      "symbolKind": "type",
+      "exportKind": "type",
+      "confidence": 1,
+      "metadata": {
+        "evidence": "static export declaration"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "sourceId": "file:docs/adr/0001-goals.md",
+      "targetId": "file:apps/api/src/repositories/goalRepository.ts",
+      "edgeType": "documents",
+      "confidence": 0.6,
+      "metadata": {
+        "evidence": "explicit file name mention"
+      }
+    },
+    {
+      "sourceId": "file:docs/specs/GOALS_SPEC.md",
+      "targetId": "file:apps/api/src/routes/goals.ts",
+      "edgeType": "documents",
+      "confidence": 0.8,
+      "metadata": {
+        "evidence": "explicit repository path mention"
+      }
+    },
+    {
+      "sourceId": "file:apps/api/src/__tests__/goalService.test.ts",
+      "targetId": "symbol:apps/api/src/__tests__/goalService.test.ts:function:testcreategoal",
+      "edgeType": "exports",
+      "confidence": 1,
+      "metadata": {
+        "evidence": "static export declaration",
+        "exportKind": "named"
+      }
+    },
+    {
+      "sourceId": "file:apps/api/src/ambiguous/dynamic.ts",
+      "targetId": "symbol:apps/api/src/ambiguous/dynamic.ts:function:loaddynamicservice",
+      "edgeType": "exports",
+      "confidence": 1,
+      "metadata": {
+        "evidence": "static export declaration",
+        "exportKind": "named"
+      }
+    },
+    {
+      "sourceId": "file:apps/api/src/repositories/goalRepository.ts",
+      "targetId": "symbol:apps/api/src/repositories/goalRepository.ts:repository:insertgoal",
+      "edgeType": "exports",
+      "confidence": 1,
+      "metadata": {
+        "evidence": "static export declaration",
+        "exportKind": "named"
+      }
+    },
+    {
+      "sourceId": "file:apps/api/src/routes/goals.ts",
+      "targetId": "symbol:apps/api/src/routes/goals.ts:function:registergoalroutes",
+      "edgeType": "exports",
+      "confidence": 1,
+      "metadata": {
+        "evidence": "static export declaration",
+        "exportKind": "named"
+      }
+    },
+    {
+      "sourceId": "file:apps/api/src/services/goalService.ts",
+      "targetId": "symbol:apps/api/src/services/goalService.ts:service:creategoal",
+      "edgeType": "exports",
+      "confidence": 1,
+      "metadata": {
+        "evidence": "static export declaration",
+        "exportKind": "named"
+      }
+    },
+    {
+      "sourceId": "file:apps/api/src/services/goalService.ts",
+      "targetId": "symbol:apps/api/src/services/goalService.ts:service:goaldraft",
+      "edgeType": "exports",
+      "confidence": 1,
+      "metadata": {
+        "evidence": "static export declaration",
+        "exportKind": "type"
+      }
+    },
+    {
+      "sourceId": "file:packages/shared/src/index.ts",
+      "targetId": "symbol:packages/shared/src/index.ts:type:goalinput",
+      "edgeType": "exports",
+      "confidence": 1,
+      "metadata": {
+        "evidence": "static export declaration",
+        "exportKind": "type"
+      }
+    },
+    {
+      "sourceId": "file:apps/api/src/__tests__/goalService.test.ts",
+      "targetId": "file:apps/api/src/services/goalService.ts",
+      "edgeType": "imports",
+      "confidence": 1,
+      "metadata": {
+        "importSource": "../services/goalService",
+        "evidence": "static relative import"
+      }
+    },
+    {
+      "sourceId": "file:apps/api/src/routes/goals.ts",
+      "targetId": "file:apps/api/src/services/goalService.ts",
+      "edgeType": "imports",
+      "confidence": 1,
+      "metadata": {
+        "importSource": "../services/goalService",
+        "evidence": "static relative import"
+      }
+    },
+    {
+      "sourceId": "file:apps/api/src/routes/goals.ts",
+      "targetId": "file:packages/shared/src/index.ts",
+      "edgeType": "imports",
+      "confidence": 1,
+      "metadata": {
+        "importSource": "../../../../packages/shared/src/index",
+        "evidence": "static relative import"
+      }
+    },
+    {
+      "sourceId": "file:apps/api/src/services/goalService.ts",
+      "targetId": "file:apps/api/src/repositories/goalRepository.ts",
+      "edgeType": "imports",
+      "confidence": 1,
+      "metadata": {
+        "importSource": "../repositories/goalRepository",
+        "evidence": "static relative import"
+      }
+    },
+    {
+      "sourceId": "file:infra/sql/0001_create_goals.sql",
+      "targetId": "symbol:infra/sql/0001_create_goals.sql:migration:create:goals",
+      "edgeType": "migrates",
+      "confidence": 1,
+      "metadata": {
+        "operation": "CREATE",
+        "tableName": "goals",
+        "evidence": "literal SQL table statement"
+      }
+    },
+    {
+      "sourceId": "file:apps/api/src/__tests__/goalService.test.ts",
+      "targetId": "file:apps/api/src/services/goalService.ts",
+      "edgeType": "tests",
+      "confidence": 1,
+      "metadata": {
+        "evidence": "test file imports source file"
+      }
+    }
+  ],
+  "warnings": [
+    {
+      "code": "unsupported_dynamic_import",
+      "path": "apps/api/src/ambiguous/dynamic.ts"
+    }
+  ]
+}

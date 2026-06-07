@@ -11,3 +11,4 @@ coverage/
 .playwright-mcp/
 triforge-dashboard.png
 reports/retrieval-eval/
+artifacts/code-graph/
