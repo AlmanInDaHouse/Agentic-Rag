@@ -7,6 +7,8 @@ Local deterministic prototype for Code Graph v0.
 ```bash
 pnpm code-graph:scan
 pnpm code-graph:check
+pnpm code-graph:pack
+pnpm code-graph:pack:check
 ```
 
 `pnpm code-graph:scan` scans the repository root and writes:
@@ -30,6 +32,28 @@ tooling/code-graph-fixtures/basic-api/expected/code-graph.normalized.json
 
 The check fails on unexpected fixture drift and is part of the main CI Validate workflow.
 
+`pnpm code-graph:pack` reads:
+
+```text
+artifacts/code-graph/code-graph.json
+```
+
+and writes the derived context pack:
+
+```text
+artifacts/code-graph/code-context-pack.json
+```
+
+If the scanner artifact does not exist, run `pnpm code-graph:scan` first. The context pack is an intermediate local artifact for future Context Engine/RAG ingestion. It creates candidate documents and chunks only; it does not write to PostgreSQL or call the product runtime.
+
+`pnpm code-graph:pack:check` scans the synthetic fixture, creates a context pack in memory, normalizes unstable fields and compares it with:
+
+```text
+tooling/code-graph-fixtures/basic-api/expected/code-context-pack.normalized.json
+```
+
+The pack check fails on unexpected context-pack drift and is part of the main CI Validate workflow.
+
 ## Output
 
 The artifact contains:
@@ -39,6 +63,15 @@ The artifact contains:
 - `symbols`
 - `edges`
 - `warnings`
+
+The context pack contains:
+
+- `pack`
+- `documents`
+- `chunks`
+- `warnings`
+
+Context pack documents and chunks are generated for file summaries, symbol summaries, edge summaries, route summaries, migration summaries, test mapping summaries, documentation relationship summaries and warning summaries. Chunks are short structured text with metadata such as `generatedFrom`, `sourcePath`, `symbolName`, `symbolKind`, `edgeType`, `targetPath`, `confidence`, `scannerVersion` and `commitSha`.
 
 IDs and paths are stable and repository-relative. Arrays are sorted by stable IDs. The scanner records timestamps for real scan runs, so tests and quality gates compare a normalized artifact without timestamps.
 
@@ -58,6 +91,8 @@ Normalization preserves:
 - edge type/source/target,
 - confidence,
 - warning code/path.
+
+Context pack normalization removes `generatedAt` and preserves stable document/chunk ids, text, metadata, warning code/path and aggregate counts.
 
 ## Detection
 
@@ -94,6 +129,7 @@ The scanner is intentionally conservative. It does not run the TypeScript compil
 ```bash
 pnpm test:code-graph-scanner
 pnpm code-graph:check
+pnpm code-graph:pack:check
 ```
 
 Fixtures live under:
@@ -108,8 +144,14 @@ The expected fixture output is a normalized JSON expectation at:
 tooling/code-graph-fixtures/basic-api/expected/code-graph.normalized.json
 ```
 
-When scanner behavior changes intentionally, update this expected JSON in the same PR as the scanner change.
+The expected context pack fixture output is:
+
+```text
+tooling/code-graph-fixtures/basic-api/expected/code-context-pack.normalized.json
+```
+
+When scanner or context pack behavior changes intentionally, update the relevant expected JSON in the same PR as the behavior change.
 
 ## Out of Scope
 
-This scanner does not persist Code Graph data, create migrations, expose API endpoints, integrate with the runtime or Context Engine, render dashboard views, implement GraphRAG, call external providers or require pgvector.
+This scanner and context pack tooling does not persist Code Graph data, create migrations, expose API endpoints, integrate with the runtime or Context Engine, render dashboard views, implement GraphRAG, call external providers, require pgvector or include full source-file content in generated artifacts.
