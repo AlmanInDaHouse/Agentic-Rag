@@ -10,6 +10,7 @@ pnpm code-graph:check
 pnpm code-graph:pack
 pnpm code-graph:pack:check
 pnpm code-graph:pack:eval
+pnpm code-graph:ingest -- --goal-id <goal-uuid>
 ```
 
 `pnpm code-graph:scan` scans the repository root and writes:
@@ -76,6 +77,23 @@ The eval measures structural retrieval behavior before real Context Engine inges
 
 The eval is lexical-only and local. It does not use PostgreSQL, the real Context Engine, embeddings, LLM-as-judge, providers or GraphRAG.
 
+`pnpm code-graph:ingest -- --goal-id <goal-uuid>` reads:
+
+```text
+artifacts/code-graph/code-context-pack.json
+```
+
+and manually ingests it into the existing Context Engine for the supplied goal. Optional CLI flags:
+
+```bash
+pnpm code-graph:ingest -- --goal-id <goal-uuid> --pack artifacts/code-graph/code-context-pack.json
+pnpm code-graph:ingest -- --goal-id <goal-uuid> --source-name "Code Graph context"
+```
+
+The command uses the existing `artifact` context source type and stores Code Graph identity in source/document/chunk metadata rather than adding a new database source type. It creates or reuses one source for the same goal, context-pack path and stable context-pack hash. Pack chunks are grouped into derived Context Engine documents by pack document kind, then persisted as small retrievable chunks.
+
+Ingestion applies the existing local Context Data Policy before chunk persistence. Secret-like values are redacted, restricted chunks are excluded, and full repository file contents are not read or stored by the ingest command. The command requires a reachable configured PostgreSQL database and an existing goal id; it does not run migrations, scan the repository, execute code, generate embeddings, call providers, integrate with runtime `load_context` beyond normal search availability, or implement GraphRAG.
+
 ## Output
 
 The artifact contains:
@@ -94,6 +112,8 @@ The context pack contains:
 - `warnings`
 
 Context pack documents and chunks are generated for file summaries, symbol summaries, edge summaries, route summaries, migration summaries, test mapping summaries, documentation relationship summaries and warning summaries. Chunks are short structured text with metadata such as `generatedFrom`, `sourcePath`, `symbolName`, `symbolKind`, `edgeType`, `targetPath`, `confidence`, `scannerVersion` and `commitSha`.
+
+When ingested into the Context Engine, chunks also preserve `packVersion`, `artifactPath`, `sourceArtifactPath`, `codeGraphPackHash`, `codeGraphDocumentId` and `codeGraphChunkId` metadata. Missing relationship-specific fields such as `edgeType` or `targetPath` are stored as `null` on chunks that do not have those facts.
 
 IDs and paths are stable and repository-relative. Arrays are sorted by stable IDs. The scanner records timestamps for real scan runs, so tests and quality gates compare a normalized artifact without timestamps.
 
@@ -184,3 +204,5 @@ When scanner or context pack behavior changes intentionally, update the relevant
 ## Out of Scope
 
 This scanner, context pack tooling and local pack eval does not persist Code Graph data, create migrations, expose API endpoints, integrate with the runtime or Context Engine, render dashboard views, implement GraphRAG, call external providers, require pgvector, run LLM-as-judge or include full source-file content in generated artifacts.
+
+`code-graph:ingest` is the only command in this tooling set that persists Code Graph-derived context. It is manual, goal-scoped, PostgreSQL-backed and still does not create migrations, endpoints, dashboard views, external calls, provider calls, required pgvector behavior, runtime changes or GraphRAG.
