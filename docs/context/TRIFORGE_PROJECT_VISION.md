@@ -435,6 +435,11 @@ Availability and authentication are **separate** from quota status: in the quota
 model they map to the `PROVIDER_UNAVAILABLE` and
 `PROVIDER_AUTHENTICATION_REQUIRED` condition codes, not to a quota `status`.
 
+The integration boundary this adapter sits behind — official local headless CLIs,
+the process model, capability detection, and local subscription authentication —
+is specified by Milestone A0.3: `docs/specs/OFFICIAL_CLI_PROVIDER_INTEGRATION_SPEC.md`,
+ADR 0028 and ADR 0029.
+
 ---
 
 ## 12. Event-Driven Integration
@@ -839,8 +844,9 @@ developer/analysis facility — it is not invoked by the agent runtime.
 
 ### A0 Foundations
 - **A0.1** Quota-aware orchestration — **completed** (spec + ADR 0027).
-- **A0.2** Canonical project vision — **current** (this document).
-- **A0.3** Official CLI integration and local authentication ADRs.
+- **A0.2** Canonical project vision — **completed** (this document).
+- **A0.3** Official CLI integration and local authentication — **current**
+  (`OFFICIAL_CLI_PROVIDER_INTEGRATION_SPEC.md`, ADR 0028, ADR 0029).
 - **A0.4** Windows/WSL2 execution-substrate ADR.
 
 ### A1 Provider Contracts
