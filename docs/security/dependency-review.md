@@ -46,6 +46,20 @@ No direct dependency in the current manifests shows clear evidence of typosquatt
 - Added `scripts/check-dependencies.mjs` and root `pnpm lint:deps`.
 - Approved the transitive `esbuild` build script in `pnpm-workspace.yaml` because Vite/Vitest require its native binary package during install.
 
+## Security Advisory Remediation
+
+Date: 2026-06-28
+
+- Advisory: `GHSA-g7r4-m6w7-qqqr` (esbuild).
+- Severity: LOW.
+- Type: transitive, development/test-only dependency, pulled in via `vitest > @vitest/mocker > vite > esbuild` and `tsx > esbuild`.
+- Impact: path traversal / arbitrary file read in the esbuild development server on Windows. It affects the dev server only; TriForge does not expose the esbuild dev server as a product surface, and there is no evidence or implication of exploitation.
+- Affected versions: `>=0.27.3 <0.28.1`; the tree had `esbuild@0.28.0`.
+- Patched version: `0.28.1`.
+- Strategy: pinned the corrected version through a root pnpm `overrides` entry in `pnpm-workspace.yaml` (`esbuild: 0.28.1`), the repository's canonical location for pnpm dependency-resolution settings, and updated `pnpm-lock.yaml`. No major upgrade of Vite, Vitest, tsx or other packages was required; `vite@8.0.16` accepts `esbuild ^0.28.0` and a single `esbuild` version remains in the tree.
+- Validations: `corepack pnpm install`, `corepack pnpm audit` (now reports no known vulnerabilities), plus the standard typecheck, lint, test and build gates.
+- Residual risk: none specific to this advisory after the bump. The general transitive-upgrade risk in "Open Risk" still applies. The audit gate is dynamic, so this update was triggered by a newly published advisory rather than by any change in TriForge's own code; it was not introduced by the Milestone A0.1 documentation work.
+
 ## Minimum Policy
 
 - Do not add dependencies without a documented purpose.
