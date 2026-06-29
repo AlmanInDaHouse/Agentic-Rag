@@ -4,20 +4,20 @@
 and GitHub at the start of every loop; this file records the conclusion, not the
 history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.1).
 
-**Last updated:** 2026-06-29 (Loop 5, on branch `feat/a3-real-readonly-adapters`)
+**Last updated:** 2026-06-29 (Loop 6, on branch `feat/a4-collaboration-runtime`)
 
 ## Snapshot
 
 | Field | Value |
 |---|---|
-| Last closed milestone | A2.3 — Quota Manager (`2ffa6fb`, PR #37) → A2 complete |
-| Active milestone | A3 — Real read-only adapters (this PR) |
-| `main` SHA | `2ffa6fb` |
-| Last `main` CI | `Validate` ✅ success (`2ffa6fb`) |
-| Open PRs | A3 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is from the legacy 1.x line, out of the A1–A9 roadmap, not blocking — left as-is. |
+| Last closed milestone | A3 — Real read-only adapters (`9d5dac4`, PR #38) |
+| Active milestone | A4 — Collaboration runtime (this PR) → completes A1–A4 |
+| `main` SHA | `9d5dac4` |
+| Last `main` CI | `Validate` ✅ success (`9d5dac4`) |
+| Open PRs | A4 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is from the legacy 1.x line, out of the A1–A9 roadmap, not blocking — left as-is. |
 | Blockers | none |
 | Pending decisions | none |
-| Next loop | A4 — Collaboration runtime (Specialist/Pair/Full-Debate, cross-review, strategy resolution) |
+| Next loop | **A5 — Controlled Writable Execution (MVP)** — UNLOCKED once A4 merges (gate A0.5 + A1–A4 satisfied). First milestone with REAL repository writes; gated per the A0.5 capability-binding rule. |
 
 ## Follow-ups / tech debt
 
@@ -54,9 +54,9 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 - A0.5 Provider and repository threat model — **merged** (`e09c4d3`; ADR 0032)
 - A1 Provider contracts — **merged** (`5cf7728`; PR #34; ADR 0033)
 - A2 Mocks, harness, quota manager — **merged** (A2.1 `98b7c42` #35, A2.2 `ede0d55` #36, A2.3 `2ffa6fb` #37)
-- A3 Real read-only adapters — **active** (this PR; ADR 0034)
-- A4 Collaboration runtime — **next**
-- A5 Controlled writable execution (MVP) — pending (gated on A0.4+Gov+A0.5+A1–A4)
+- A3 Real read-only adapters — **merged** (`9d5dac4`; PR #38; ADR 0034)
+- A4 Collaboration runtime — **active** (this PR; ADR 0035) → completes A1–A4
+- A5 Controlled writable execution (MVP) — **next / UNLOCKED** (gate A0.4+Gov+A0.5+A1–A4 satisfied once A4 merges)
 - A6 Routing and learning — pending
 - A7 Competitive mode — pending (not required for MVP)
 - A8 Product interface — pending
@@ -87,9 +87,9 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 |---|---|
 | Loops executed | Loops 0–4 complete (A0.4, Gov, A0.5, A1, A2); Loop 5 (A3) active |
 | PRs created | 7 this run (Gov, A0.5, A1, A2.1, A2.2, A2.3, A3); PR #31 pre-existed |
-| PRs merged | 7 (#31 A0.4, #32 Gov, #33 A0.5, #34 A1, #35 A2.1, #36 A2.2, #37 A2.3) |
+| PRs merged | 8 (#31 A0.4, #32 Gov, #33 A0.5, #34 A1, #35 A2.1, #36 A2.2, #37 A2.3, #38 A3) |
 | CI failures | 0 |
-| Repair rounds | 7 (Gov, A0.5, A1, A2.1, A2.2, A2.3, A3 reviews) |
+| Repair rounds | 8 (Gov, A0.5, A1, A2.1, A2.2, A2.3, A3, A4 reviews) |
 | Regressions | 0 |
 | Reverts | 0 |
 | Blockers hit | 0 |
@@ -97,7 +97,7 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 | Findings by severity (reviews) | Gov: 2 crit/2 maj/6 min/4 obs. A0.5: 0/0/0/~3 min/~7 obs. A1: 0/0/0/~3 min/~3 obs — all resolved pre-merge |
 | Time-to-merge | Loops 0–3: same session |
 | Diff size | A0.4/Gov/A0.5 docs; A1: 11 files (~1900 LoC, contracts+51 tests) |
-| Coverage | provider suite 346 tests (51 contracts + 108 mock/engine + 91 harness + 46 quota + 50 real adapters/normalizers), pure/no-DB |
+| Coverage | provider+orchestration suite 379 tests (51 contracts + 108 mock/engine + 91 harness + 46 quota + 50 real + 33 collaboration), pure/no-DB; full api suite ~513 |
 | Quota usage | not yet instrumented (no provider runs) |
 | Reverted decisions | 0 |
 | Security incidents | 1 (PAT pasted into chat — R-SEC-2; external, owner must rotate; non-blocking) |
@@ -106,29 +106,36 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 ## Exact next loop
 
 ```text
-Loop 6 — A4 Collaboration Runtime (mandate §16). After merging A3:
-1. git checkout main && pull (ff) ; branch feat/a4-collaboration-runtime.
-2. Pure orchestration over the A1 contracts + A2 mock adapters + A2.3 quota manager
-   (NO real writes; mock-first). Implement in apps/api/src/providers/ (or orchestration/):
-   - Specialist Mode (default): Task → TaskProfile → owner selection → plan → execution
-     (single owner; second provider only on risk/policy).
-   - Pair Mode: owner proposal → second-provider critique → resolution → owner execution.
-   - Full Debate Mode (architecture/security/migration/high blast-radius/high
-     uncertainty): independent plans → cross-review → agreements/disagreements →
-     evidence-based resolution.
-   - Review protocol: findings {severity,category,file,line,evidence,impact,
-     requiredAction,missingTest,confidence} (ReviewFindings A1 contract).
-   - Strategy resolution by AUTHORITY ORDER (mandate §A4.5): safety invariants → spec
-     → acceptance criteria → code evidence → tests → ADRs → threat model → risk policy
-     → governance decision. NOT by agent majority.
-3. Drive everything with the MOCK adapters (deterministic); produce StrategyDecision /
-   CrossReview / AgentPlan / ReviewFindings artifacts (A1 Zod contracts). Quota-gate
-   each provider step via the A2.3 QuotaManager. No writable execution (A5-gated).
-4. Tests (pure, no DB): each mode end-to-end over mocks; strategy resolution order;
-   reserve/quota interaction. Gates → adversarial review → repair → PR → CI →
-   squash-merge → delete branch → verify main → update this file. Then A5 (gated on
-   A0.5 + A1–A4 closed).
-Closure of A4: TriForge can coordinate planning/critique/resolution/review between
-providers WITHOUT real writes. Consider TD-1 (extract Clock from mock/) first as a
-tiny chore PR.
+Loop 7 — A5 Controlled Writable Execution (MVP) (mandate §17). UNLOCKED: A0.4 + Gov
++ A0.5 + A1–A4 are closed. This is the FIRST milestone with REAL repository writes —
+the highest-risk milestone; split into reviewable sub-PRs, each keeping main green.
+Bind EVERY writable capability to the A0.5 closure rule (threat-model §11:
+{threat,control,milestone,verification,recovery,residual risk}) BEFORE enabling it.
+Sub-pieces (mandate §A5.1–§A5.10), suggested order:
+  A5.1 Worktree Manager (create/branch/ownership/lifecycle/cleanup/stale-detection/
+       recovery/disk-limits/crash-recovery/auditability; NEVER work on main directly).
+  A5.2 Owner/reviewer enforcement (owner writes only authorized paths; reviewer
+       read-only, produces findings, modifies nothing).
+  A5.3 Allowed-paths (readPaths/writePaths/blockedPaths/maxFilesChanged; normalize→
+       realpath→containment→symlink/hardlink/TOCTOU; .git/home/external/secrets blocked).
+  A5.4 Safe Command Policy (categories; shell disabled by default; explicit binary+argv+
+       cwd+env-allowlist+timeout+output-limits+process-ownership).
+  A5.5 Process supervision (cancel→stop→SIGTERM group→grace→SIGKILL→partial evidence→
+       single terminal) — reuse the A3 NodeProcessRunner process-group model.
+  A5.6 Mutation ledger (files created/modified/deleted, before/after hashes, commands,
+       timestamps, owner, diff, tests, reasons).
+  A5.7 Quality Gate Runner (unit/integration/e2e/typecheck/lint/build/deps/security/
+       code-graph/custom) — wraps the existing gates.
+  A5.8 Repair loop (implement→gates→findings→repair→gates) with round/quota/walltime/
+       output/failure-threshold limits.
+  A5.9 Autonomous integration gate — produce a GovernanceDecision (A1 contract) with
+       the capability binding; replaces the old human commit gate (ADR 0031).
+  A5.10 Writable E2E on a FIXTURE repo: create worktree→implement→tests→review→repair→
+       governance decision→commit→controlled merge→cleanup.
+Each sub-PR: spec/impl (mock-first where possible; real writes confined to an isolated
+worktree/fixture, NEVER the live working tree or main) → gates → adversarial review →
+repair → PR → CI → squash-merge → verify main → update this file. Closure of A5 = the
+MVP: TriForge completes a real low-risk task with single owner, read-only reviewer,
+tests, repair and a governed merge. Then A6 routing.
+First consider TD-1 (extract Clock from mock/) + TD-2 (error code) as tiny chore PRs.
 ```

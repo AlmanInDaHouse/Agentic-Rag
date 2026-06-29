@@ -278,11 +278,15 @@ folklore — drives routing over time.
 ## 8. Collaboration Modes
 
 **[Decided] / [Planned]** Four collaboration modes are introduced by
-`QUOTA_AWARE_PROVIDER_ORCHESTRATION_SPEC.md`. The spec is explicit that these
-modes **do not yet exist in the repository**; the only debate that exists today
-is a single mock round with three mock agents and a highest-confidence judge
-(`DEBATE_ENGINE_SPEC.md`), which is the seed for Full Debate Mode. Mode selection
-is driven by risk, uncertainty and available budget.
+`QUOTA_AWARE_PROVIDER_ORCHESTRATION_SPEC.md`. Three of them — **Specialist, Pair and
+Full Debate** — now **exist mock-first** in the A4 collaboration runtime
+(`apps/api/src/orchestration`, ADR 0035 / `COLLABORATION_RUNTIME_SPEC.md`): they
+coordinate planning, critique, resolution and review over the A2 mocks and the quota
+manager, with **no real writes and no real CLI execution** (the legacy single-round
+mock debate with a highest-confidence judge, `DEBATE_ENGINE_SPEC.md`, was the seed
+for Full Debate Mode). Competitive and Review-Only modes remain planned. Mode
+selection is driven by risk, uncertainty and available budget, and a mode the budget
+cannot fund after the reserves are protected is downgraded rather than selected.
 
 ### Specialist Mode — [Decided]
 The economical default. A single owner implements, performs self-review, and
@@ -314,7 +318,12 @@ existing reviewer model (Section 15) and the read-first reviewer posture.
 
 ## 9. End-to-End Workflow
 
-**[Planned]** The target task lifecycle:
+**[Planned]** The target task lifecycle. The **mode-selection → planning / debate →
+strategy resolution → cross-vendor review** phases now exist **mock-first** in the A4
+collaboration runtime (read-only; the "controlled implementation" step is simulated
+via the mock event stream). **Controlled implementation, automated quality gates, the
+repair loop and the autonomous governance decision over a real diff are A5** (gated
+on A0.5); they remain unbuilt.
 
 ```text
 Task intake
@@ -865,17 +874,21 @@ developer/analysis facility — it is not invoked by the agent runtime.
 ## 21. Missing Components
 
 **[Planned]** The provider **contract** (A1, §11), the **mock adapters + black-box
-harness + quota manager** (A2) and the **real READ-ONLY** Codex/Claude adapters
-with **event normalizers** (A3, `apps/api/src/providers/real`) now exist; capability
-detection exists as a version-bound snapshot in both the mock and real adapters. The
-following remain unbuilt (writable execution stays gated on A0.5 + the
-per-capability binding rule):
+harness + quota manager** (A2), the **real READ-ONLY** Codex/Claude adapters
+with **event normalizers** (A3, `apps/api/src/providers/real`) and the **collaboration
+runtime** (A4, `apps/api/src/orchestration`) now exist; capability detection exists
+as a version-bound snapshot in both the mock and real adapters, and the Specialist /
+Pair / Full Debate protocols coordinate planning, critique, resolution and review
+**mock-first, with no real writes** (ADR 0035). The following remain unbuilt
+(writable execution stays gated on A0.5 + the per-capability binding rule):
 
 - **writable** (`implementation_write_limited`) Codex/Claude adapters;
-- runtime **wiring** of the real adapters (the runtime stays mock-only);
+- runtime **wiring** of the real adapters and the collaboration runtime (the runtime
+  stays mock-only);
 - task router;
-- collaboration protocols (Specialist / Pair / Full Debate / Competitive /
-  Review-Only);
+- the remaining collaboration protocols (Competitive / Review-Only) and the
+  real **writable** execution step that A5 substitutes for A4's simulated,
+  read-only "execution";
 - owner/reviewer permission enforcement;
 - worktree manager;
 - repository-specific performance profiles;
@@ -921,8 +934,9 @@ aligned with the owner mandate (`docs/instrucciones.md` §13–§21) and
   results, evidence retention. (Mandate §15.)
 
 ### A4 Collaboration Runtime
-- Specialist / Pair / Full Debate modes; cross-review protocol; strategy
-  resolution; autonomous governance gate (human override). No real writes.
+- Specialist / Pair / Full Debate modes; cross-review protocol; enforced severity
+  gate; authority-order strategy resolution. Mock-first, no real writes and **no
+  governance gate** — the `GovernanceDecision` and its capability binding are A5.
   (Mandate §16.)
 
 ### A5 Controlled Writable Execution (MVP)
