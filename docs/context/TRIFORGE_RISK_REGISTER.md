@@ -25,7 +25,7 @@ mitigation execution unless noted. Probability/impact are qualitative
 | ID | Description | Impact | Prob | Mitigation | Status | Milestone | Evidence |
 |---|---|---|---|---|---|---|---|
 | R-SEC-1 | GCM-token override erodes the credential boundary | High | Low | In-memory only, never persisted/printed, scoped to repo PR/merge; owner rotates after run | Open (accepted, scoped) | Governance | Charter §3.2 |
-| R-SEC-2 | PAT pasted into chat is exposed in the transcript | High | High (already occurred) | Owner must revoke/rotate the PAT after the session; not reproduced in any output | **Action required (owner)** | Governance | autonomous-loop-authorization memory |
+| R-SEC-2 | PAT pasted into chat is exposed in the transcript | High | High (already occurred) | Owner must revoke/rotate the PAT; not reproduced/searched/persisted by the loop; Git auth uses the GCM token, not the pasted PAT | **External pending (owner) — non-blocking** | Governance | autonomous-loop-authorization memory |
 | R-SEC-3 | Untrusted repository content (prompt injection, hostile scripts, symlink/path escape) on future writable runs | High | High | Full threat model + controls before any writable adapter | Open | A0.5 | Mandate §12 |
 
 **R-SEC-2 reconciliation with the stop-on-exposure rule (mandate §3.3 / §24).** The
