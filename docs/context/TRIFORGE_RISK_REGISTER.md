@@ -4,7 +4,7 @@
 impact, qualitative probability, mitigation, status, owner, responsible milestone,
 evidence. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.2).
 
-**Last updated:** 2026-06-29 (Loop 11 — A5.3)
+**Last updated:** 2026-06-29 (Loop 12 — A5.4)
 
 Owner is `AlmanInDaHouse` for accept/override decisions; Claude Code owns
 mitigation execution unless noted. Probability/impact are qualitative
@@ -91,6 +91,14 @@ threat IDs in that catalog. These do not restate the already-booked R-GOV-5
   and POSIX orphan reaping. Partially mitigates R-SEC-5. Still open: owner/reviewer
   enforcement (A5.4), stream redaction (A5.5/A9). Residual: conservative over-blocking
   of unusual flag forms (fails closed); network opt-in only.
+- **A5.4 Owner/Reviewer enforcement (this PR; ADR 0039).** Single writable owner lease
+  (two-owner race blocked; explicit+audited reassignment only — no implicit owner
+  change), role gate composing A5.2/A5.3 (reviewer cannot write or run a non-read_only
+  command; lease-less owner action denied; role binding on every decision). Demonstrated
+  by SAT-A5-8 (10 tests). Reduces R-GOV-1 / R-SEC-6 (attributable, owner-gated effects).
+  Still open: mutation ledger (A5.5), authenticated approver channel (R-SEC-9, auth
+  milestone). Residual: role-agnostic lease (writes still role-gated); logical (not yet
+  authenticated) actor id.
 
 ## Closed / superseded
 
