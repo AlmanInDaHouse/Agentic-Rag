@@ -69,3 +69,12 @@ export {
   type StrategyResolutionInput,
   type StrategyResolution
 } from "./strategyResolution.js";
+
+export {
+  profileTask,
+  TASK_PROFILER_VERSION,
+  type ProfileSignals,
+  type ExtendedProfile,
+  type ProfileOverride,
+  type ProfileResult
+} from "./taskProfiler.js";
