@@ -4,20 +4,20 @@
 and GitHub at the start of every loop; this file records the conclusion, not the
 history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.1).
 
-**Last updated:** 2026-06-29 (Loop 18 — A5.10 blocked / A5 closed, on branch `docs/a5-10-real-pilot-blocked`)
+**Last updated:** 2026-06-29 (Loop 19 — A6.1, on branch `feat/a6-1-task-profiler`)
 
 ## Snapshot
 
 | Field | Value |
 |---|---|
-| Last closed milestone | A5.9 — Writable E2E (mock-first) = **FUNCTIONAL MVP** (`b041a12`, PR #50; ADR 0044) |
-| Active milestone | **A5.10 — real provider pilot: BLOCKED (documented)** → **A5 functionally COMPLETE**. Next: A6 routing. |
-| `main` SHA | `b041a12` |
-| Last `main` CI | `Validate` ✅ success (`b041a12`) |
-| Open PRs | A5.10 docs (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
-| Blockers | none (A5.10 real pilot blocked-and-documented, does NOT block A6–A9) |
+| Last closed milestone | A5.10 real pilot blocked-documented → **A5 functionally COMPLETE** (`aefbe5a`, PR #51) |
+| Active milestone | **A6.1 — Task Profiler** (this PR; `orchestration/taskProfiler.ts`; ADR 0045) |
+| `main` SHA | `aefbe5a` |
+| Last `main` CI | `Validate` ✅ success (`aefbe5a`) |
+| Open PRs | A6.1 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
+| Blockers | none |
 | Pending decisions | none |
-| Next loop | **A6.1 — Task Profiler** (structured classification: task kind, complexity, risk, blast radius, language, framework, reasoning depth, repetitive work, test burden, security sensitivity, behavioral preservation, migration impact, context size, required provider capabilities; profile validated/auditable/versioned/reproducible/overrideable — A1 `TaskProfile` contract exists). Then A6.2 static router, A6.3 quota-aware, A6.4 metrics, A6.5 repo profiles, A6.6 adaptive. |
+| Next loop | **A6.2 — Static capability router** (explicit, EVIDENCE-bearing rules mapping a `TaskProfile` → preferred provider; each rule carries evidence basis / confidence / fallback / reason / version; NO eternal stereotypes. Feeds/extends the A4 `orchestration/routing.ts` owner selection). Then A6.3 quota-aware, A6.4 metrics, A6.5 repo profiles, A6.6 adaptive. |
 
 ## Follow-ups / tech debt
 
@@ -70,7 +70,10 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
   - A5.9 Writable E2E (mock-first) — **merged / FUNCTIONAL MVP** (`b041a12`; PR #50; ADR 0044)
   - A5.10 Low-risk real provider pilot — **BLOCKED (documented)**: writable capability not safely verifiable (WSL2 stopped; auth UNKNOWN; A3 adapter read-only). Does not block A6–A9.
 - **A5 — functionally COMPLETE** (MVP demonstrated via mocks; real pilot blocked-and-documented)
-- A6 Routing and learning — **active / next** (A6.1 Task Profiler)
+- A6 Routing and learning — **active**:
+  - A6.1 Task Profiler — **active** (this PR; ADR 0045; `ROUTING_LEARNING_SPEC.md`)
+  - A6.2 Static capability router — next
+  - A6.3 Quota-aware router / A6.4 metrics / A6.5 repo profiles / A6.6 adaptive — pending
 - A7 Competitive mode — pending (not required for MVP)
 - A8 Product interface — pending
 - A9 Hardening and release — pending
@@ -106,9 +109,9 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 
 | Metric | Value |
 |---|---|
-| Loops executed | A0.4–A4 (0–6); TD-1..A5.9 merged (7–17) = FUNCTIONAL MVP; A5.10 (18) blocked-documented → A5 done |
-| PRs created | +12 this session (TD-1 #40 … A5.9 #50, A5.10 docs this); 20 total since A0.4 |
-| PRs merged | 19 (…#48 A5.7, #49 A5.8, #50 A5.9 = MVP) |
+| Loops executed | A0.4–A4 (0–6); TD-1..A5.9 (7–17)=MVP; A5.10 blocked (18); A6.1 (19) active |
+| PRs created | +13 this session (TD-1 #40 … A5.10 #51, A6.1 this); 21 total since A0.4 |
+| PRs merged | 20 (…#49 A5.8, #50 A5.9=MVP, #51 A5.10 docs) |
 | CI failures | 1 (A5.3 first run: cross-platform binName — caught + fixed; re-run green) |
 | Repair rounds | 11 (A5.9: 1 — E2E surfaced + fixed an A5.5 new-dir reconcile bug, fail-closed) |
 | Regressions | 0 |
@@ -117,8 +120,8 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 | Human interventions | 1 (auth-method decision) |
 | Findings by severity (reviews) | A5.4–A5.8: 0; A5.9: 1 major (self-found integration bug in A5.5, fixed + regression test) |
 | Time-to-merge | same session per loop |
-| Diff size | A5.9: 2 new src files (writableRun+index ~340 LoC) + E2E test (~180) + A5.5 worktreeState fix + ADR 0044 + spec §A5.9 |
-| Coverage | +4 A5.9 E2E + 1 A5.5 regression → 486 pure (+3 POSIX-only in CI) = 489; full api suite ~623 |
+| Diff size | A6.1: 1 new src file (taskProfiler ~230 LoC) + test (~110) + ADR 0045 + ROUTING_LEARNING_SPEC §A6.1 |
+| Coverage | +9 A6.1 profiler tests → 495 pure (+3 POSIX-only in CI) = 498; full api suite ~632 |
 | Quota usage | not yet instrumented (no provider runs) |
 | Reverted decisions | 0 |
 | Security incidents | 1 (PAT pasted into chat — R-SEC-2; external, owner must rotate; non-blocking) |
@@ -127,19 +130,18 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 ## Exact next loop
 
 ```text
-Loop 19 — A6.1 Task Profiler (mandate §A6.1). Branch off main AFTER the A5.10 docs
-merge. Implement structured task classification producing the A1 TaskProfile contract
-(already in @triforge/shared: taskKind, complexity, risk, blastRadius,
-reasoningDepthRequired, repetitiveWorkRatio, testBurden, behavioralPreservationRequired)
-plus the richer mandate fields (language, framework, security sensitivity, migration
-impact, context size, required provider capabilities). The profile must be validated,
-auditable, versioned, reproducible and OVERRIDEABLE (an explicit override wins, audited).
-  Tests: deterministic classification from a TaskSpecification; validation rejects an
-  out-of-range profile; an override is applied + audited; the profile is reproducible
-  (same input → same output) and versioned.
+Loop 20 — A6.2 Static capability router (mandate §A6.2). Branch off main AFTER A6.1
+merges. Implement explicit, evidence-bearing rules mapping a TaskProfile (A6.1) → a
+preferred provider, where EACH rule carries {evidence basis, confidence, fallback,
+reason, version}. No eternal stereotypes — rules are versioned + overridable. Produce a
+routing recommendation that the A4 orchestration/routing.ts owner-selection consumes
+(capability score input). Pure + deterministic.
+  Tests: a rule fires with its evidence/confidence/fallback recorded; an unknown profile
+  falls back; conflicting rules resolve by confidence; versioned + overrideable.
 Loop shape unchanged: spec/impl → gates → adversarial review → repair → PR → CI →
 squash-merge → verify main → persist this file.
-Then A6.2 static capability router (explicit evidence-based rules, no eternal
-stereotypes), A6.3 quota-aware router, A6.4 execution metrics, A6.5 repo profiles, A6.6
-protected adaptive router. Then A7 competitive, A8 UI, A9 hardening + release.
+Then A6.3 quota-aware router (combine capability + availability + auth + quota +
+reservations + risk + history + confidence; degradation rules; no paid fallback), A6.4
+execution metrics, A6.5 repository profiles, A6.6 protected adaptive router. Then A7
+competitive, A8 UI, A9 hardening + release.
 ```
