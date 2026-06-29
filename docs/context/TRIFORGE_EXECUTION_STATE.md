@@ -4,20 +4,20 @@
 and GitHub at the start of every loop; this file records the conclusion, not the
 history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.1).
 
-**Last updated:** 2026-06-29 (Loop 4, on branch `feat/a2-quota-manager`)
+**Last updated:** 2026-06-29 (Loop 5, on branch `feat/a3-real-readonly-adapters`)
 
 ## Snapshot
 
 | Field | Value |
 |---|---|
-| Last closed milestone | A2.2 — Adapter conformance harness (`ede0d55`, PR #36) |
-| Active milestone | A2.3 — Quota Manager (this PR), closing A2 |
-| `main` SHA | `ede0d55` |
-| Last `main` CI | `Validate` ✅ success (`ede0d55`) |
-| Open PRs | A2.3 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is from the legacy 1.x line, out of the A1–A9 roadmap, not blocking — left as-is. |
+| Last closed milestone | A2.3 — Quota Manager (`2ffa6fb`, PR #37) → A2 complete |
+| Active milestone | A3 — Real read-only adapters (this PR) |
+| `main` SHA | `2ffa6fb` |
+| Last `main` CI | `Validate` ✅ success (`2ffa6fb`) |
+| Open PRs | A3 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is from the legacy 1.x line, out of the A1–A9 roadmap, not blocking — left as-is. |
 | Blockers | none |
 | Pending decisions | none |
-| Next loop | A3 — Real read-only adapters |
+| Next loop | A4 — Collaboration runtime (Specialist/Pair/Full-Debate, cross-review, strategy resolution) |
 
 ## Follow-ups / tech debt
 
@@ -28,6 +28,11 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
   smell. Extract `Clock`/`ManualClock` to a neutral `apps/api/src/providers/clock.ts`
   (and a stream→result util out of `mock/`) and re-point `mock`/`harness`/`quota`. Low
   effort, non-blocking; do before deeper runtime wiring.
+- **TD-2 (from A3 review):** the A1 error taxonomy has no `request_rejected`/`unauthorized`
+  code, so the A3 adapters' refusals (writable `readOnly:false`; hyphen-leading
+  objective/arg) reuse `provider_unavailable` with the distinction carried in the
+  message. Add a precise code to the taxonomy (additive → schema-version bump) in a
+  later contract revision and re-point the refusals.
 
 ## Autonomy rule (Charter §2 / §3.2 correction, 2026-06-29)
 
@@ -48,9 +53,9 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 - Governance Transition (Autonomous Loop Governance) — **merged** (`8d8ee00`)
 - A0.5 Provider and repository threat model — **merged** (`e09c4d3`; ADR 0032)
 - A1 Provider contracts — **merged** (`5cf7728`; PR #34; ADR 0033)
-- A2 Mocks, harness, quota manager — A2.1 **merged** (`98b7c42`, #35), A2.2 **merged** (`ede0d55`, #36), A2.3 **active** (this PR) → closes A2
-- A3 Real read-only adapters — **next**
-- A4 Collaboration runtime — pending
+- A2 Mocks, harness, quota manager — **merged** (A2.1 `98b7c42` #35, A2.2 `ede0d55` #36, A2.3 `2ffa6fb` #37)
+- A3 Real read-only adapters — **active** (this PR; ADR 0034)
+- A4 Collaboration runtime — **next**
 - A5 Controlled writable execution (MVP) — pending (gated on A0.4+Gov+A0.5+A1–A4)
 - A6 Routing and learning — pending
 - A7 Competitive mode — pending (not required for MVP)
@@ -80,11 +85,11 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 
 | Metric | Value |
 |---|---|
-| Loops executed | Loops 0–3 complete (A0.4, Gov, A0.5, A1); Loop 4 (A2: A2.1+A2.2 merged, A2.3 active) |
-| PRs created | 6 this run (governance, A0.5, A1, A2.1, A2.2, A2.3); PR #31 pre-existed |
-| PRs merged | 6 (#31 A0.4, #32 Gov, #33 A0.5, #34 A1, #35 A2.1, #36 A2.2) |
+| Loops executed | Loops 0–4 complete (A0.4, Gov, A0.5, A1, A2); Loop 5 (A3) active |
+| PRs created | 7 this run (Gov, A0.5, A1, A2.1, A2.2, A2.3, A3); PR #31 pre-existed |
+| PRs merged | 7 (#31 A0.4, #32 Gov, #33 A0.5, #34 A1, #35 A2.1, #36 A2.2, #37 A2.3) |
 | CI failures | 0 |
-| Repair rounds | 6 (Gov, A0.5, A1, A2.1, A2.2, A2.3 reviews) |
+| Repair rounds | 7 (Gov, A0.5, A1, A2.1, A2.2, A2.3, A3 reviews) |
 | Regressions | 0 |
 | Reverts | 0 |
 | Blockers hit | 0 |
@@ -92,7 +97,7 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 | Findings by severity (reviews) | Gov: 2 crit/2 maj/6 min/4 obs. A0.5: 0/0/0/~3 min/~7 obs. A1: 0/0/0/~3 min/~3 obs — all resolved pre-merge |
 | Time-to-merge | Loops 0–3: same session |
 | Diff size | A0.4/Gov/A0.5 docs; A1: 11 files (~1900 LoC, contracts+51 tests) |
-| Coverage | provider suite 296 tests (51 contracts + 108 mock/engine + 91 harness + 46 quota), pure/no-DB |
+| Coverage | provider suite 346 tests (51 contracts + 108 mock/engine + 91 harness + 46 quota + 50 real adapters/normalizers), pure/no-DB |
 | Quota usage | not yet instrumented (no provider runs) |
 | Reverted decisions | 0 |
 | Security incidents | 1 (PAT pasted into chat — R-SEC-2; external, owner must rotate; non-blocking) |
@@ -101,21 +106,29 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 ## Exact next loop
 
 ```text
-Loop 5 — A3 Real Read-Only Adapters (mandate §15). After merging A2.3:
-1. git checkout main && pull (ff) ; branch feat/a3-codex-adapter (and later a3-claude / a3-normalizers).
-2. Implement real CodexAdapter + ClaudeAdapter (READ-ONLY) behind the A1 ProviderAdapter:
-   detect availability + version; auth probe (no credential handling); headless
-   execution; event normalizers (Codex/Claude raw → ProviderEvent, preserving order,
-   timestamps, raw evidence, parse errors, unknown events, version); stdout/stderr
-   capture; timeout; cancel (process-group); structured result; usage; quota when
-   observable, else unknown. Restrictions (mandate §A3.2): no --bare, no API keys, no
-   token extraction, no login automation, no writes, no access outside the workspace.
-3. Validate BOTH real adapters with the A2.2 conformance harness UNCHANGED
-   (set livenessTimeoutMs). Real smoke tests over controlled read-only fixtures.
-4. Per sub-PR: gates (typecheck, tests, lint:deps, build) → adversarial review →
-   repair → PR → CI → squash-merge → delete branch → verify main → update this file.
-Note: A3 runs REAL CLIs (read-only) — first real provider execution. Honor the
-substrate (ADR 0030) and threat model (A0.5); capability snapshots are version-bound
-(REQUIRES_VERIFICATION). Writable execution stays unauthorized (A4/A5 gated).
-Optionally first do TD-1 (extract Clock from mock/) as a tiny chore PR.
+Loop 6 — A4 Collaboration Runtime (mandate §16). After merging A3:
+1. git checkout main && pull (ff) ; branch feat/a4-collaboration-runtime.
+2. Pure orchestration over the A1 contracts + A2 mock adapters + A2.3 quota manager
+   (NO real writes; mock-first). Implement in apps/api/src/providers/ (or orchestration/):
+   - Specialist Mode (default): Task → TaskProfile → owner selection → plan → execution
+     (single owner; second provider only on risk/policy).
+   - Pair Mode: owner proposal → second-provider critique → resolution → owner execution.
+   - Full Debate Mode (architecture/security/migration/high blast-radius/high
+     uncertainty): independent plans → cross-review → agreements/disagreements →
+     evidence-based resolution.
+   - Review protocol: findings {severity,category,file,line,evidence,impact,
+     requiredAction,missingTest,confidence} (ReviewFindings A1 contract).
+   - Strategy resolution by AUTHORITY ORDER (mandate §A4.5): safety invariants → spec
+     → acceptance criteria → code evidence → tests → ADRs → threat model → risk policy
+     → governance decision. NOT by agent majority.
+3. Drive everything with the MOCK adapters (deterministic); produce StrategyDecision /
+   CrossReview / AgentPlan / ReviewFindings artifacts (A1 Zod contracts). Quota-gate
+   each provider step via the A2.3 QuotaManager. No writable execution (A5-gated).
+4. Tests (pure, no DB): each mode end-to-end over mocks; strategy resolution order;
+   reserve/quota interaction. Gates → adversarial review → repair → PR → CI →
+   squash-merge → delete branch → verify main → update this file. Then A5 (gated on
+   A0.5 + A1–A4 closed).
+Closure of A4: TriForge can coordinate planning/critique/resolution/review between
+providers WITHOUT real writes. Consider TD-1 (extract Clock from mock/) first as a
+tiny chore PR.
 ```
