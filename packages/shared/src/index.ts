@@ -1,5 +1,13 @@
 import { z } from "zod";
 
+// Provider contracts (A1) — provider-agnostic adapter, event, capability and
+// artifact contracts. See docs/specs/PROVIDER_CONTRACTS_SPEC.md and ADR 0033.
+export * from "./provider/common.js";
+export * from "./provider/events.js";
+export * from "./provider/capability.js";
+export * from "./provider/adapter.js";
+export * from "./provider/artifacts.js";
+
 export const agentIdSchema = z.enum([
   "codex_architect",
   "claude_critic",
