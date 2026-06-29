@@ -21,8 +21,8 @@ separate from `providers/`). Sub-pieces:
 
 | Piece | Component | Status |
 |---|---|---|
-| A5.1 | Worktree Manager (`execution/worktree`) | **this PR** |
-| A5.2 | Allowed-Path Policy | planned |
+| A5.1 | Worktree Manager (`execution/worktree`) | merged (ADR 0036) |
+| A5.2 | Allowed-Path Policy (`execution/path`) | **this PR** (ADR 0037) |
 | A5.3 | Safe Command Policy + Process Supervision | planned |
 | A5.4 | Owner/Reviewer enforcement | planned |
 | A5.5 | Diff Capture + Mutation Ledger | planned |
@@ -123,3 +123,62 @@ worktree-lifecycle capability** the writable MVP builds on. Binding:
 - A5.4: `.gitattributes` filter/diff/merge-driver neutralization on managed checkout.
 - A5.5: the mutation ledger computed from the real worktree (supersedes the A5.1
   audit log for write attribution).
+
+---
+
+## A5.2 Allowed-Path Policy
+
+### Objective
+
+The first owner-facing security boundary: decide whether an owner agent may READ or
+WRITE a given path inside an isolated worktree, enforcing
+`{readPaths, writePaths, blockedPaths, maxFilesChanged}`.
+
+### Model — allow-list by containment
+
+The worktree lives under `$HOME` (the state root), so "block `$HOME`" cannot be a
+blanket rule (T-FS-08). The model is therefore a precise allow-list carved INSIDE an
+otherwise-blocked filesystem: the **only** thing allowed is a path that, after full
+canonicalization, stays inside the workspace root **and** clears the per-policy
+gates. Everything else — `/mnt/c`, `$HOME`, sibling worktrees, the state root, the
+shared `.git` object store — is outside the workspace and denied by **containment**,
+not by enumerating blocked roots.
+
+### Resolution pipeline (`execution/path/pathPolicy.ts`)
+
+1. validate raw input (no NUL, bounded length);
+2. `path.resolve(realWorkspaceRoot, input)` then lexical containment — an absolute or
+   `..`-escaping input lands outside → `traversal` (covers prefix confusion, SAT-A5-2);
+3. realpath the **nearest existing ancestor**; require it inside
+   `realpath(workspaceRoot)` — catches a symlinked ancestor and safely validates a
+   not-yet-existing target via its existing ancestor → `symlink_escape` (T-FS-01/02);
+4. if the target exists, realpath it and re-check (symlinked leaf); for a WRITE refuse
+   a multiply-linked file → `hardlink` (T-FS-04, conservative: a fresh worktree has no
+   legitimate hardlinks);
+5. refuse any `.git` path segment, case-insensitively → `blocked_git` (the gitdir link
+   + shared object store, T-FS-08, SAT-A5-3);
+6. `blockedPaths` match → `blocked_path` (always wins);
+7. read/write gating (segment-aware prefix match, no prefix confusion); `writePaths`
+   miss → `not_writable`, `readPaths` miss → `not_readable`; enforce
+   `maxFilesChanged` over distinct canonical write targets → `max_files`.
+
+Returns the canonical `realPath`; **callers MUST open that**, not re-resolve the
+input (limits the check→open TOCTOU window). Every decision is audited.
+
+### Capability binding (threat-model §11.2)
+
+| Field | Content |
+|---|---|
+| **Capability** | The owner reads/writes only paths the policy allows inside the worktree; all else is denied. |
+| **Threat(s)** | T-FS-01/02 (symlink read/write escape), T-FS-03 (traversal/prefix confusion), T-FS-04 (hardlink clobber), T-FS-07 (`/mnt/c`+`$HOME` out-of-bounds), T-FS-08 (`.git`/object store, cross-worktree). |
+| **Control(s)** | Canonicalize→realpath→containment; nearest-existing-ancestor validation for non-existent targets; symlinked-ancestor + symlinked-leaf refusal; hardlink-write refusal; `.git`-segment + `blockedPaths` + read/write gating + `maxFilesChanged`. **Implemented** in `execution/path/pathPolicy.ts`. |
+| **Milestone** | A5.2 (this PR). |
+| **Verification** | `pathPolicy.test.ts` (16): SAT-A5-1 (symlink ancestor/leaf + non-existent-via-symlink + hardlink), SAT-A5-2 (`/mnt/c`/`$HOME`/`/etc` out-of-bounds), SAT-A5-3 (`.git`/`.git/objects` + cross-worktree), gating, prefix-confusion, maxFilesChanged, invalid input, audit. |
+| **Recovery** | Pure decision function — a denied access never reaches `open()`; the caller surfaces the typed reason; decisions are audited for after-the-fact review. |
+| **Residual risk** | RR-2 (TOCTOU between check and the caller's `open` — mitigated by returning `realPath`; full O_NOFOLLOW-style hardening is A9). Hardlink **read** leak is not blocked (only writes), noted. Case-insensitive containment beyond the `.git` block is POSIX/WSL2-targeted (the substrate is Linux). Accepted for the MVP, owner. |
+
+### Open follow-ups
+
+- Wire the engine onto the A5.1 worktree at the call sites that perform owner writes
+  (A5.3/A5.4 process + owner enforcement).
+- A9: stronger TOCTOU (open-time `O_NOFOLLOW`/`openat`), hardlink read-leak handling.

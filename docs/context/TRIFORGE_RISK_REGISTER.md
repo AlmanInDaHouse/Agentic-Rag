@@ -4,7 +4,7 @@
 impact, qualitative probability, mitigation, status, owner, responsible milestone,
 evidence. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.2).
 
-**Last updated:** 2026-06-29 (Loop 9 — A5.1)
+**Last updated:** 2026-06-29 (Loop 10 — A5.2)
 
 Owner is `AlmanInDaHouse` for accept/override decisions; Claude Code owns
 mitigation execution unless noted. Probability/impact are qualitative
@@ -57,7 +57,7 @@ threat IDs in that catalog. These do not restate the already-booked R-GOV-5
 
 | ID | Description | Impact | Prob | Mitigation (control → milestone) | Status | Milestone | Evidence |
 |---|---|---|---|---|---|---|---|
-| R-SEC-4 | No OS-level sandbox; any path escape on WSL2 reaches `/mnt/c` + `$HOME` → host/credential compromise | High | Med | A5.3 realpath containment + out-of-bounds roots; A0.5/A4 OS-isolation decision; A9 path tests | Open | A4/A5 | TM T-FS-07, T-CMP-01/05/08 |
+| R-SEC-4 | No OS-level sandbox; any path escape on WSL2 reaches `/mnt/c` + `$HOME` → host/credential compromise | High | Med | A5.3 realpath containment + out-of-bounds roots; A0.5/A4 OS-isolation decision; A9 path tests | **Open (partially mitigated — A5.2)**: owner read/write paths are now contained by canonicalize→realpath→containment with symlink/hardlink/traversal refusal (SAT-A5-1/2/3 demonstrated); residual RR-2 (TOCTOU) + RR-4 (no OS sandbox) accepted; ADR 0037 | A4/A5 | TM T-FS-07, T-CMP-01/05/08 |
 | R-SEC-5 | Secret leakage via full-env forwarding + unredacted output capture (the `runner.ts` seed pattern) | High | High | A5.4 env allowlist; redact all captured streams; A2 "no secret leakage" gate | Open | A2/A5 | TM T-EXE-09/10, T-CMP-07/09 |
 | R-SEC-6 | Forgeable self-certified governance/integrity artifacts under autonomy | High | Med | A5.9 gate re-derives evidence; A5.6 independent ledger; reviewer-owned findings | Open | A5 | TM T-INT-01/02/04 |
 | R-SEC-7 | Self-modifiable CI / branch-protection gates; protection state unverified in-repo | High | Med | Workflow-integrity meta-gate; required-step allowlist; branch-protection probe | Open | A9 | TM T-INT-07/08/09, T-GIT-07 |
@@ -76,6 +76,13 @@ threat IDs in that catalog. These do not restate the already-booked R-GOV-5
   path/command policy and the full `.git`/object-store blocking are A5.2–A5.4 (still
   open). Residual accepted: RR-2 (TOCTOU), RR-4 (no OS sandbox), owner-pid reuse
   (conservative).
+- **A5.2 Allowed-Path Policy (this PR; ADR 0037).** Owner-facing read/write
+  containment: allow-list by canonicalization (no blanket-`$HOME` block — the T-FS-08
+  carve-out), symlinked-ancestor/leaf refusal, hardlink-write refusal, `.git`/object-
+  store block, segment-aware read/write gating, `maxFilesChanged`, audited typed
+  denials. Demonstrated by SAT-A5-1/2/3 (16 tests). Mitigates R-SEC-4 for owner
+  paths. Still open: command/process policy (A5.3), owner/reviewer enforcement (A5.4).
+  Residual: RR-2 (check→open TOCTOU), hardlink read-leak, case-insensitive substrate.
 
 ## Closed / superseded
 
