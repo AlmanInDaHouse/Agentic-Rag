@@ -4,20 +4,20 @@
 and GitHub at the start of every loop; this file records the conclusion, not the
 history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.1).
 
-**Last updated:** 2026-06-30 (Loop 31 — A8.6, on branch `feat/a8-6-governance-dashboard`)
+**Last updated:** 2026-06-30 (Loop 32 — A8.7, on branch `feat/a8-7-budget-quota`)
 
 ## Snapshot
 
 | Field | Value |
 |---|---|
-| Last closed milestone | A8.5 — Diff & Review (`8ef575e`, PR #63; ADR 0052 arch) |
-| Active milestone | **A8.6 — Governance Dashboard** (this PR; `apps/web` governanceDashboard view-model + panel) |
-| `main` SHA | `8ef575e` |
-| Last `main` CI | `Validate` ✅ success (`8ef575e`) |
-| Open PRs | A8.6 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
+| Last closed milestone | A8.6 — Governance Dashboard (`16143ea`, PR #64; ADR 0052 arch) |
+| Active milestone | **A8.7 — Budget & Quota panel** (this PR; `apps/web` budgetQuota view-model + panel) |
+| `main` SHA | `16143ea` |
+| Last `main` CI | `Validate` ✅ success (`16143ea`) |
+| Open PRs | A8.7 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
 | Blockers | none |
 | Pending decisions | none |
-| Next loop | **A8.7 — Budget & Quota panel** (`apps/web`). A view-model + panel showing, SEPARATELY: configured budget, reserved, consumed, provider-reported signal, estimated, unknown, rate-limited, exhausted, and a reset time ONLY when reliable (never fabricated). Map the A2.3 quota snapshot fields honestly; unknown ≠ available. Pure view-model + test + panel. Then A8.8 recovery UI. Then A9. |
+| Next loop | **A8.8 — Recovery UI** (`apps/web`) — CLOSES A8. A view-model + panel exposing the recovery ACTIONS available for a run given its state: resume, cancel, inspect-blocked, clean-stale-worktree, retry-auth, retry-after-quota, abandon-repair, recover-artifacts, inspect-rollback. The available actions are DERIVED from the run state (never offer an action the state does not allow). Pure view-model + test + panel. A8 closure: a user can create/observe/audit/cancel/recover/understand a full run without console logs. Then A9. |
 
 ## Follow-ups / tech debt
 
@@ -79,7 +79,7 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
   - A6.6 Protected adaptive router — **merged** (`47c5e36`; PR #57; ADR 0050)
 - **A6 — COMPLETE** (`47c5e36`; profiler + static + quota-aware + metrics + repo profiles + protected adaptive)
 - A7 Competitive mode — **A7.1 merged** (`0610c54`; PR #58; ADR 0051)
-- A8 Product Interface (UI) — A8.1–A8.5 merged (`8ef575e`); **A8.6 active** (this PR; ADR 0052); A8.7–A8.8 pending
+- A8 Product Interface (UI) — A8.1–A8.6 merged (`16143ea`); **A8.7 active** (this PR; ADR 0052); A8.8 pending
 - A9 Hardening and release candidate — pending
 
 ## UNKNOWN
@@ -113,9 +113,9 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 
 | Metric | Value |
 |---|---|
-| Loops executed | …A8.2 (27); A8.3 (28); A8.4 (29); A8.5 (30); A8.6 (31) active |
-| PRs created | +25 this session (TD-1 #40 … A8.5 #63, A8.6 this); 33 total since A0.4 |
-| PRs merged | 32 (…#61 A8.3, #62 A8.4, #63 A8.5) |
+| Loops executed | …A8.3 (28); A8.4 (29); A8.5 (30); A8.6 (31); A8.7 (32) active |
+| PRs created | +26 this session (TD-1 #40 … A8.6 #64, A8.7 this); 34 total since A0.4 |
+| PRs merged | 33 (…#62 A8.4, #63 A8.5, #64 A8.6) |
 | CI failures | 1 (A5.3 first run: cross-platform binName — caught + fixed; re-run green) |
 | Repair rounds | 11 (A5.9: 1 — E2E surfaced + fixed an A5.5 new-dir reconcile bug, fail-closed) |
 | Regressions | 0 |
@@ -124,8 +124,8 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 | Human interventions | 1 (auth-method decision) |
 | Findings by severity (reviews) | A5.4–A5.8: 0; A5.9: 1 major (self-found integration bug in A5.5, fixed + regression test) |
 | Time-to-merge | same session per loop |
-| Diff size | A8.6: web governanceDashboard lib+test + GovernanceDashboard.tsx + dashboard wire + PRODUCT_INTERFACE_SPEC §A8.6 |
-| Coverage | api ~660; web suite +4 governance tests → 35 web tests (CI runs `@triforge/web test`) |
+| Diff size | A8.7: web budgetQuota lib+test + BudgetQuota.tsx + dashboard wire + PRODUCT_INTERFACE_SPEC §A8.7 |
+| Coverage | api ~660; web suite +5 budget-quota tests → 40 web tests (CI runs `@triforge/web test`) |
 | Quota usage | not yet instrumented (no provider runs) |
 | Reverted decisions | 0 |
 | Security incidents | 1 (PAT pasted into chat — R-SEC-2; external, owner must rotate; non-blocking) |
@@ -134,18 +134,19 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 ## Exact next loop
 
 ```text
-Loop 32 — A8.7 Budget & Quota panel (mandate §10 A8.7). Branch off main AFTER A8.6
-merges. In apps/web build a PURE view-model (testable) + panel that shows SEPARATELY:
-configured budget, reserved, consumed, provider-reported signal, estimated, unknown,
-rate-limited, exhausted, and a reset time ONLY when reliable (never fabricated). Map the
-A2.3 quota snapshot honestly — unknown is NOT presented as available; estimated is
-labelled estimated; reset shown only when known-reliable.
-  Tests: configured/reserved/consumed shown separately; unknown not shown as available;
-  exhausted/rate-limited surfaced; reset time only when reliable (else hidden/unknown).
-Loop shape unchanged. Then A8.8 recovery UI (resume/cancel/inspect-blocked/clean-stale-
-worktree/retry-auth/retry-after-quota/abandon-repair/recover-artifacts/inspect-rollback).
-A8 closure: a user can create/observe/audit/cancel/recover/understand a full run without
-console logs. Then A9 Hardening (chaos + A0.5 security acceptance tests + version drift +
-recovery + observability + packaging/installation + docs + release candidate) + TriForge
-1.0 Definition of Done.
+Loop 33 — A8.8 Recovery UI (mandate §10 A8.8) — CLOSES A8. Branch off main AFTER A8.7
+merges. In apps/web build a PURE view-model (testable) + panel exposing the recovery
+ACTIONS available for a run GIVEN ITS STATE: resume, cancel, inspect-blocked, clean-stale-
+worktree, retry-auth, retry-after-quota, abandon-repair, recover-artifacts, inspect-
+rollback. Derive the available action set from the run state (paused/blocked/failed/
+running/exhausted/stale/etc.) — NEVER offer an action the state does not allow.
+  Tests: a paused run offers resume/cancel; a quota-exhausted run offers retry-after-quota;
+  a stale worktree offers clean; a running run does NOT offer resume; the action set is
+  derived from state (no invalid action).
+A8 CLOSURE: provider status + task composer + run timeline (sequence-ordered) + artifact
+explorer + diff/review + governance + budget/quota + recovery — a user can create,
+observe, audit, cancel, recover and understand a full run without console logs; the UI
+invents no backend state; all untrusted content is sanitized.
+Then A9 Hardening (chaos + A0.5 security acceptance tests + version drift + recovery +
+observability + packaging/installation + docs + release candidate) + TriForge 1.0 DoD.
 ```

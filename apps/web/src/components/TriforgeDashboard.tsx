@@ -14,12 +14,14 @@ import { RunTimeline } from "./RunTimeline.js";
 import { ArtifactExplorer } from "./ArtifactExplorer.js";
 import { DiffReview } from "./DiffReview.js";
 import { GovernanceDashboard } from "./GovernanceDashboard.js";
+import { BudgetQuota } from "./BudgetQuota.js";
 import type { ProviderStatusSnapshot } from "../lib/providerStatus.js";
 import type { ComposedTask } from "../lib/taskComposer.js";
 import type { RunEvent } from "../lib/runTimeline.js";
 import type { RunArtifacts } from "../lib/artifactExplorer.js";
 import type { DiffReviewInput } from "../lib/diffReview.js";
 import type { GovernanceObservation } from "../lib/governanceDashboard.js";
+import type { QuotaSnapshotInput } from "../lib/budgetQuota.js";
 
 export interface TriforgeDashboardProps {
   providerStatus: ProviderStatusSnapshot[];
@@ -27,6 +29,7 @@ export interface TriforgeDashboardProps {
   artifacts?: RunArtifacts;
   review?: DiffReviewInput;
   governance?: GovernanceObservation;
+  quota?: QuotaSnapshotInput[];
   onCreateTask?: (task: ComposedTask) => void;
 }
 
@@ -36,6 +39,7 @@ export function TriforgeDashboard({
   artifacts = {},
   review,
   governance = {},
+  quota = [],
   onCreateTask
 }: TriforgeDashboardProps): JSX.Element {
   return (
@@ -47,6 +51,7 @@ export function TriforgeDashboard({
       <ArtifactExplorer artifacts={artifacts} />
       {review ? <DiffReview review={review} /> : null}
       <GovernanceDashboard observation={governance} />
+      <BudgetQuota snapshots={quota} />
     </main>
   );
 }
