@@ -132,9 +132,26 @@ text. Pure + deterministic.
 render; absent fields not invented (null/unknown); human override shown audited (actor +
 reason + timestamp); decision/rationale/override text sanitized.
 
+## A8.7 Budget & Quota
+
+### Design (`src/lib/budgetQuota.ts` + `src/components/BudgetQuota.tsx`; ADR 0052 arch)
+
+`buildBudgetQuotaView(snap)` shows each budget/quota signal SEPARATELY and HONESTLY:
+configured, reserved, consumed, remaining (computed only when capacity is known),
+status, the provider-reported signal, a confidence (`known`/`estimated`/`unknown`), and a
+reset time ONLY when reliable. An unknown-capacity quota is NEVER presented as guaranteed
+availability. Pure + deterministic.
+
+### Verification
+
+`src/lib/budgetQuota.test.ts` (5): configured/reserved/consumed separate + remaining when
+known; unknown-capacity not shown as available (remaining unknown, confidence
+estimated/unknown); rate-limited/exhausted surfaced; reset only when reliable; provider
+signal or "none".
+
 ## Open follow-ups
 
-- A8.7 budget/quota; A8.8 recovery UI.
+- A8.8 recovery UI.
 - A later A8 step mounts `TriforgeDashboard` as the TriForge view (a backend wiring of the
   A5–A7 runtime into HTTP/Socket.IO is a prerequisite for live data; the panels are built
   against the contracts now).
