@@ -4,20 +4,20 @@
 and GitHub at the start of every loop; this file records the conclusion, not the
 history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.1).
 
-**Last updated:** 2026-06-29 (Loop 17 — A5.9, on branch `feat/a5-9-writable-e2e`)
+**Last updated:** 2026-06-29 (Loop 18 — A5.10 blocked / A5 closed, on branch `docs/a5-10-real-pilot-blocked`)
 
 ## Snapshot
 
 | Field | Value |
 |---|---|
-| Last closed milestone | A5.8 — Autonomous Governance Decision (`3f128bc`, PR #49; ADR 0043) |
-| Active milestone | **A5.9 — Writable E2E (mock-first) — the FUNCTIONAL MVP** (this PR; `execution/e2e`; ADR 0044). Also fixes an A5.5 `computeWorktreeChanges` bug (new-dir collapse) surfaced by the E2E. |
-| `main` SHA | `3f128bc` |
-| Last `main` CI | `Validate` ✅ success (`3f128bc`) |
-| Open PRs | A5.9 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
-| Blockers | none |
+| Last closed milestone | A5.9 — Writable E2E (mock-first) = **FUNCTIONAL MVP** (`b041a12`, PR #50; ADR 0044) |
+| Active milestone | **A5.10 — real provider pilot: BLOCKED (documented)** → **A5 functionally COMPLETE**. Next: A6 routing. |
+| `main` SHA | `b041a12` |
+| Last `main` CI | `Validate` ✅ success (`b041a12`) |
+| Open PRs | A5.10 docs (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
+| Blockers | none (A5.10 real pilot blocked-and-documented, does NOT block A6–A9) |
 | Pending decisions | none |
-| Next loop | **A5.10 — Low-risk real provider pilot** (gated on A5.1–A5.9 green). Re-verify Codex/Claude CLI versions + auth WITHOUT reading creds; confirm writable capability actually observed (keep UNKNOWN otherwise); run only on a controlled fixture, minimal allowed-paths + command policy, small budget, network blocked, no main-repo access, no deploy/secrets. **If the writable capability cannot be safely verified (the WSL2 distro / Codex+Claude install+auth is REQUIRES_VERIFICATION), leave the pilot BLOCKED with the exact missing verification recorded, keep the MVP demonstrated via the mock adapter (A5.9), and proceed to A6.** Then A6 routing → A7 → A8 → A9. |
+| Next loop | **A6.1 — Task Profiler** (structured classification: task kind, complexity, risk, blast radius, language, framework, reasoning depth, repetitive work, test burden, security sensitivity, behavioral preservation, migration impact, context size, required provider capabilities; profile validated/auditable/versioned/reproducible/overrideable — A1 `TaskProfile` contract exists). Then A6.2 static router, A6.3 quota-aware, A6.4 metrics, A6.5 repo profiles, A6.6 adaptive. |
 
 ## Follow-ups / tech debt
 
@@ -67,9 +67,10 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
   - A5.6 Quality Gate Runner — **merged** (`a604336`; PR #47; ADR 0041)
   - A5.7 Repair Loop — **merged** (`ea36465`; PR #48; ADR 0042)
   - A5.8 Autonomous Governance Decision — **merged** (`3f128bc`; PR #49; ADR 0043)
-  - A5.9 Writable E2E (mock-first) — **active / FUNCTIONAL MVP** (this PR; ADR 0044)
-  - A5.10 Low-risk real provider pilot — next (gated on A5.1–A5.9 green; may stay BLOCKED if CLI capability unverifiable)
-- A6 Routing and learning — pending
+  - A5.9 Writable E2E (mock-first) — **merged / FUNCTIONAL MVP** (`b041a12`; PR #50; ADR 0044)
+  - A5.10 Low-risk real provider pilot — **BLOCKED (documented)**: writable capability not safely verifiable (WSL2 stopped; auth UNKNOWN; A3 adapter read-only). Does not block A6–A9.
+- **A5 — functionally COMPLETE** (MVP demonstrated via mocks; real pilot blocked-and-documented)
+- A6 Routing and learning — **active / next** (A6.1 Task Profiler)
 - A7 Competitive mode — pending (not required for MVP)
 - A8 Product interface — pending
 - A9 Hardening and release — pending
@@ -83,6 +84,14 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 
 ## REQUIRES_VERIFICATION
 
+- **A5.10 real writable pilot (BLOCKED).** Safe probe (2026-06-29, no creds read):
+  `codex-cli 0.101.0` + `claude` present on the *Windows host*, but the WSL2 Ubuntu
+  substrate is **Stopped**, provider **auth is UNKNOWN** (not probed — would risk
+  credential interaction), and the A3 adapter is **read-only** (no writable provider
+  adapter). To unblock: start WSL2 + install the toolchain there (A0.4 §5), manually
+  authenticate the CLIs (owner action), observe+snapshot the *writable* capability,
+  then build a separately-bound writable provider adapter. Until then the pilot stays
+  blocked; the MVP stands via the mock owner (A5.9).
 - Provider event/usage/quota schemas against installed CLI versions (Vision §12,
   §17; quota spec assumptions, 2026-06-28).
 - `localhost` Windows↔WSL2 interop per machine/config (A0.4 spec §8.6).
@@ -97,9 +106,9 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 
 | Metric | Value |
 |---|---|
-| Loops executed | A0.4–A4 (0–6); TD-1..A5.8 merged (7–16); A5.9 (17) active = FUNCTIONAL MVP |
-| PRs created | +11 this session (TD-1 #40 … A5.8 #49, A5.9 this); 19 total since A0.4 |
-| PRs merged | 18 (…#47 A5.6, #48 A5.7, #49 A5.8) |
+| Loops executed | A0.4–A4 (0–6); TD-1..A5.9 merged (7–17) = FUNCTIONAL MVP; A5.10 (18) blocked-documented → A5 done |
+| PRs created | +12 this session (TD-1 #40 … A5.9 #50, A5.10 docs this); 20 total since A0.4 |
+| PRs merged | 19 (…#48 A5.7, #49 A5.8, #50 A5.9 = MVP) |
 | CI failures | 1 (A5.3 first run: cross-platform binName — caught + fixed; re-run green) |
 | Repair rounds | 11 (A5.9: 1 — E2E surfaced + fixed an A5.5 new-dir reconcile bug, fail-closed) |
 | Regressions | 0 |
@@ -118,18 +127,19 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 ## Exact next loop
 
 ```text
-Loop 18 — A5.10 Low-risk real provider pilot (mandate §A5.10). Branch off main AFTER
-A5.9 merges. This is the ONLY A5 piece needing a real provider, and it is gated on a
-safe capability verification that the current substrate likely cannot satisfy:
-  1. Re-verify Codex/Claude CLI versions (invalidate old snapshots if changed).
-  2. Verify authentication WITHOUT reading credentials.
-  3. Confirm writable capability ACTUALLY observed (else keep UNKNOWN).
-  4. Run only on a controlled FIXTURE, minimal allowed-paths + command policy, small
-     budget, network blocked, no main-repo access, no deploy/secrets.
-  If the writable capability cannot be safely verified (the WSL2 Ubuntu distro is not
-  started and Codex CLI + Claude Code install+auth is REQUIRES_VERIFICATION, A0.4 §5),
-  DO NOT invent a result: leave the pilot BLOCKED, record the exact missing external
-  verification, note the MVP is already demonstrated end-to-end with the MOCK owner
-  (A5.9, runWritableTask), and PROCEED to A6 (independent of the real pilot).
-Then A6 Task Profiler/Routing → A7 Competitive → A8 UI → A9 Hardening + release.
+Loop 19 — A6.1 Task Profiler (mandate §A6.1). Branch off main AFTER the A5.10 docs
+merge. Implement structured task classification producing the A1 TaskProfile contract
+(already in @triforge/shared: taskKind, complexity, risk, blastRadius,
+reasoningDepthRequired, repetitiveWorkRatio, testBurden, behavioralPreservationRequired)
+plus the richer mandate fields (language, framework, security sensitivity, migration
+impact, context size, required provider capabilities). The profile must be validated,
+auditable, versioned, reproducible and OVERRIDEABLE (an explicit override wins, audited).
+  Tests: deterministic classification from a TaskSpecification; validation rejects an
+  out-of-range profile; an override is applied + audited; the profile is reproducible
+  (same input → same output) and versioned.
+Loop shape unchanged: spec/impl → gates → adversarial review → repair → PR → CI →
+squash-merge → verify main → persist this file.
+Then A6.2 static capability router (explicit evidence-based rules, no eternal
+stereotypes), A6.3 quota-aware router, A6.4 execution metrics, A6.5 repo profiles, A6.6
+protected adaptive router. Then A7 competitive, A8 UI, A9 hardening + release.
 ```

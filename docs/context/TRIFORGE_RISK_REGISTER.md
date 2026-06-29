@@ -4,7 +4,7 @@
 impact, qualitative probability, mitigation, status, owner, responsible milestone,
 evidence. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.2).
 
-**Last updated:** 2026-06-29 (Loop 17 — A5.9 / functional MVP)
+**Last updated:** 2026-06-29 (Loop 18 — A5.10 blocked / A5 functionally complete)
 
 Owner is `AlmanInDaHouse` for accept/override decisions; Claude Code owns
 mitigation execution unless noted. Probability/impact are qualitative
@@ -138,6 +138,14 @@ threat IDs in that catalog. These do not restate the already-booked R-GOV-5
   fail-closed bug in A5.5 computeWorktreeChanges** (a wholly-new untracked directory
   collapsed to `dir/`, hiding files from reconciliation) with a regression test.
   Residual: owner/reviewer are mocks (real pilot A5.10); logical actor ids (R-SEC-9).
+- **A5.10 real provider pilot — BLOCKED (documented, not executed).** Per the closure
+  rule (TM §11), the writable-pilot capability binding's *verification* field cannot be
+  filled safely (WSL2 substrate stopped; provider auth UNKNOWN — not probed to avoid
+  credential interaction; A3 adapter read-only, no writable adapter), so it is **not
+  authorized**. The loop did NOT invent a result or run an unverified high-risk writable
+  provider task (mandate §A5.10 / §15). The MVP is demonstrated via the mock owner
+  (A5.9). External verification needed is in Execution State → REQUIRES_VERIFICATION.
+  This is the correct fail-safe outcome and does not block A6–A9.
 
 ## Closed / superseded
 
