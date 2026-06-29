@@ -116,9 +116,25 @@ text; attaches findings per file with their severity; and flags a change AFTER r
 deleted/renamed marked; `diffHash != reviewedHash` flagged as changed-after-review;
 findings per file + severity counts, sanitized; oversized patch truncation-flagged.
 
+## A8.6 Governance Dashboard
+
+### Design (`src/lib/governanceDashboard.ts` + `src/components/GovernanceDashboard.tsx`; ADR 0052 arch)
+
+`buildGovernanceDashboard(obs)` lets a user OBSERVE the run's governance: the autonomous
+merge decision (A5.8 verdict + rationale), policy/command/blocked decisions, risk and
+quota state (A6.3), rollback, cancel, and the HUMAN OVERRIDE shown as AUDITED (actor +
+reason + timestamp). It invents no decision (absent → null/empty) and sanitizes all free
+text. Pure + deterministic.
+
+### Verification
+
+`src/lib/governanceDashboard.test.ts` (4): merge verdict + rationale + policy decisions
+render; absent fields not invented (null/unknown); human override shown audited (actor +
+reason + timestamp); decision/rationale/override text sanitized.
+
 ## Open follow-ups
 
-- A8.6 governance dashboard; A8.7 budget/quota; A8.8 recovery UI.
+- A8.7 budget/quota; A8.8 recovery UI.
 - A later A8 step mounts `TriforgeDashboard` as the TriForge view (a backend wiring of the
   A5–A7 runtime into HTTP/Socket.IO is a prerequisite for live data; the panels are built
   against the contracts now).
