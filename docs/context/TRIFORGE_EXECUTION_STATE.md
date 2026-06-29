@@ -4,20 +4,20 @@
 and GitHub at the start of every loop; this file records the conclusion, not the
 history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.1).
 
-**Last updated:** 2026-06-29 (Loop 15 — A5.7, on branch `feat/a5-7-repair-loop`)
+**Last updated:** 2026-06-29 (Loop 16 — A5.8, on branch `feat/a5-8-governance-decision`)
 
 ## Snapshot
 
 | Field | Value |
 |---|---|
-| Last closed milestone | A5.6 — Quality Gate Runner (`a604336`, PR #47; ADR 0041) |
-| Active milestone | **A5.7 — Repair Loop** (this PR; `execution/repair`; ADR 0042) |
-| `main` SHA | `a604336` |
-| Last `main` CI | `Validate` ✅ success (`a604336`) |
-| Open PRs | A5.7 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
+| Last closed milestone | A5.7 — Repair Loop (`ea36465`, PR #48; ADR 0042) |
+| Active milestone | **A5.8 — Autonomous Governance Decision** (this PR; `execution/governance`; ADR 0043) |
+| `main` SHA | `ea36465` |
+| Last `main` CI | `Validate` ✅ success (`ea36465`) |
+| Open PRs | A5.8 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
 | Blockers | none |
 | Pending decisions | none |
-| Next loop | **A5.8 — Autonomous Governance Decision** (build a GovernanceDecision artifact — A1 contract — binding task/spec/context/owner/reviewer/worktree/branch/diff-hash/mutation-ledger-hash/gate-result-hashes/findings/repair-rounds/quota/unresolved-risks/decision/rationale/policy-version + the capability binding; replaces the old human commit gate; prevent approval replay, decision-over-different-diff, post-decision diff change, merging with expired gates / blockers / criticals, self-asserted tests). Then A5.9 (mock E2E), A5.10 (real pilot). |
+| Next loop | **A5.9 — Writable E2E fixture (mock-first)** — the MVP demonstration. Wire the full pipeline over the mock providers: create worktree (A5.1) → assign owner (A5.4) → apply allowed paths (A5.2) → owner implements → capture mutations (A5.5) → run gates (A5.6) → reviewer findings → repair (A5.7) → GovernanceDecision (A5.8) → commit → controlled merge → cleanup. Plus negative cases (.git write, out-of-workspace, reviewer write, blocked command, test deletion, CI weakening, diff-changed-after-review, approval-hash mismatch, quota exhausted, repair-limit, cleanup failure). Then A5.10 real pilot (gated on A5.1–A5.9 green; if writable capability can't be safely verified, leave BLOCKED + demonstrate MVP with mock + continue to A6). |
 
 ## Follow-ups / tech debt
 
@@ -65,8 +65,8 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
   - A5.4 Owner/Reviewer enforcement — **merged** (`f2784b4`; PR #45; ADR 0039)
   - A5.5 Diff Capture + Mutation Ledger — **merged** (`31446da`; PR #46; ADR 0040)
   - A5.6 Quality Gate Runner — **merged** (`a604336`; PR #47; ADR 0041)
-  - A5.7 Repair Loop — **active** (this PR; ADR 0042)
-  - A5.8 Autonomous Governance Decision — pending
+  - A5.7 Repair Loop — **merged** (`ea36465`; PR #48; ADR 0042)
+  - A5.8 Autonomous Governance Decision — **active** (this PR; ADR 0043)
   - A5.9 Writable E2E fixture (mock-first) — pending
   - A5.10 Low-risk real provider pilot — pending (gated on A5.1–A5.9 green)
 - A6 Routing and learning — pending
@@ -97,19 +97,19 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 
 | Metric | Value |
 |---|---|
-| Loops executed | A0.4–A4 (0–6); TD-1..A5.6 merged (7–14); A5.7 (15) active |
-| PRs created | +9 this session (TD-1 #40 … A5.6 #47, A5.7 this); 17 total since A0.4 |
-| PRs merged | 16 (…#45 A5.4, #46 A5.5, #47 A5.6) |
+| Loops executed | A0.4–A4 (0–6); TD-1..A5.7 merged (7–15); A5.8 (16) active |
+| PRs created | +10 this session (TD-1 #40 … A5.7 #48, A5.8 this); 18 total since A0.4 |
+| PRs merged | 17 (…#46 A5.5, #47 A5.6, #48 A5.7) |
 | CI failures | 1 (A5.3 first run: cross-platform binName — caught + fixed; re-run green) |
-| Repair rounds | 10 (A5.5/A5.6: pre-PR NUL fixes; A5.7: 1 pre-PR test-helper typecheck fix) |
+| Repair rounds | 10 (A5.5/A5.6: pre-PR NUL fixes; A5.7: typecheck fix; A5.8: clean) |
 | Regressions | 0 |
 | Reverts | 0 |
 | Blockers hit | 0 |
 | Human interventions | 1 (auth-method decision) |
-| Findings by severity (reviews) | A5.4–A5.7: 0 (pre-PR NUL/typecheck fixes caught locally) |
+| Findings by severity (reviews) | A5.4–A5.8: 0 (pre-PR fixes caught locally) |
 | Time-to-merge | same session per loop |
-| Diff size | A5.7: 2 new src files (repairLoop+index ~290 LoC) + test (~150) + ADR 0042 + spec §A5.7 |
-| Coverage | +8 A5.7 repair tests → 468 pure (+3 POSIX-only in CI) = 471; full api suite ~605 |
+| Diff size | A5.8: 2 new src files (governanceGate+index ~270 LoC) + test (~150) + ADR 0043 + spec §A5.8 |
+| Coverage | +13 A5.8 governance tests → 481 pure (+3 POSIX-only in CI) = 484; full api suite ~618 |
 | Quota usage | not yet instrumented (no provider runs) |
 | Reverted decisions | 0 |
 | Security incidents | 1 (PAT pasted into chat — R-SEC-2; external, owner must rotate; non-blocking) |
@@ -118,23 +118,22 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 ## Exact next loop
 
 ```text
-Loop 16 — A5.8 Autonomous Governance Decision (mandate §A5.8; threat-model T-INT-01/
-02/04/10/11). Branch off main AFTER A5.7 merges. Build a GovernanceDecision (A1
-artifact contract already exists in @triforge/shared) from RE-DERIVED evidence:
-  - bind task spec hash, acceptance criteria, context manifest hash, owner+reviewer
-    identity, worktree, branch, diff hash (A5.5), mutation-ledger head hash (A5.5),
-    quality-gate result hashes (A5.6), findings summary, repair rounds (A5.7), quota
-    state, unresolved risks, decision ∈ {merge,reject,repair,block,cancel}, rationale,
-    policy version + the six-field capability binding;
-  - PREVENT: approval replay, using a decision over a different diff, modifying the
-    diff after the decision (diffHash mismatch), merging with expired/failed gates or
-    open blockers/criticals, self-asserting un-run tests. Human override remains
-    possible but not required.
-  Tests: merge only when gates green + ledger reconciled + no blocker/critical;
-  refuse a poisoned/forged decision; refuse a decision whose diffHash != current;
-  refuse on a tampered ledger.
-Loop shape unchanged. Then A5.9 mock-first writable E2E (the MVP demonstration), A5.10
-real pilot (only after A5.1–A5.9 green; if the provider writable capability can't be
-safely verified, leave the pilot BLOCKED + demonstrate the MVP with the mock adapter +
-continue to A6–A9). Closure of A5 = the functional MVP.
+Loop 17 — A5.9 Writable E2E fixture (mock-first) — the MVP demonstration (mandate
+§A5.9). Branch off main AFTER A5.8 merges. Wire the full writable pipeline end to end
+over a controlled FIXTURE repo using the MOCK owner/reviewer (no real provider):
+  create worktree (A5.1) → assign single owner (A5.4) → apply allowed paths (A5.2) →
+  owner implements a bounded change → capture mutations in the ledger (A5.5) → run the
+  quality gates (A5.6) → reviewer produces findings → repair loop (A5.7) →
+  GovernanceDecision (A5.8, re-derived) → commit on the worktree branch → controlled
+  merge → cleanup. Demonstrate the POSITIVE path reaches verdict=merge, AND the
+  negative cases each block: .git write, out-of-workspace write, reviewer write,
+  blocked command, test deletion, CI weakening, diff-changed-after-review, approval-
+  hash mismatch, quota exhausted, repair-limit reached, cleanup failure.
+  This is real writes confined to an isolated worktree/fixture — NEVER the live tree
+  or main. Closing A5.9 demonstrates the functional MVP with mocks.
+Loop shape unchanged. Then A5.10 real provider pilot — ONLY after A5.1–A5.9 green;
+re-verify CLI versions/auth without reading creds; if writable capability cannot be
+safely verified (the WSL distro / Codex+Claude install+auth is REQUIRES_VERIFICATION),
+leave the pilot BLOCKED with the exact missing verification recorded, keep the MVP
+demonstrated via the mock adapter, and continue to A6 (routing).
 ```
