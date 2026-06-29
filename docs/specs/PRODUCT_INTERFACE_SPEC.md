@@ -149,9 +149,35 @@ known; unknown-capacity not shown as available (remaining unknown, confidence
 estimated/unknown); rate-limited/exhausted surfaced; reset only when reliable; provider
 signal or "none".
 
-## Open follow-ups
+## A8.8 Recovery UI -- closes A8
 
-- A8.8 recovery UI.
+### Design (`src/lib/recovery.ts` + `src/components/RecoveryPanel.tsx`; ADR 0052 arch)
+
+`availableRecoveryActions(state, worktree)` derives the recovery actions valid for a run
+from its STATE -- never offering an action the state does not allow (a running run is not
+resumable; only a paused run is). State-derived: cancel (cancellable states), resume
+(paused), inspect-blocked (blocked), retry-after-quota (exhausted_quota), retry-auth
+(auth_expired), abandon-repair (repair_exhausted); worktree-condition-derived:
+clean-stale-worktree (stale), recover-artifacts (hasArtifacts), inspect-rollback
+(hasRollback). Pure + deterministic. `RecoveryPanel` renders only the valid actions.
+
+### Verification
+
+`src/lib/recovery.test.ts` (6): paused -> resume+cancel; running -> cancel not resume;
+exhausted-quota -> retry-after-quota; auth-expired -> retry-auth; blocked ->
+inspect-blocked; repair-exhausted -> abandon-repair; completed/cancelled not cancellable;
+worktree-condition actions derived independently.
+
+## A8 closure
+
+A8 is **complete**: provider status (A8.1) + task composer (A8.2) + run timeline
+(sequence-ordered, A8.3) + artifact explorer (A8.4) + diff/review (A8.5) + governance
+dashboard (A8.6) + budget/quota (A8.7) + recovery (A8.8), composed in `TriforgeDashboard`.
+A user can create, observe, audit, cancel, recover and understand a full run without
+console logs; the UI invents no backend state, sanitizes all untrusted content (no
+terminal-escape / control / secret leak, no `dangerouslySetInnerHTML`), orders events by
+sequence, never hides a changed file, and shows honest unknown/estimated states. Each
+panel's logic is a pure view-model with CI test coverage (46 web tests). Next: A9.
 - A later A8 step mounts `TriforgeDashboard` as the TriForge view (a backend wiring of the
   A5–A7 runtime into HTTP/Socket.IO is a prerequisite for live data; the panels are built
   against the contracts now).

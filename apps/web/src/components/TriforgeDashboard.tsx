@@ -15,6 +15,7 @@ import { ArtifactExplorer } from "./ArtifactExplorer.js";
 import { DiffReview } from "./DiffReview.js";
 import { GovernanceDashboard } from "./GovernanceDashboard.js";
 import { BudgetQuota } from "./BudgetQuota.js";
+import { RecoveryPanel } from "./RecoveryPanel.js";
 import type { ProviderStatusSnapshot } from "../lib/providerStatus.js";
 import type { ComposedTask } from "../lib/taskComposer.js";
 import type { RunEvent } from "../lib/runTimeline.js";
@@ -22,6 +23,7 @@ import type { RunArtifacts } from "../lib/artifactExplorer.js";
 import type { DiffReviewInput } from "../lib/diffReview.js";
 import type { GovernanceObservation } from "../lib/governanceDashboard.js";
 import type { QuotaSnapshotInput } from "../lib/budgetQuota.js";
+import type { RecoveryAction, RunState, WorktreeState } from "../lib/recovery.js";
 
 export interface TriforgeDashboardProps {
   providerStatus: ProviderStatusSnapshot[];
@@ -30,7 +32,9 @@ export interface TriforgeDashboardProps {
   review?: DiffReviewInput;
   governance?: GovernanceObservation;
   quota?: QuotaSnapshotInput[];
+  recovery?: { state: RunState; worktree: WorktreeState };
   onCreateTask?: (task: ComposedTask) => void;
+  onRecoveryAction?: (action: RecoveryAction) => void;
 }
 
 export function TriforgeDashboard({
@@ -40,7 +44,9 @@ export function TriforgeDashboard({
   review,
   governance = {},
   quota = [],
-  onCreateTask
+  recovery,
+  onCreateTask,
+  onRecoveryAction
 }: TriforgeDashboardProps): JSX.Element {
   return (
     <main className="triforge-dashboard">
@@ -52,6 +58,9 @@ export function TriforgeDashboard({
       {review ? <DiffReview review={review} /> : null}
       <GovernanceDashboard observation={governance} />
       <BudgetQuota snapshots={quota} />
+      {recovery ? (
+        <RecoveryPanel state={recovery.state} worktree={recovery.worktree} onAction={onRecoveryAction} />
+      ) : null}
     </main>
   );
 }
