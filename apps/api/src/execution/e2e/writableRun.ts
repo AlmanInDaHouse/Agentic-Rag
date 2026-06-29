@@ -67,6 +67,12 @@ export interface WritableTaskConfig {
   clock: Clock;
   gitRunner: GitRunner;
   maxRepairRounds?: number;
+  /** Merge the worktree branch on a `merge` verdict. Default true; Competitive Mode
+   *  (A7) sets false so the orchestrator merges only the winner. */
+  autoMerge?: boolean;
+  /** Clean up the worktree at the end. Default true; A7 keeps both candidates alive
+   *  to compare, then cleans up itself. */
+  autoCleanup?: boolean;
 }
 
 export interface WritableRunReport {
@@ -280,19 +286,25 @@ export async function runWritableTask(config: WritableTaskConfig): Promise<Writa
     capabilityBinding: config.capabilityBinding
   });
 
+  const autoMerge = config.autoMerge ?? true;
+  const autoCleanup = config.autoCleanup ?? true;
   let merged = false;
-  let mergeReason = `verdict=${governance.verdict}`;
-  if (governance.verdict === "merge") {
+  let mergeReason = autoMerge ? `verdict=${governance.verdict}` : `verdict=${governance.verdict} (autoMerge off)`;
+  if (autoMerge && governance.verdict === "merge") {
     merged = await commitAndMerge(config, worktreePath, branch);
     mergeReason = merged ? "governed merge completed" : "merge failed";
   }
 
   // Cleanup the worktree + branch (the change, if merged, is already on the base branch).
-  let cleanedUp = true;
-  try {
-    await wtm.cleanup(config.runId, config.taskId);
-  } catch {
-    cleanedUp = false;
+  // Competitive Mode keeps the worktree (autoCleanup=false) so it can compare candidates.
+  let cleanedUp = false;
+  if (autoCleanup) {
+    cleanedUp = true;
+    try {
+      await wtm.cleanup(config.runId, config.taskId);
+    } catch {
+      cleanedUp = false;
+    }
   }
 
   return {
@@ -311,16 +323,30 @@ export async function runWritableTask(config: WritableTaskConfig): Promise<Writa
 
 /** Commit the owner's worktree changes on its branch, then merge into the base branch. */
 async function commitAndMerge(config: WritableTaskConfig, worktreePath: string, branch: string): Promise<boolean> {
-  const git = config.gitRunner;
+  return mergeWorktreeBranch(config.gitRunner, config.baseRepoPath, worktreePath, branch, `triforge: ${config.task}`);
+}
+
+/**
+ * Commit a worktree's changes on its branch and merge it into the base branch via the
+ * hardened GitRunner. Exported for Competitive Mode (A7), which merges only the winning
+ * candidate. Returns true on a clean merge.
+ */
+export async function mergeWorktreeBranch(
+  gitRunner: GitRunner,
+  baseRepoPath: string,
+  worktreePath: string,
+  branch: string,
+  message: string
+): Promise<boolean> {
   const identity = ["-c", "user.email=triforge@local", "-c", "user.name=TriForge"];
-  const add = await git.run(["add", "-A"], { cwd: worktreePath });
+  const add = await gitRunner.run(["add", "-A"], { cwd: worktreePath });
   if (add.code !== 0) {
     return false;
   }
-  const commit = await git.run([...identity, "commit", "-m", `triforge: ${config.task}`], { cwd: worktreePath });
+  const commit = await gitRunner.run([...identity, "commit", "-m", message], { cwd: worktreePath });
   if (commit.code !== 0) {
     return false;
   }
-  const merge = await git.run([...identity, "merge", "--no-ff", "--no-edit", branch], { cwd: config.baseRepoPath });
+  const merge = await gitRunner.run([...identity, "merge", "--no-ff", "--no-edit", branch], { cwd: baseRepoPath });
   return merge.code === 0;
 }
