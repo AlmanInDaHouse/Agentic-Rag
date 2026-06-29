@@ -4,7 +4,7 @@
 impact, qualitative probability, mitigation, status, owner, responsible milestone,
 evidence. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.2).
 
-**Last updated:** 2026-06-29 (Loop 1)
+**Last updated:** 2026-06-29 (Loop 9 — A5.1)
 
 Owner is `AlmanInDaHouse` for accept/override decisions; Claude Code owns
 mitigation execution unless noted. Probability/impact are qualitative
@@ -61,10 +61,21 @@ threat IDs in that catalog. These do not restate the already-booked R-GOV-5
 | R-SEC-5 | Secret leakage via full-env forwarding + unredacted output capture (the `runner.ts` seed pattern) | High | High | A5.4 env allowlist; redact all captured streams; A2 "no secret leakage" gate | Open | A2/A5 | TM T-EXE-09/10, T-CMP-07/09 |
 | R-SEC-6 | Forgeable self-certified governance/integrity artifacts under autonomy | High | Med | A5.9 gate re-derives evidence; A5.6 independent ledger; reviewer-owned findings | Open | A5 | TM T-INT-01/02/04 |
 | R-SEC-7 | Self-modifiable CI / branch-protection gates; protection state unverified in-repo | High | Med | Workflow-integrity meta-gate; required-step allowlist; branch-protection probe | Open | A9 | TM T-INT-07/08/09, T-GIT-07 |
-| R-SEC-8 | Git-mechanism code execution on untrusted trees (hooks/config/attributes/submodules) during routine git ops | Critical | Med | Hardened git invocation (hooks/config/attributes off); A5.4 enforcement | Open | A5 | TM T-GIT-01/02/04, T-FS-05 |
+| R-SEC-8 | Git-mechanism code execution on untrusted trees (hooks/config/attributes/submodules) during routine git ops | Critical | Med | Hardened git invocation (hooks/config/attributes off); A5.4 enforcement | **Open (partially mitigated — A5.1)**: managed worktree ops now run hooks-off + system/global config stripped (T-GIT-01/02/03), demonstrated by a hook-non-execution SAT. `.gitattributes` smudge filters (T-FS-05) remain A5.4 | A5 | TM T-GIT-01/02/04, T-FS-05; ADR 0036 |
 | R-SEC-9 | Approval unauthenticated/self-asserted and not bound to the executed diff | High | High | Authenticated approver channel; approval↔diff-hash binding | Open | A5/auth | TM T-INT-10/11 |
 | R-SEC-10 | Supply-chain install-time RCE / dependency confusion | High | Med | `.npmrc` ignore-scripts + registry/scope pin; non-zero `minimumReleaseAge`; full-workspace scan | Open | A9 | TM T-GIT-05/06/08/09 |
 | R-SEC-11 | Security-relevant provider/toolchain version drift silently enabling writable/sandbox/API-key modes | High | Med | Version-bound capability snapshots; drift detection + re-probe; substrate preflight matrix | Open | A3/A9 | TM T-GIT-10/11/12, T-CMP-02 |
+
+## A5 progress (writable execution)
+
+- **A5.1 Worktree Manager (`afc3607`→ this PR; ADR 0036).** Establishes isolated
+  linked worktrees in an external state root outside the working tree (T-FS-08
+  foundation), new-branch-only with a never-`main` guard (SAT-A5-10 baseline), and a
+  hardened git boundary that neutralizes hooks/system/global config for managed ops
+  (R-SEC-8 partial; SAT-A5-5 baseline, hook-non-execution demonstrated). Owner-facing
+  path/command policy and the full `.git`/object-store blocking are A5.2–A5.4 (still
+  open). Residual accepted: RR-2 (TOCTOU), RR-4 (no OS sandbox), owner-pid reuse
+  (conservative).
 
 ## Closed / superseded
 
