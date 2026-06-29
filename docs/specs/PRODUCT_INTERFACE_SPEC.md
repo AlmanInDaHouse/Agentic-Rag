@@ -100,10 +100,25 @@ hashes/refs) or explicitly absent. Free text uses `safeText`. Pure + determinist
 hidden); present artifacts get a summary + their hashes/refs (diffHash, evidence refs),
 absent reported in `absent`; free text sanitized.
 
+## A8.5 Diff & Review interface
+
+### Design (`src/lib/diffReview.ts` + `src/components/DiffReview.tsx`; ADR 0052 arch)
+
+`buildDiffReview(input)` shows the complete diff WITHOUT hiding any changed file (the
+rendered file set always equals the input change set — `hiddenFiles === 0` by
+construction); marks binary/deleted/renamed files; truncation-flags + sanitizes diff
+text; attaches findings per file with their severity; and flags a change AFTER review
+(`diffHash !== reviewedHash`). Pure + deterministic.
+
+### Verification
+
+`src/lib/diffReview.test.ts` (5): every changed file rendered (none hidden); binary/
+deleted/renamed marked; `diffHash != reviewedHash` flagged as changed-after-review;
+findings per file + severity counts, sanitized; oversized patch truncation-flagged.
+
 ## Open follow-ups
 
-- A8.5 diff/review (never hide changed files; diff-hash vs reviewed-hash); A8.6 governance
-  dashboard; A8.7 budget/quota; A8.8 recovery UI.
+- A8.6 governance dashboard; A8.7 budget/quota; A8.8 recovery UI.
 - A later A8 step mounts `TriforgeDashboard` as the TriForge view (a backend wiring of the
   A5–A7 runtime into HTTP/Socket.IO is a prerequisite for live data; the panels are built
   against the contracts now).

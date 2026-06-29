@@ -12,15 +12,18 @@ import { ProviderStatusPanel } from "./ProviderStatus.js";
 import { TaskComposer } from "./TaskComposer.js";
 import { RunTimeline } from "./RunTimeline.js";
 import { ArtifactExplorer } from "./ArtifactExplorer.js";
+import { DiffReview } from "./DiffReview.js";
 import type { ProviderStatusSnapshot } from "../lib/providerStatus.js";
 import type { ComposedTask } from "../lib/taskComposer.js";
 import type { RunEvent } from "../lib/runTimeline.js";
 import type { RunArtifacts } from "../lib/artifactExplorer.js";
+import type { DiffReviewInput } from "../lib/diffReview.js";
 
 export interface TriforgeDashboardProps {
   providerStatus: ProviderStatusSnapshot[];
   runEvents?: RunEvent[];
   artifacts?: RunArtifacts;
+  review?: DiffReviewInput;
   onCreateTask?: (task: ComposedTask) => void;
 }
 
@@ -28,6 +31,7 @@ export function TriforgeDashboard({
   providerStatus,
   runEvents = [],
   artifacts = {},
+  review,
   onCreateTask
 }: TriforgeDashboardProps): JSX.Element {
   return (
@@ -37,6 +41,7 @@ export function TriforgeDashboard({
       <TaskComposer onSubmit={onCreateTask} />
       <RunTimeline events={runEvents} />
       <ArtifactExplorer artifacts={artifacts} />
+      {review ? <DiffReview review={review} /> : null}
     </main>
   );
 }

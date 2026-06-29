@@ -4,20 +4,20 @@
 and GitHub at the start of every loop; this file records the conclusion, not the
 history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.1).
 
-**Last updated:** 2026-06-29 (Loop 29 — A8.4, on branch `feat/a8-4-artifact-explorer`)
+**Last updated:** 2026-06-29 (Loop 30 — A8.5, on branch `feat/a8-5-diff-review`)
 
 ## Snapshot
 
 | Field | Value |
 |---|---|
-| Last closed milestone | A8.3 — Run Timeline (`d7b5619`, PR #61; ADR 0052 arch) |
-| Active milestone | **A8.4 — Artifact Explorer** (this PR; `apps/web` artifactExplorer view-model + panel) |
-| `main` SHA | `d7b5619` |
-| Last `main` CI | `Validate` ✅ success (`d7b5619`) |
-| Open PRs | A8.4 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
+| Last closed milestone | A8.4 — Artifact Explorer (`e2355c2`, PR #62; ADR 0052 arch) |
+| Active milestone | **A8.5 — Diff & Review interface** (this PR; `apps/web` diffReview view-model + panel) |
+| `main` SHA | `e2355c2` |
+| Last `main` CI | `Validate` ✅ success (`e2355c2`) |
+| Open PRs | A8.5 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
 | Blockers | none |
 | Pending decisions | none |
-| Next loop | **A8.5 — Diff & Review interface** (`apps/web`). A view-model + panel showing the file tree, the complete diff with TRUNCATION warnings, binary/deleted/renamed files, findings + severity, gate results, repair rounds, and the diff-hash vs the reviewed-hash (flag a MISMATCH = changed after review). NEVER hide a changed file. Pure view-model + test + panel. Then A8.6 governance dashboard, A8.7 budget/quota, A8.8 recovery. Then A9. |
+| Next loop | **A8.6 — Governance Dashboard** (`apps/web`). A view-model + panel to observe policy decisions, the autonomous merge decision, blocked actions, command decisions, risk state, quota state, rollback, cancel, and the (audited) human override. Map the A5.8 GovernanceDecision + the A5.2/A5.3 policy decisions + A6.3 routing status into an observable list; human override must be shown as audited. Pure view-model + test + panel. Then A8.7 budget/quota, A8.8 recovery. Then A9. |
 
 ## Follow-ups / tech debt
 
@@ -79,7 +79,7 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
   - A6.6 Protected adaptive router — **merged** (`47c5e36`; PR #57; ADR 0050)
 - **A6 — COMPLETE** (`47c5e36`; profiler + static + quota-aware + metrics + repo profiles + protected adaptive)
 - A7 Competitive mode — **A7.1 merged** (`0610c54`; PR #58; ADR 0051)
-- A8 Product Interface (UI) — A8.1–A8.3 merged (`d7b5619`); **A8.4 active** (this PR; ADR 0052); A8.5–A8.8 pending
+- A8 Product Interface (UI) — A8.1–A8.4 merged (`e2355c2`); **A8.5 active** (this PR; ADR 0052); A8.6–A8.8 pending
 - A9 Hardening and release candidate — pending
 
 ## UNKNOWN
@@ -113,9 +113,9 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 
 | Metric | Value |
 |---|---|
-| Loops executed | …A7.1 (25); A8.1 (26); A8.2 (27); A8.3 (28); A8.4 (29) active |
-| PRs created | +23 this session (TD-1 #40 … A8.3 #61, A8.4 this); 31 total since A0.4 |
-| PRs merged | 30 (…#59 A8.1, #60 A8.2, #61 A8.3) |
+| Loops executed | …A8.1 (26); A8.2 (27); A8.3 (28); A8.4 (29); A8.5 (30) active |
+| PRs created | +24 this session (TD-1 #40 … A8.4 #62, A8.5 this); 32 total since A0.4 |
+| PRs merged | 31 (…#60 A8.2, #61 A8.3, #62 A8.4) |
 | CI failures | 1 (A5.3 first run: cross-platform binName — caught + fixed; re-run green) |
 | Repair rounds | 11 (A5.9: 1 — E2E surfaced + fixed an A5.5 new-dir reconcile bug, fail-closed) |
 | Regressions | 0 |
@@ -124,8 +124,8 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 | Human interventions | 1 (auth-method decision) |
 | Findings by severity (reviews) | A5.4–A5.8: 0; A5.9: 1 major (self-found integration bug in A5.5, fixed + regression test) |
 | Time-to-merge | same session per loop |
-| Diff size | A8.4: web artifactExplorer lib+test + ArtifactExplorer.tsx + dashboard wire + PRODUCT_INTERFACE_SPEC §A8.4 |
-| Coverage | api ~660; web suite +3 artifact tests → 26 web tests (CI runs `@triforge/web test`) |
+| Diff size | A8.5: web diffReview lib+test + DiffReview.tsx + dashboard wire + PRODUCT_INTERFACE_SPEC §A8.5 |
+| Coverage | api ~660; web suite +5 diff-review tests → 31 web tests (CI runs `@triforge/web test`) |
 | Quota usage | not yet instrumented (no provider runs) |
 | Reverted decisions | 0 |
 | Security incidents | 1 (PAT pasted into chat — R-SEC-2; external, owner must rotate; non-blocking) |
@@ -134,19 +134,19 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 ## Exact next loop
 
 ```text
-Loop 30 — A8.5 Diff & Review interface (mandate §10 A8.5). Branch off main AFTER A8.4
-merges. In apps/web build a PURE view-model (testable) + panel that shows: the file tree,
-the complete diff with TRUNCATION warnings (safeText flag), binary/deleted/renamed files,
-findings + severity, gate results, repair rounds, and the diff-hash vs the reviewed-hash
-— FLAGGING a mismatch (changed after review). NEVER hide a changed file (assert the
-rendered file set equals the input change set). Sanitize all diff/finding text.
-  Tests: every changed file is shown (none hidden); a binary/deleted/renamed file is
-  marked; a diff-hash != reviewed-hash is flagged as changed-after-review; oversized diff
-  text is truncation-flagged; findings/severity rendered + sanitized.
-Loop shape unchanged: spec/impl → gates (web typecheck + web vitest + lint:deps + build)
-→ adversarial review → repair → PR → CI → squash-merge → verify main → persist this file.
-Then A8.6 governance dashboard, A8.7 budget/quota, A8.8 recovery UI. A8 closure: a user
-can create/observe/audit/cancel/recover/understand a full run without console logs. Then
-A9 Hardening (chaos + A0.5 security acceptance tests + version drift + recovery +
-observability + packaging/installation + docs + release candidate) + TriForge 1.0 DoD.
+Loop 31 — A8.6 Governance Dashboard (mandate §10 A8.6). Branch off main AFTER A8.5
+merges. In apps/web build a PURE view-model (testable) + panel that lets a user OBSERVE:
+policy decisions, the autonomous merge decision (A5.8 GovernanceDecision verdict +
+rationale), blocked actions, command decisions (A5.3), risk state, quota state (A6.3),
+rollback, cancel, and the HUMAN OVERRIDE (which must be shown as AUDITED — who/when/why).
+Normalize these into an observable, sanitized decision list; never invent a decision.
+  Tests: the merge verdict + rationale render; a blocked/command decision renders; a
+  human override is shown as audited (actor + reason); decision text is sanitized.
+Loop shape unchanged. Then A8.7 budget/quota (configured/reserved/consumed/estimated/
+unknown/rate-limited/exhausted/reset-only-when-reliable), A8.8 recovery UI (resume/cancel/
+inspect-blocked/clean-stale-worktree/retry-auth/retry-after-quota/abandon-repair/recover-
+artifacts/inspect-rollback). A8 closure: a user can create/observe/audit/cancel/recover/
+understand a full run without console logs. Then A9 Hardening (chaos + A0.5 security
+acceptance tests + version drift + recovery + observability + packaging/installation +
+docs + release candidate) + TriForge 1.0 Definition of Done.
 ```
