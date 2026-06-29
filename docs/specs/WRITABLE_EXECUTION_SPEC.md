@@ -28,9 +28,9 @@ separate from `providers/`). Sub-pieces:
 | A5.5 | Diff Capture + Mutation Ledger (`execution/ledger`) | merged (ADR 0040) |
 | A5.6 | Quality Gate Runner (`execution/gates`) | merged (ADR 0041) |
 | A5.7 | Repair Loop (`execution/repair`) | merged (ADR 0042) |
-| A5.8 | Autonomous Governance Decision (`execution/governance`) | **this PR** (ADR 0043) |
-| A5.9 | Writable E2E fixture (mock-first) | planned |
-| A5.10 | Low-risk real provider pilot | planned (gated on A5.1–A5.9 green) |
+| A5.8 | Autonomous Governance Decision (`execution/governance`) | merged (ADR 0043) |
+| A5.9 | Writable E2E fixture (mock-first) (`execution/e2e`) | **this PR** (ADR 0044) — **MVP** |
+| A5.10 | Low-risk real provider pilot | next (gated on A5.1–A5.9 green) |
 
 Real provider writes remain **unauthorized** until A5.1–A5.9 are merged & green and
 the per-capability binding is satisfied. The MVP E2E (A5.9) is demonstrated with the
@@ -486,3 +486,66 @@ ordinary merge.
 - A5.9 wires the full pipeline (worktree→owner→gates→reviewer→repair→governance→merge)
   over the mock providers — the MVP demonstration.
 - An authenticated approver channel (R-SEC-9) binds the actor identity cryptographically.
+
+---
+
+## A5.9 Writable E2E fixture (mock-first) — the functional MVP
+
+### Objective
+
+Demonstrate, end to end over a controlled FIXTURE repo with mock owner/reviewer and
+REAL infrastructure, that TriForge completes a low-risk writable task with a single
+owner, a read-only reviewer, a repair loop, quality gates, a re-derived
+`GovernanceDecision` and a governed merge — real writes confined to an isolated
+worktree/branch, NEVER the live tree or `main`.
+
+### Orchestrator (`execution/e2e/writableRun.ts`)
+
+`runWritableTask` wires every A5 piece: WorktreeManager (A5.1) creates the isolated
+worktree → OwnershipRegistry (A5.4) grants the single owner → PathPolicyEngine (A5.2)
++ CommandPolicy/Supervisor (A5.3) bound to the worktree → the injected owner writes
+ONLY through a path/role-checked `write` that records each mutation in the ledger
+(A5.5) → `computeWorktreeChanges`/`reconcile` re-derive the real change set → the
+quality gates run (A5.6) → the injected reviewer produces findings (integrity
+tampering surfaces as a blocker) → the repair loop (A5.7) drives to a terminal state →
+the governance gate (A5.8) decides from re-derived evidence → on `merge`, the owner's
+changes are committed on the branch and merged into the base via the hardened
+`GitRunner`, then the worktree is cleaned up.
+
+### MVP closure (mandate §A5 / §A5.9)
+
+The E2E demonstrates the POSITIVE path (verdict `merge`, the change lands on the base
+branch, the worktree is cleaned up) AND that the negatives block: an owner write
+outside `writePaths` / into `.git` / out of the workspace is refused by the path
+policy (the valid change still merges); an UNATTRIBUTED out-of-band change makes the
+ledger reconciliation tamper → governance `block` (SAT-A5-6); failing quality gates →
+`block`. **This is the functional MVP: a real low-risk writable task completed under a
+single owner, adversarial review, repair loop, quality gates, GovernanceDecision and a
+governed merge — with mocks standing in for the providers (the real provider pilot is
+A5.10).**
+
+### Fix surfaced by the E2E
+
+The E2E caught a real bug in the A5.5 `computeWorktreeChanges`: `git status
+--porcelain -z` collapses a wholly-untracked NEW directory to `dir/`, hiding the
+individual files from reconciliation (fail-closed: it over-reported tampering and
+blocked legitimate merges). Fixed by adding `--untracked-files=all`, with a regression
+test for a brand-new directory.
+
+### Capability binding (threat-model §11.2)
+
+| Field | Content |
+|---|---|
+| **Capability** | TriForge runs a complete writable task in an isolated worktree, merging only on a re-derived `merge` verdict. |
+| **Threat(s)** | The full A5 surface composed: T-FS-08, T-FS-01/02/03, T-INT-04/11, T-INJ-11 (an out-of-band/forged change reaching `main`). |
+| **Control(s)** | The whole A5.1–A5.8 stack wired so the owner can only write path/role-checked, every mutation is ledgered and reconciled, gates are real, and the merge requires a re-derived `merge` verdict. **Demonstrated** in `execution/e2e/`. |
+| **Milestone** | A5.9 (this PR). |
+| **Verification** | `writableRun.e2e.test.ts` (4, real git): positive E2E reaches `merge` + lands on base + cleans up; out-of-bounds/`.git`/`..` writes refused (valid change still merges); unattributed change → tampered → `block` (SAT-A5-6); failing gates → `block`. |
+| **Recovery** | A non-`merge` verdict leaves `main` untouched; the worktree is always cleaned up; the ledger + governance record are preserved. |
+| **Residual risk** | Owner/reviewer are mocks (the real provider pilot is A5.10); actor ids are logical (R-SEC-9). Accepted, owner. |
+
+### Open follow-ups
+
+- A5.10 substitutes a real provider for the mock owner on a controlled fixture, only
+  after re-verifying CLI versions/auth — and stays BLOCKED if writable capability
+  cannot be safely verified.

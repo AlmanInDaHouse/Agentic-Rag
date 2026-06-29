@@ -4,7 +4,7 @@
 impact, qualitative probability, mitigation, status, owner, responsible milestone,
 evidence. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.2).
 
-**Last updated:** 2026-06-29 (Loop 16 — A5.8)
+**Last updated:** 2026-06-29 (Loop 17 — A5.9 / functional MVP)
 
 Owner is `AlmanInDaHouse` for accept/override decisions; Claude Code owns
 mitigation execution unless noted. Probability/impact are qualitative
@@ -128,6 +128,16 @@ threat IDs in that catalog. These do not restate the already-booked R-GOV-5
   gates; emits a schema-valid A1 GovernanceDecision; human override remains available,
   not required. Reinforces R-GOV-1; mitigates T-INT-01/02/04/10/11. Demonstrated by 13
   tests. Residual: logical (not yet authenticated) actor identity (R-SEC-9).
+- **A5.9 Writable E2E (mock-first) — FUNCTIONAL MVP (this PR; ADR 0044).** The full A5
+  stack composed in `runWritableTask`: worktree→owner(single,lease)→path/command
+  policy→ledger+reconcile→gates→reviewer→repair loop→re-derived GovernanceDecision→
+  governed merge→cleanup, real writes confined to an isolated worktree (never main).
+  Demonstrated by 4 real-git E2E tests: positive reaches merge + lands on base; out-of-
+  bounds/.git writes refused; unattributed change → tampered → block (SAT-A5-6); failing
+  gates → block. Demonstrates R-GOV-1 controlled end-to-end. **Caught + fixed a
+  fail-closed bug in A5.5 computeWorktreeChanges** (a wholly-new untracked directory
+  collapsed to `dir/`, hiding files from reconciliation) with a regression test.
+  Residual: owner/reviewer are mocks (real pilot A5.10); logical actor ids (R-SEC-9).
 
 ## Closed / superseded
 
