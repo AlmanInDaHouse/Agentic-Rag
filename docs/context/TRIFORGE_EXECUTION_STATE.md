@@ -4,20 +4,20 @@
 and GitHub at the start of every loop; this file records the conclusion, not the
 history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.1).
 
-**Last updated:** 2026-06-29 (Loop 23 — A6.5, on branch `feat/a6-5-repo-profiles`)
+**Last updated:** 2026-06-29 (Loop 24 — A6.6 / A6 CLOSED, on branch `feat/a6-6-adaptive-router`)
 
 ## Snapshot
 
 | Field | Value |
 |---|---|
-| Last closed milestone | A6.4 — Execution metrics (`e1b9f90`, PR #55; ADR 0048) |
-| Active milestone | **A6.5 — Repository-specific profiles** (this PR; `orchestration/repositoryProfiles.ts`; ADR 0049) |
-| `main` SHA | `e1b9f90` |
-| Last `main` CI | `Validate` ✅ success (`e1b9f90`) |
-| Open PRs | A6.5 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
+| Last closed milestone | A6.5 — Repository-specific profiles (`77d020c`, PR #56; ADR 0049) |
+| Active milestone | **A6.6 — Protected adaptive router** (this PR; `orchestration/adaptiveRouter.ts`; ADR 0050) → **A6 COMPLETE** |
+| `main` SHA | `77d020c` |
+| Last `main` CI | `Validate` ✅ success (`77d020c`) |
+| Open PRs | A6.6 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
 | Blockers | none |
 | Pending decisions | none |
-| Next loop | **A6.6 — Protected adaptive router** (CLOSES A6). Activate learned (A6.5) rules into routing ONLY when: a minimum predefined sample exists, confidence is sufficient, a fallback exists, human override exists, decisions are explainable, sparse data does NOT dominate, and speed is NOT optimized at the expense of security/correctness. Compose A6.2 (static) + A6.5 (repo rules) behind these guards; produce an explainable routing decision. Then A7 competitive, A8 UI, A9 hardening + release. |
+| Next loop | **A7.1 — Competitive Mode** (opt-in by policy + sufficient budget). Two ISOLATED candidate worktrees (Codex + Claude) on the SAME TaskSpecification/ContextManifest/acceptance-criteria/harness; no mutual access; independent reviewer; reproducible comparison on correctness/tests/security/complexity/diff-size/maintainability/performance/findings/repair-rounds/quota/wall-time; governance SELECTION (not style/majority) → GovernanceDecision; cleanup of the rejected candidate; preserve evidence. Reuse A5.1 worktree isolation + A5.9 runWritableTask per candidate. Then A8 UI, A9 hardening + release. |
 
 ## Follow-ups / tech debt
 
@@ -75,9 +75,10 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
   - A6.2 Static capability router — **merged** (`73a8ce2`; PR #53; ADR 0046)
   - A6.3 Quota-aware router — **merged** (`8813d87`; PR #54; ADR 0047)
   - A6.4 Execution metrics — **merged** (`e1b9f90`; PR #55; ADR 0048)
-  - A6.5 Repository-specific profiles — **active** (this PR; ADR 0049)
-  - A6.6 Protected adaptive router — pending (closes A6)
-- A7 Competitive mode — pending (not required for MVP)
+  - A6.5 Repository-specific profiles — **merged** (`77d020c`; PR #56; ADR 0049)
+  - A6.6 Protected adaptive router — **active** (this PR; ADR 0050)
+- **A6 — COMPLETE** (profiler + static + quota-aware + metrics + repo profiles + protected adaptive; honest, explainable, human override, static fallback)
+- A7 Competitive mode — **active / next** (not required for MVP, but in the A5–A9 mandate)
 - A8 Product interface — pending
 - A9 Hardening and release — pending
 
@@ -112,9 +113,9 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 
 | Metric | Value |
 |---|---|
-| Loops executed | A0.4–A4 (0–6); TD-1..A5.9 (7–17)=MVP; A5.10 (18); A6.1–A6.4 (19–22) merged; A6.5 (23) active |
-| PRs created | +17 this session (TD-1 #40 … A6.4 #55, A6.5 this); 25 total since A0.4 |
-| PRs merged | 24 (…#53 A6.2, #54 A6.3, #55 A6.4) |
+| Loops executed | A0.4–A4 (0–6); TD-1..A5.9 (7–17)=MVP; A5.10 (18); A6.1–A6.5 (19–23) merged; A6.6 (24) active=A6 done |
+| PRs created | +18 this session (TD-1 #40 … A6.5 #56, A6.6 this); 26 total since A0.4 |
+| PRs merged | 25 (…#54 A6.3, #55 A6.4, #56 A6.5) |
 | CI failures | 1 (A5.3 first run: cross-platform binName — caught + fixed; re-run green) |
 | Repair rounds | 11 (A5.9: 1 — E2E surfaced + fixed an A5.5 new-dir reconcile bug, fail-closed) |
 | Regressions | 0 |
@@ -123,8 +124,8 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 | Human interventions | 1 (auth-method decision) |
 | Findings by severity (reviews) | A5.4–A5.8: 0; A5.9: 1 major (self-found integration bug in A5.5, fixed + regression test) |
 | Time-to-merge | same session per loop |
-| Diff size | A6.5: 1 new src file (repositoryProfiles ~120 LoC) + additive RouterContext.repoId + test (~110) + ADR 0049 + ROUTING_LEARNING_SPEC §A6.5 |
-| Coverage | +3 A6.5 repo-profile tests → 514 pure (+3 POSIX-only in CI) = 517; full api suite ~651 |
+| Diff size | A6.6: 1 new src file (adaptiveRouter ~130 LoC) + test (~120) + ADR 0050 + ROUTING_LEARNING_SPEC §A6.6 + A6 closure |
+| Coverage | +6 A6.6 adaptive tests → 520 pure (+3 POSIX-only in CI) = 523; full api suite ~657 |
 | Quota usage | not yet instrumented (no provider runs) |
 | Reverted decisions | 0 |
 | Security incidents | 1 (PAT pasted into chat — R-SEC-2; external, owner must rotate; non-blocking) |
@@ -133,18 +134,21 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 ## Exact next loop
 
 ```text
-Loop 24 — A6.6 Protected adaptive router (mandate §A6.6) — CLOSES A6. Branch off main
-AFTER A6.5 merges. Compose A6.2 (static, neutral baseline) + A6.5 (repo-scoped learned
-rules) into an adaptive capability score, but ACTIVATE the learned rules ONLY when ALL
-guards hold: a minimum predefined sample, sufficient confidence, an available fallback,
-human override available, decisions explainable, sparse data does not dominate, and
-speed is NOT optimized over security/correctness. When the guards fail, fall back to the
-static neutral routing. Produce an explainable routing result (which rules fired, their
-evidence/confidence, the guard outcomes).
-  Tests: learned rule activates only above sample+confidence; sparse data falls back to
-  static; human override forces a provider (audited); decision is explainable (rule
-  trace); a high-risk/security task never trades correctness for speed.
-CLOSURE OF A6: profiler + static + quota-aware + metrics + repo profiles + protected
-adaptive + observability + explainable decisions. Then A7 Competitive Mode, A8 Product
-Interface (UI), A9 Hardening + release candidate + TriForge 1.0 DoD.
+Loop 25 — A7.1 Competitive Mode (mandate §9 / A7). Branch off main AFTER A6.6 merges.
+Implement opt-in (by policy + sufficient budget) two-candidate competition: run the SAME
+TaskSpecification + ContextManifest + acceptance criteria through TWO isolated candidate
+worktrees (one per provider) using the A5.9 runWritableTask machinery with the MOCK
+owners, a COMMON harness (same A5.6 gates), no mutual access, no artifact contamination,
+an independent reviewer per candidate. Produce a comparative report (correctness, tests,
+security, complexity, diff size, maintainability, performance, findings, repair rounds,
+quota, wall time) and a GOVERNANCE SELECTION (not narrative/majority) → a
+GovernanceDecision picking the winner; cleanup the rejected candidate's worktree;
+preserve its evidence. Plus negative E2E (a candidate that fails gates loses; both fail →
+no selection). Reuse A5.1 worktree isolation + A5.5 ledger/diffHash + A5.8 governance.
+  Tests: two isolated candidates produce independent results; the better (by re-derived
+  evidence) is selected via GovernanceDecision; the loser is cleaned up; budget gate
+  blocks competition when insufficient; no cross-candidate contamination.
+Loop shape unchanged. Then A8 Product Interface (UI on stable contracts/backend), A9
+Hardening (chaos + security + drift + recovery + observability + packaging + docs +
+release candidate) + TriForge 1.0 Definition of Done.
 ```

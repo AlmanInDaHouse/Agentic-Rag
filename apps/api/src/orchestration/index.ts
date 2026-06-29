@@ -114,3 +114,11 @@ export {
   type ProviderTaskStat,
   type RepositoryProfile
 } from "./repositoryProfiles.js";
+
+export {
+  routeAdaptive,
+  ADAPTIVE_ROUTER_VERSION,
+  type RoutingMode,
+  type AdaptiveRoutingInput,
+  type AdaptiveRoutingResult
+} from "./adaptiveRouter.js";

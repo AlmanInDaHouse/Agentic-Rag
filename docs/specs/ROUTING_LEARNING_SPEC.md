@@ -17,8 +17,8 @@ capability, so it carries no A0.5 capability binding (unlike A5).
 | A6.2 | Static capability router (`orchestration/staticRouter.ts`) | merged (ADR 0046) |
 | A6.3 | Quota-aware router (`orchestration/quotaAwareRouter.ts`) | merged (ADR 0047) |
 | A6.4 | Execution metrics (`orchestration/executionMetrics.ts`) | merged (ADR 0048) |
-| A6.5 | Repository-specific profiles (`orchestration/repositoryProfiles.ts`) | **this PR** (ADR 0049) |
-| A6.6 | Protected adaptive router | planned |
+| A6.5 | Repository-specific profiles (`orchestration/repositoryProfiles.ts`) | merged (ADR 0049) |
+| A6.6 | Protected adaptive router (`orchestration/adaptiveRouter.ts`) | **this PR** (ADR 0050) — **closes A6** |
 
 The A4 `orchestration/routing.ts` already produces a `RoutingDecision` (owner selection
 + quota-gated degradation) from a `TaskProfile`; A6.1 is the missing piece that PRODUCES
@@ -232,3 +232,49 @@ task family (different repo / family → inert); insufficient data → no rule +
 
 - A6.6 adaptive router applies these rules above a minimum-sample + confidence gate,
   with human override and explainable decisions; sparse data must not dominate.
+
+---
+
+## A6.6 Protected adaptive router — closes A6
+
+### Objective
+
+Compose the A6.2 static (neutral) baseline with the A6.5 repository-learned rules into
+an adaptive capability score, but ONLY behind protective guards, falling back to static
+routing otherwise — every decision explainable.
+
+### Design (`orchestration/adaptiveRouter.ts`; ADR 0050)
+
+`routeAdaptive(input)` applies learned rules only when ALL guards hold:
+
+- **human override** — if provided, it wins outright (audited);
+- **minimum sample + confidence** — only learned rules with `confidence ≥ minConfidence`
+  qualify (A6.5 already sample-gated them);
+- **fallback exists** — the static neutral routing is always the fallback;
+- **explainable** — the result carries the rule trace + guard outcomes;
+- **sparse data must not dominate** — learned deltas are bounded (A6.5) and only
+  qualifying rules apply; with none, routing stays neutral;
+- **security/correctness over speed** — for a critical-risk or security-sensitive task,
+  the learned (speed-oriented) rules are NOT applied; routing stays conservative.
+
+It returns the mode (`override`/`adaptive`/`static`), the capability scores, the
+preferred owner, the activated rules, whether the fallback was used, the guard outcomes
+and an explanation. Pure + deterministic.
+
+### Verification
+
+`adaptiveRouter.test.ts` (6): applies a confident learned rule (adaptive); falls back to
+static when no rule meets the confidence gate (sparse); does NOT apply learned routing to
+a security-sensitive task; honours a human override outright; is explainable (rule trace +
+guard outcomes); does not generalize a rule to another repository.
+
+---
+
+## A6 closure
+
+A6 is **complete**: Task Profiler (A6.1) + static capability router (A6.2) + quota-aware
+router (A6.3) + protected execution metrics (A6.4) + repository-specific profiles (A6.5)
++ protected adaptive router (A6.6). Routing is honest (no stereotypes), quota/auth-aware
+(unknown ≠ available, exhausted = hard stop, no paid fallback), learns only from
+re-derived, deduplicated, repo-scoped, sample-gated evidence, and every decision is
+explainable with a human override and a static fallback. Next: A7 Competitive Mode.

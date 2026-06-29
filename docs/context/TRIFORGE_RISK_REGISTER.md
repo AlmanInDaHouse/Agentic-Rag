@@ -4,7 +4,7 @@
 impact, qualitative probability, mitigation, status, owner, responsible milestone,
 evidence. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.2).
 
-**Last updated:** 2026-06-29 (Loop 23 — A6.5; A6 read-only routing — no new writable risk; learned rules are repo-scoped + evidence-gated, no auto-generalization per ADR 0049)
+**Last updated:** 2026-06-29 (Loop 24 — A6.6 / A6 COMPLETE; routing is honest, explainable, human-overridable, static-fallback, security>speed per ADR 0050; read-only, no writable risk)
 
 Owner is `AlmanInDaHouse` for accept/override decisions; Claude Code owns
 mitigation execution unless noted. Probability/impact are qualitative
