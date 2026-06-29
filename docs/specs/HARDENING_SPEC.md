@@ -152,6 +152,24 @@ root exposes build/test/typecheck/lint:deps; every package builds + type-checks 
 apps run a test suite; the workspace + lockfile + install docs are present; the workspace
 globs cover `packages/*` and `apps/*`.
 
+## A9.7 Documentation completeness
+
+### Design (`docs/TRIFORGE_OPERATOR_GUIDE.md` + `apps/api/src/test/docsCompleteness.test.ts`; ADR 0053)
+
+`TRIFORGE_OPERATOR_GUIDE.md` documents how an operator runs a task end-to-end and
+understands it WITHOUT console logs — the full lifecycle (create → observe → audit →
+cancel → recover) mapped to the A8 panels, the safety guarantees, and cross-links to the
+install, threat-model, hardening, product-interface, writable-execution, routing,
+competitive and execution-state docs. A deterministic completeness check asserts the doc
+set is present and coherent.
+
+### Verification
+
+`docsCompleteness.test.ts` (4): every key doc exists; the operator guide covers the
+lifecycle verbs (create/observe/audit/cancel/recover); it cross-references the install /
+threat-model / hardening / execution-state docs; it states the core safety guarantees
+(isolated worktrees; never api-keys / force-push / main).
+
 ## Open follow-ups
 
-- A9.7 docs; A9.8 RC cases; A9.9 release gate → TriForge 1.0 DoD.
+- A9.8 RC cases; A9.9 release gate → TriForge 1.0 DoD.
