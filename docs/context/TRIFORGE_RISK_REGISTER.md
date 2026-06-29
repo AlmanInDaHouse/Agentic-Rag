@@ -4,7 +4,7 @@
 impact, qualitative probability, mitigation, status, owner, responsible milestone,
 evidence. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.2).
 
-**Last updated:** 2026-06-29 (Loop 14 — A5.6)
+**Last updated:** 2026-06-29 (Loop 15 — A5.7)
 
 Owner is `AlmanInDaHouse` for accept/override decisions; Claude Code owns
 mitigation execution unless noted. Probability/impact are qualitative
@@ -114,6 +114,12 @@ threat IDs in that catalog. These do not restate the already-booked R-GOV-5
   governance blockers. Reinforces R-GOV-3; partially mitigates R-SEC-7 (in-tree change
   detection; branch-protection probe is A9). Demonstrated by 7 tests. Residual:
   heuristic path patterns (trusted gate set + CODEOWNERS are the backstop).
+- **A5.7 Repair Loop (this PR; ADR 0042).** Bounded implement→gate→review→repair loop
+  with hard caps (rounds/wall-time/commands/files/output/quota) + no-progress/repeated-
+  finding detection + cancellation/hard-stop; always terminates in
+  accepted/rejected/blocked/exhausted/cancelled/failed (never an infinite loop).
+  Mitigates R-PRV-2 (runaway quota/cost). Demonstrated by 8 tests. Residual: wall-time
+  needs a real clock in prod; no-progress heuristic is tunable.
 
 ## Closed / superseded
 

@@ -4,20 +4,20 @@
 and GitHub at the start of every loop; this file records the conclusion, not the
 history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.1).
 
-**Last updated:** 2026-06-29 (Loop 14 — A5.6, on branch `feat/a5-6-quality-gate-runner`)
+**Last updated:** 2026-06-29 (Loop 15 — A5.7, on branch `feat/a5-7-repair-loop`)
 
 ## Snapshot
 
 | Field | Value |
 |---|---|
-| Last closed milestone | A5.5 — Diff Capture + Mutation Ledger (`31446da`, PR #46; ADR 0040) |
-| Active milestone | **A5.6 — Quality Gate Runner** (this PR; `execution/gates`; ADR 0041) |
-| `main` SHA | `31446da` |
-| Last `main` CI | `Validate` ✅ success (`31446da`) |
-| Open PRs | A5.6 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
+| Last closed milestone | A5.6 — Quality Gate Runner (`a604336`, PR #47; ADR 0041) |
+| Active milestone | **A5.7 — Repair Loop** (this PR; `execution/repair`; ADR 0042) |
+| `main` SHA | `a604336` |
+| Last `main` CI | `Validate` ✅ success (`a604336`) |
+| Open PRs | A5.7 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
 | Blockers | none |
 | Pending decisions | none |
-| Next loop | **A5.7 — Repair Loop** (owner implementation → gates → reviewer findings → owner repair → gates again; bounded by repair rounds / quota / wall-time / commands / files / output / repeated-finding + no-progress detection / cancellation / hard stop; terminal state ∈ accepted/rejected/blocked/exhausted/cancelled/failed; no infinite loops). Then A5.8…A5.10. |
+| Next loop | **A5.8 — Autonomous Governance Decision** (build a GovernanceDecision artifact — A1 contract — binding task/spec/context/owner/reviewer/worktree/branch/diff-hash/mutation-ledger-hash/gate-result-hashes/findings/repair-rounds/quota/unresolved-risks/decision/rationale/policy-version + the capability binding; replaces the old human commit gate; prevent approval replay, decision-over-different-diff, post-decision diff change, merging with expired gates / blockers / criticals, self-asserted tests). Then A5.9 (mock E2E), A5.10 (real pilot). |
 
 ## Follow-ups / tech debt
 
@@ -64,8 +64,8 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
   - A5.3 Safe Command Policy + Process Supervision — **merged** (`cafca30`; PR #44; ADR 0038)
   - A5.4 Owner/Reviewer enforcement — **merged** (`f2784b4`; PR #45; ADR 0039)
   - A5.5 Diff Capture + Mutation Ledger — **merged** (`31446da`; PR #46; ADR 0040)
-  - A5.6 Quality Gate Runner — **active** (this PR; ADR 0041)
-  - A5.7 Repair Loop — pending
+  - A5.6 Quality Gate Runner — **merged** (`a604336`; PR #47; ADR 0041)
+  - A5.7 Repair Loop — **active** (this PR; ADR 0042)
   - A5.8 Autonomous Governance Decision — pending
   - A5.9 Writable E2E fixture (mock-first) — pending
   - A5.10 Low-risk real provider pilot — pending (gated on A5.1–A5.9 green)
@@ -97,19 +97,19 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 
 | Metric | Value |
 |---|---|
-| Loops executed | A0.4–A4 (0–6); TD-1..A5.5 merged (7–13); A5.6 (14) active |
-| PRs created | +8 this session (TD-1 #40 … A5.5 #46, A5.6 this); 16 total since A0.4 |
-| PRs merged | 15 (…#44 A5.3, #45 A5.4, #46 A5.5) |
+| Loops executed | A0.4–A4 (0–6); TD-1..A5.6 merged (7–14); A5.7 (15) active |
+| PRs created | +9 this session (TD-1 #40 … A5.6 #47, A5.7 this); 17 total since A0.4 |
+| PRs merged | 16 (…#45 A5.4, #46 A5.5, #47 A5.6) |
 | CI failures | 1 (A5.3 first run: cross-platform binName — caught + fixed; re-run green) |
-| Repair rounds | 10 (A5.5: 1 pre-PR NUL fix; A5.6: 1 pre-PR NUL fix — both caught in diff review) |
+| Repair rounds | 10 (A5.5/A5.6: pre-PR NUL fixes; A5.7: 1 pre-PR test-helper typecheck fix) |
 | Regressions | 0 |
 | Reverts | 0 |
 | Blockers hit | 0 |
 | Human interventions | 1 (auth-method decision) |
-| Findings by severity (reviews) | A5.4–A5.6: 0 (2 pre-PR NUL-byte fixes — Write-tool template-literal artifact, scanned each PR) |
+| Findings by severity (reviews) | A5.4–A5.7: 0 (pre-PR NUL/typecheck fixes caught locally) |
 | Time-to-merge | same session per loop |
-| Diff size | A5.6: 3 new src files (qualityGateRunner+gateTampering+index ~270 LoC) + test (~180) + ADR 0041 + spec §A5.6 |
-| Coverage | +7 A5.6 gate tests → 460 pure (+3 POSIX-only in CI) = 463; full api suite ~597 |
+| Diff size | A5.7: 2 new src files (repairLoop+index ~290 LoC) + test (~150) + ADR 0042 + spec §A5.7 |
+| Coverage | +8 A5.7 repair tests → 468 pure (+3 POSIX-only in CI) = 471; full api suite ~605 |
 | Quota usage | not yet instrumented (no provider runs) |
 | Reverted decisions | 0 |
 | Security incidents | 1 (PAT pasted into chat — R-SEC-2; external, owner must rotate; non-blocking) |
@@ -118,18 +118,23 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 ## Exact next loop
 
 ```text
-Loop 15 — A5.7 Repair Loop (mandate §A5.7). Branch off main AFTER A5.6 merges.
-Implement the bounded loop: owner implementation → quality gates (A5.6) → reviewer
-findings → owner repair → gates again, with limits on repair rounds / quota /
-wall-time / commands / files / output, plus repeated-finding + no-progress detection,
-cancellation and a hard stop. The loop MUST terminate in a state ∈ {accepted,
-rejected, blocked, exhausted, cancelled, failed}; no infinite loops. Compose A5.4
-(owner/reviewer) + A5.6 (gates) + A5.5 (ledger/diffHash for progress detection).
-  Tests: converges to accepted when gates pass + no findings; exhausted at the round
-  limit; no-progress detection (a repeated finding / unchanged diff) stops the loop;
-  cancellation/hard-stop terminal; blocked on an open blocker finding.
-Loop shape unchanged: spec/impl → gates → adversarial review → repair → PR → CI →
-squash-merge → verify main → persist this file.
-Then A5.8 GovernanceDecision builder, A5.9 mock-first writable E2E, A5.10 real pilot
-(only after A5.1–A5.9 green). Closure of A5 = the functional MVP.
+Loop 16 — A5.8 Autonomous Governance Decision (mandate §A5.8; threat-model T-INT-01/
+02/04/10/11). Branch off main AFTER A5.7 merges. Build a GovernanceDecision (A1
+artifact contract already exists in @triforge/shared) from RE-DERIVED evidence:
+  - bind task spec hash, acceptance criteria, context manifest hash, owner+reviewer
+    identity, worktree, branch, diff hash (A5.5), mutation-ledger head hash (A5.5),
+    quality-gate result hashes (A5.6), findings summary, repair rounds (A5.7), quota
+    state, unresolved risks, decision ∈ {merge,reject,repair,block,cancel}, rationale,
+    policy version + the six-field capability binding;
+  - PREVENT: approval replay, using a decision over a different diff, modifying the
+    diff after the decision (diffHash mismatch), merging with expired/failed gates or
+    open blockers/criticals, self-asserting un-run tests. Human override remains
+    possible but not required.
+  Tests: merge only when gates green + ledger reconciled + no blocker/critical;
+  refuse a poisoned/forged decision; refuse a decision whose diffHash != current;
+  refuse on a tampered ledger.
+Loop shape unchanged. Then A5.9 mock-first writable E2E (the MVP demonstration), A5.10
+real pilot (only after A5.1–A5.9 green; if the provider writable capability can't be
+safely verified, leave the pilot BLOCKED + demonstrate the MVP with the mock adapter +
+continue to A6–A9). Closure of A5 = the functional MVP.
 ```
