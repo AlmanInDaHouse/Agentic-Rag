@@ -4,20 +4,20 @@
 and GitHub at the start of every loop; this file records the conclusion, not the
 history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.1).
 
-**Last updated:** 2026-06-29 (Loop 25 — A7.1, on branch `feat/a7-1-competitive-mode`)
+**Last updated:** 2026-06-29 (Loop 26 — A8.1, on branch `feat/a8-1-provider-status`)
 
 ## Snapshot
 
 | Field | Value |
 |---|---|
-| Last closed milestone | A6.6 — Protected adaptive router (`47c5e36`, PR #57; ADR 0050) → A6 COMPLETE |
-| Active milestone | **A7.1 — Competitive Mode** (this PR; `execution/competitive`; ADR 0051) |
-| `main` SHA | `47c5e36` |
-| Last `main` CI | `Validate` ✅ success (`47c5e36`) |
-| Open PRs | A7.1 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
+| Last closed milestone | A7.1 — Competitive Mode (`0610c54`, PR #58; ADR 0051) |
+| Active milestone | **A8.1 — Provider Status panel** (this PR; `apps/web` view-models + sanitizer + panel; ADR 0052) |
+| `main` SHA | `0610c54` |
+| Last `main` CI | `Validate` ✅ success (`0610c54`) |
+| Open PRs | A8.1 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
 | Blockers | none |
 | Pending decisions | none |
-| Next loop | **A8 — Product Interface (UI)** on the stable backend/contracts (`apps/web`, React+Vite). A8.1 provider status, A8.2 task composer, A8.3 run timeline (sequence-ordered), A8.4 artifact explorer, A8.5 diff/review, A8.6 governance dashboard, A8.7 budget/quota, A8.8 recovery UI; A8 security (XSS / terminal-escape / hostile filenames / malicious markdown / diff truncation / secret rendering / cross-run confusion). UI must not invent states the backend doesn't know. Then A9 hardening + release candidate + TriForge 1.0 DoD. |
+| Next loop | **A8.2 — Task Composer** (`apps/web`). A form/view-model to compose a task: objective, constraints, acceptance criteria, risk, collaboration mode, budget, allowed read/write paths, blocked paths, max files changed, timeout, repair limits — VALIDATED on the frontend against the A1 `TaskSpecification` + the A5.2 allowed-path shape (the same Zod contracts the backend enforces). Pure view-model + validator (testable) + presentational form. Then A8.3 run timeline (order by sequence number), A8.4 artifact explorer, A8.5 diff/review, A8.6 governance, A8.7 budget/quota, A8.8 recovery. Then A9. |
 
 ## Follow-ups / tech debt
 
@@ -78,8 +78,8 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
   - A6.5 Repository-specific profiles — **merged** (`77d020c`; PR #56; ADR 0049)
   - A6.6 Protected adaptive router — **active** (this PR; ADR 0050)
 - **A6 — COMPLETE** (`47c5e36`; profiler + static + quota-aware + metrics + repo profiles + protected adaptive)
-- A7 Competitive mode — **A7.1 active** (this PR; ADR 0051; `COMPETITIVE_MODE_SPEC.md`)
-- A8 Product Interface (UI) — next
+- A7 Competitive mode — **A7.1 merged** (`0610c54`; PR #58; ADR 0051)
+- A8 Product Interface (UI) — **A8.1 active** (this PR; ADR 0052; `PRODUCT_INTERFACE_SPEC.md`); A8.2–A8.8 pending
 - A9 Hardening + release — pending
 - A8 Product interface — pending
 - A9 Hardening and release — pending
@@ -115,9 +115,9 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 
 | Metric | Value |
 |---|---|
-| Loops executed | A0.4–A4 (0–6); TD-1..A5.9 (7–17)=MVP; A5.10 (18); A6.1–A6.6 (19–24)=A6 done; A7.1 (25) active |
-| PRs created | +19 this session (TD-1 #40 … A6.6 #57, A7.1 this); 27 total since A0.4 |
-| PRs merged | 26 (…#55 A6.4, #56 A6.5, #57 A6.6=A6 done) |
+| Loops executed | A0.4–A4 (0–6); TD-1..A5.9 (7–17)=MVP; A5.10 (18); A6 (19–24); A7.1 (25); A8.1 (26) active |
+| PRs created | +20 this session (TD-1 #40 … A7.1 #58, A8.1 this); 28 total since A0.4 |
+| PRs merged | 27 (…#56 A6.5, #57 A6.6, #58 A7.1) |
 | CI failures | 1 (A5.3 first run: cross-platform binName — caught + fixed; re-run green) |
 | Repair rounds | 11 (A5.9: 1 — E2E surfaced + fixed an A5.5 new-dir reconcile bug, fail-closed) |
 | Regressions | 0 |
@@ -126,8 +126,8 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 | Human interventions | 1 (auth-method decision) |
 | Findings by severity (reviews) | A5.4–A5.8: 0; A5.9: 1 major (self-found integration bug in A5.5, fixed + regression test) |
 | Time-to-merge | same session per loop |
-| Diff size | A7.1: 1 new src file (competitiveRun ~190 LoC) + additive writableRun autoMerge/autoCleanup + e2e test (~150) + ADR 0051 + COMPETITIVE_MODE_SPEC |
-| Coverage | +3 A7.1 competitive E2E (real git) → 520 pure + 6 real-git E2E (A5.9+A7.1) + 3 POSIX = ~529 total; full api suite ~660 |
+| Diff size | A8.1: apps/web vitest setup + 2 lib (sanitize+providerStatus) + 2 components (ProviderStatus+TriforgeDashboard) + 2 web tests + ADR 0052 + PRODUCT_INTERFACE_SPEC |
+| Coverage | api ~660 (520 pure + E2E + POSIX); **NEW web suite: +12 web view-model/sanitizer tests** (CI runs `@triforge/web test`) |
 | Quota usage | not yet instrumented (no provider runs) |
 | Reverted decisions | 0 |
 | Security incidents | 1 (PAT pasted into chat — R-SEC-2; external, owner must rotate; non-blocking) |
@@ -136,27 +136,25 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 ## Exact next loop
 
 ```text
-Loop 26 — A8 Product Interface (UI), mandate §10. Branch off main AFTER A7.1 merges.
-Build the UI on the stable backend/contracts in apps/web (React 18 + Vite + Tailwind +
-Socket.IO client). Sub-pieces (split into reviewable PRs): A8.1 provider status
-(installed/version/auth/capabilities/last-verified/quota-known|estimated|unknown/
-warnings); A8.2 task composer (objective/constraints/acceptance/risk/mode/budget/
-allowed-read|write-paths/blocked/max-files/timeout/repair-limits; validated front+back);
-A8.3 run timeline (live events ORDERED BY SEQUENCE NUMBER, not just timestamps); A8.4
-artifact explorer (the 12 A1 artifacts + mutation ledger + raw evidence refs); A8.5
-diff/review (file tree, full diff, truncation warnings, binary/deleted/renamed, findings/
-severity, diff-hash vs reviewed-hash, never hide changed files); A8.6 governance
-dashboard (policy/merge/blocked/command decisions, risk, quota, rollback, cancel, human
-override audited); A8.7 budget/quota (configured/reserved/consumed/estimated/unknown/
-rate-limited/exhausted/reset-only-when-reliable); A8.8 recovery UI (resume/cancel/inspect-
-blocked/clean-stale-worktree/retry-auth/retry-after-quota/abandon-repair/recover-artifacts/
-inspect-rollback). A8 SECURITY: XSS, terminal-escape rendering, hostile filenames,
-malicious markdown, diff truncation, hidden files, stale-run confusion, approval/diff
-mismatch, accidental secret rendering, cross-run artifact confusion. The UI MUST NOT
-invent states the backend does not know. Closure: a user can create/observe/audit/cancel/
-recover/understand a full run without console logs.
-NOTE: A8 is a large frontend milestone (apps/web currently minimal); split aggressively
-into small PRs (one panel per PR), keep main green, persist state each loop.
-Then A9 Hardening (chaos + security acceptance tests from A0.5 + version drift + recovery
-+ observability + packaging/installation + docs + release candidate) + TriForge 1.0 DoD.
+Loop 27 — A8.2 Task Composer (mandate §10 A8.2). Branch off main AFTER A8.1 merges. In
+apps/web build a PURE view-model + validator (testable via the web vitest suite) and a
+presentational form to compose a task: objective, constraints, acceptance criteria, risk,
+collaboration mode, budget, allowed read/write paths, blocked paths, max files changed,
+timeout, repair limits. VALIDATE on the frontend against the A1 TaskSpecificationSchema
+and the A5.2 AllowedPathPolicy shape (the SAME Zod contracts the backend enforces — never
+a looser front-end rule). Surface typed field errors; reject empty objective / negative
+budget / out-of-range max-files; normalize paths. Render via a presentational form
+component (typecheck + build validated).
+  Tests: a valid spec validates; an empty objective / negative budget / bad max-files is
+  rejected with a typed error; path lists are normalized; the validator matches the A1
+  schema (no looser front-end rule).
+Loop shape unchanged: spec/impl → gates (web typecheck + web vitest + lint:deps + build)
+→ adversarial review → repair → PR → CI → squash-merge → verify main → persist this file.
+Then A8.3 run timeline (ORDER BY sequence number, not timestamps), A8.4 artifact explorer
+(12 A1 artifacts + ledger + raw evidence refs), A8.5 diff/review (never hide changed
+files; diff-hash vs reviewed-hash), A8.6 governance dashboard, A8.7 budget/quota, A8.8
+recovery UI. A8 closure: a user can create/observe/audit/cancel/recover/understand a full
+run without console logs. Then A9 Hardening (chaos + A0.5 security acceptance tests +
+version drift + recovery + observability + packaging/installation + docs + release
+candidate) + TriForge 1.0 Definition of Done.
 ```
