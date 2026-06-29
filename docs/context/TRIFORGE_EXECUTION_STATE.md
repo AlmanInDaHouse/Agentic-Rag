@@ -4,20 +4,20 @@
 and GitHub at the start of every loop; this file records the conclusion, not the
 history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.1).
 
-**Last updated:** 2026-06-30 (Loop 34 — A9.1, on branch `feat/a9-1-chaos-testing`)
+**Last updated:** 2026-06-30 (Loop 35 — A9.2, on branch `feat/a9-2-security-acceptance`)
 
 ## Snapshot
 
 | Field | Value |
 |---|---|
-| Last closed milestone | A8.8 — Recovery UI (`d99b850`, PR #66; ADR 0052) → **A8 COMPLETE** (8 panels) |
-| Active milestone | **A9.1 — Failure & Chaos testing** (this PR; `apps/api` chaos suite; ADR 0053; `HARDENING_SPEC.md`) |
-| `main` SHA | `d99b850` |
-| Last `main` CI | `Validate` ✅ success (`d99b850`) |
-| Open PRs | A9.1 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
+| Last closed milestone | A9.1 — Failure & Chaos testing (`3b95897`, PR #67; ADR 0053) |
+| Active milestone | **A9.2 — Security acceptance tests** (this PR; `apps/api` SAT acceptance suite; ADR 0053) |
+| `main` SHA | `3b95897` |
+| Last `main` CI | `Validate` ✅ success (`3b95897`) |
+| Open PRs | A9.2 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
 | Blockers | none |
 | Pending decisions | none |
-| Next loop | **A9.2 — Security acceptance tests** (`apps/api`), mandate §11 / A0.5. Turn the A0.5 threat-model SATs (SAT-A5-1..10; T-FS/T-GIT/T-EXE/T-INT/T-CMP/T-INJ) into executable acceptance tests that assert each control HOLDS: path-policy refuses traversal/symlink/`.git`/out-of-allowlist writes; command policy denies destructive/network/privileged by default; worktree isolation blocks sibling/main writes; ledger redacts secrets + is tamper-evident; governance anti-replay rejects a re-used decision binding; no-shell command execution. Reuse the A5 components. Then A9.3 version drift, A9.4 recovery, A9.5 observability, A9.6 packaging, A9.7 docs, A9.8 RC cases, A9.9 release gate → TriForge 1.0 DoD. |
+| Next loop | **A9.3 — Version drift handling** (`apps/api`), mandate §11. Assert the runtime handles an UNKNOWN / UNSUPPORTED provider CLI version and an UNSUPPORTED capability honestly: a version below the supported floor / not in the snapshot is flagged unsupported (not silently trusted); an unsupported capability is refused, not assumed; the provider-status view-model already surfaces unknown/unsupported (A8.1) — A9.3 asserts the backend produces those signals (read-only A3 adapter version/capability checks + a drift acceptance test). Then A9.4 recovery, A9.5 observability, A9.6 packaging, A9.7 docs, A9.8 RC cases, A9.9 release gate → TriForge 1.0 DoD. |
 
 ## Follow-ups / tech debt
 
@@ -80,7 +80,7 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 - **A6 — COMPLETE** (`47c5e36`; profiler + static + quota-aware + metrics + repo profiles + protected adaptive)
 - A7 Competitive mode — **A7.1 merged** (`0610c54`; PR #58; ADR 0051)
 - **A8 — COMPLETE** (`d99b850`; 8 panels A8.1–A8.8: provider status, task composer, run timeline, artifact explorer, diff/review, governance, budget/quota, recovery; ADR 0052; 46 web tests)
-- A9 Hardening and release candidate — **A9.1 active** (this PR; ADR 0053; `HARDENING_SPEC.md`); A9.2–A9.9 pending → TriForge 1.0 DoD
+- A9 Hardening and release candidate — A9.1 merged (`3b95897`; ADR 0053); **A9.2 active** (this PR); A9.3–A9.9 pending → TriForge 1.0 DoD
 
 ## UNKNOWN
 
@@ -113,9 +113,9 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 
 | Metric | Value |
 |---|---|
-| Loops executed | …A8.5 (30); A8.6 (31); A8.7 (32); A8.8 (33)=A8 done; A9.1 (34) active |
-| PRs created | +28 this session (TD-1 #40 … A8.8 #66, A9.1 this); 36 total since A0.4 |
-| PRs merged | 35 (…#64 A8.6, #65 A8.7, #66 A8.8=A8 done) |
+| Loops executed | …A8.6 (31); A8.7 (32); A8.8 (33)=A8 done; A9.1 (34); A9.2 (35) active |
+| PRs created | +29 this session (TD-1 #40 … A9.1 #67, A9.2 this); 37 total since A0.4 |
+| PRs merged | 36 (…#65 A8.7, #66 A8.8=A8 done, #67 A9.1) |
 | CI failures | 1 (A5.3 first run: cross-platform binName — caught + fixed; re-run green) |
 | Repair rounds | 11 (A5.9: 1 — E2E surfaced + fixed an A5.5 new-dir reconcile bug, fail-closed) |
 | Regressions | 0 |
@@ -124,8 +124,8 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 | Human interventions | 1 (auth-method decision) |
 | Findings by severity (reviews) | A5.4–A5.8: 0; A5.9: 1 major (self-found integration bug in A5.5, fixed + regression test) |
 | Time-to-merge | same session per loop |
-| Diff size | A9.1: apps/api chaos.failureSurface.test.ts (11 chaos cases) + HARDENING_SPEC + ADR 0053 |
-| Coverage | api ~660 +11 A9.1 chaos = ~671; web 46 (8 A8 panels) (CI runs api + `@triforge/web test`) |
+| Diff size | A9.2: apps/api security.acceptance.test.ts (14 SAT cases) + HARDENING_SPEC §A9.2 |
+| Coverage | api ~671 +14 A9.2 SAT = ~685; web 46 (8 A8 panels) (CI runs api + `@triforge/web test`) |
 | Quota usage | not yet instrumented (no provider runs) |
 | Reverted decisions | 0 |
 | Security incidents | 1 (PAT pasted into chat — R-SEC-2; external, owner must rotate; non-blocking) |
@@ -134,20 +134,18 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 ## Exact next loop
 
 ```text
-Loop 35 — A9.2 Security acceptance tests (mandate §11 / A0.5). Branch off main AFTER A9.1
-merges. Turn the A0.5 threat-model SATs (SAT-A5-1..10; T-FS/T-GIT/T-EXE/T-INT/T-CMP/T-INJ)
-into executable acceptance tests (apps/api) asserting each CONTROL HOLDS, composing the
-real A5 components: path policy refuses traversal / symlink / hardlink / `.git` /
-out-of-allowlist writes; command policy denies destructive / network / privileged by
-default and runs with NO shell; worktree isolation blocks writes to a sibling worktree,
-the state root and main; the ledger redacts secrets and is tamper-evident; the governance
-gate's anti-replay rejects a re-used / mismatched decision binding. Map each test to its
-SAT id.
-  Tests: a traversal/symlink/.git/out-of-allowlist write is refused; a destructive/
-  network command is denied by default; no-shell is enforced; a redaction + tamper case
-  holds; a replayed governance binding is rejected.
-Loop shape unchanged. Then A9.3 version drift (unknown/unsupported CLI version handling),
-A9.4 recovery (resume/rollback across a simulated restart), A9.5 observability (the run is
-fully reconstructable from artifacts/ledger/events), A9.6 packaging/installation, A9.7
-docs, A9.8 release-candidate end-to-end cases, A9.9 release gate → TriForge 1.0 DoD.
+Loop 36 — A9.3 Version drift handling (mandate §11 A9.3). Branch off main AFTER A9.2
+merges. Assert the runtime treats an UNKNOWN / UNSUPPORTED provider CLI version and an
+UNSUPPORTED capability HONESTLY (apps/api): a version below the supported floor or absent
+from the version-bound snapshot is flagged unsupported (never silently trusted); an
+unsupported capability is refused, not assumed; a writable capability is never inferred
+from a read-only snapshot. Compose the A3 adapter version/capability surface + the A8.1
+provider-status signals. Deterministic.
+  Tests: an unknown/old version is flagged unsupported; an unsupported capability is
+  refused; a capability not in the snapshot is treated as unknown, not granted.
+Loop shape unchanged. Then A9.4 recovery (resume / rollback / crash-recovery across a
+simulated restart, reusing the A5.1 crash-recovery + A5.5 ledger reload), A9.5
+observability (a run is fully reconstructable from artifacts + ledger + events — no
+hidden state), A9.6 packaging/installation, A9.7 docs, A9.8 release-candidate end-to-end
+cases, A9.9 release gate → TriForge 1.0 Definition of Done.
 ```
