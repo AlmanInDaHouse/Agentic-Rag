@@ -13,8 +13,15 @@ import { z } from "zod";
  * quota-flavor tokens in `QuotaExhaustionFlavorSchema` inherited from
  * QUOTA_AWARE_PROVIDER_ORCHESTRATION_SPEC.md (sanctioned vocabulary, not logic).
  * There is no Codex/Claude-specific behavior or per-provider branching here.
+ *
+ * Version history:
+ * - 1.0.0 — initial provider contract surface (A1).
+ * - 1.1.0 — additive: `request_rejected` added to `ProviderErrorCodeSchema` so a
+ *   deliberate precondition refusal is distinguishable from a `provider_unavailable`
+ *   availability failure (TD-2). Backward-compatible: no field/value removed or
+ *   renamed; prior 1.0.0 payloads remain valid.
  */
-export const PROVIDER_CONTRACT_SCHEMA_VERSION = "1.0.0";
+export const PROVIDER_CONTRACT_SCHEMA_VERSION = "1.1.0";
 
 /**
  * The provider identifier. Together with the inherited quota-flavor tokens in
@@ -131,6 +138,12 @@ export const ProviderErrorCodeSchema = z.enum([
   "provider_unavailable",
   "authentication_required",
   "authentication_expired",
+  // A precondition refusal: the adapter rejected the request before execution
+  // (e.g. a writable run on a read-only adapter, or a flag-shaped/argv-injection
+  // input). Distinct from `provider_unavailable` (which means the CLI itself is
+  // unreachable) so routing/governance can tell a deliberate boundary refusal
+  // apart from an availability failure (TD-2; added additively in 1.1.0).
+  "request_rejected",
   "timeout",
   "cancelled",
   "quota_exhausted",

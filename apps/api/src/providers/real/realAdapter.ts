@@ -222,30 +222,31 @@ export abstract class RealAdapter implements ProviderAdapter {
    *    so it is rejected (in addition to the `--` end-of-options marker in
    *    buildExecArgs — defense in depth).
    *
-   * The A1 error taxonomy has no dedicated "request_rejected"/"unauthorized" code,
-   * so a refused precondition maps to a non-retriable `provider_unavailable` terminal
-   * with an explicit message rather than inventing a code (which would need a
-   * contract bump).
+   * A refused precondition maps to the non-retriable `request_rejected` terminal
+   * (added to the A1 taxonomy in contract 1.1.0, TD-2): a deliberate boundary
+   * refusal, distinct from `provider_unavailable` (the CLI being unreachable), so
+   * routing/governance can tell the two apart. The explicit message carries which
+   * precondition failed.
    */
   private refusalReason(
     request: AgentExecutionRequest
   ): { code: ProviderError["code"]; message: string } | null {
     if (request.readOnly === false) {
       return {
-        code: "provider_unavailable",
+        code: "request_rejected",
         message:
           "writable provider execution is not authorized until A5; requires the A0.5 capability binding"
       };
     }
     if (startsWithHyphen(request.objective)) {
       return {
-        code: "provider_unavailable",
+        code: "request_rejected",
         message: "rejected objective: a flag-shaped (hyphen-leading) objective is not permitted"
       };
     }
     if (request.sanitizedArguments.some(startsWithHyphen)) {
       return {
-        code: "provider_unavailable",
+        code: "request_rejected",
         message:
           "rejected argument: a flag-shaped (hyphen-leading) sanitized argument is not permitted"
       };

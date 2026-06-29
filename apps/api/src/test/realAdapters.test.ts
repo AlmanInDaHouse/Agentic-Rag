@@ -325,6 +325,8 @@ describe("real adapters — read-only execute", () => {
       const terminal = events[events.length - 1];
       expect(terminal.type).toBe("run.failed");
       const payload = terminal.payload as { errorCode: string; message: string };
+      // A deliberate boundary refusal, not an availability failure (TD-2, 1.1.0).
+      expect(payload.errorCode).toBe("request_rejected");
       expect(payload.message).toMatch(/not authorized until A5|A0\.5 capability binding/);
       expect(events.filter((e) => isTerminalEvent(e))).toHaveLength(1);
       // No process was spawned at all: the refusal never reached the runner, so no
@@ -348,6 +350,7 @@ describe("real adapters — read-only execute", () => {
       );
       const terminal = events[events.length - 1];
       expect(terminal.type).toBe("run.failed");
+      expect((terminal.payload as { errorCode: string }).errorCode).toBe("request_rejected");
       expect((terminal.payload as { message: string }).message).toMatch(/flag-shaped|hyphen-leading/);
       expect(events.some((e) => e.type === "file.changed")).toBe(false);
     }
@@ -364,6 +367,7 @@ describe("real adapters — read-only execute", () => {
     );
     const terminal = events[events.length - 1];
     expect(terminal.type).toBe("run.failed");
+    expect((terminal.payload as { errorCode: string }).errorCode).toBe("request_rejected");
     expect((terminal.payload as { message: string }).message).toMatch(/flag-shaped|hyphen-leading/);
   });
 

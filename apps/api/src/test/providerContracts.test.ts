@@ -77,7 +77,7 @@ const validPayloads: Record<ProviderEventType, unknown> = {
 
 describe("provider contract — primitives", () => {
   it("exposes a frozen schema version", () => {
-    expect(PROVIDER_CONTRACT_SCHEMA_VERSION).toBe("1.0.0");
+    expect(PROVIDER_CONTRACT_SCHEMA_VERSION).toBe("1.1.0");
   });
 
   it("ProviderId accepts codex/claude only", () => {
@@ -111,6 +111,9 @@ describe("provider contract — primitives", () => {
 
   it("error taxonomy enumerates the expected codes", () => {
     expect(ProviderErrorCodeSchema.safeParse("sequence_gap").success).toBe(true);
+    // request_rejected (1.1.0, TD-2): a deliberate precondition refusal, distinct
+    // from provider_unavailable.
+    expect(ProviderErrorCodeSchema.safeParse("request_rejected").success).toBe(true);
     expect(ProviderErrorCodeSchema.safeParse("not_a_code").success).toBe(false);
   });
 
