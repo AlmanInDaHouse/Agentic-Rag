@@ -25,8 +25,8 @@ separate from `providers/`). Sub-pieces:
 | A5.2 | Allowed-Path Policy (`execution/path`) | merged (ADR 0037) |
 | A5.3 | Safe Command Policy + Process Supervision (`execution/command`) | merged (ADR 0038) |
 | A5.4 | Owner/Reviewer enforcement (`execution/role`) | merged (ADR 0039) |
-| A5.5 | Diff Capture + Mutation Ledger (`execution/ledger`) | **this PR** (ADR 0040) |
-| A5.6 | Quality Gate Runner | planned |
+| A5.5 | Diff Capture + Mutation Ledger (`execution/ledger`) | merged (ADR 0040) |
+| A5.6 | Quality Gate Runner (`execution/gates`) | **this PR** (ADR 0041) |
 | A5.7 | Repair Loop | planned |
 | A5.8 | Autonomous Governance Decision | planned |
 | A5.9 | Writable E2E fixture (mock-first) | planned |
@@ -344,3 +344,52 @@ re-grounding the governance gate consults (SAT-A5-6).
 
 - A5.6 quality gates + A5.8 governance consume `reconcile`/`headHash`/`diffHash`.
 - Consider sharing secret patterns with `providers/harness/secretScan` (small TD).
+
+---
+
+## A5.6 Quality Gate Runner
+
+### Objective
+
+Run the project's quality gates and report a STRUCTURED result computed from the REAL
+exit codes — never from a provider's claim that "the tests pass" — and detect runs
+that weaken their own checks.
+
+### Gate runner (`execution/gates/qualityGateRunner.ts`)
+
+Gate commands come from TRUSTED configuration (`GateSpec[]`: an A1 `QualityGateName` +
+a `CommandSpec`), not from provider output, and run through the A5.3
+`CommandSupervisor` (command policy + supervision). A gate is `passed` iff its command
+exits 0; a denied / timed-out / output-flooded / non-zero command is `failed` (a gate
+that cannot run is never silently passed). Each `GateOutcome` carries the exit code,
+an output-artifact hash (sha256 of captured streams, not raw output) and timestamps;
+the result aligns with the A1 `QualityGateResult` (`overallStatus` + `gates[]`) and is
+bound to the A5.5 `testedDiffHash` so it cannot be replayed against a different diff.
+The overall status is `failed` if any gate failed, `passed` only if all passed, else
+`unknown` (an empty gate set is `unknown`, never `passed`).
+
+### Gate-tampering detection (`execution/gates/gateTampering.ts`)
+
+`detectGateTampering(worktreeChanges)` flags runs that would pass by WEAKENING checks:
+deleted (or renamed-away) test files, and changes to CI workflows / gate config
+(`.github/workflows/*`, `vitest`/`tsconfig`/`eslint` configs, the root `package.json`
+gate scripts). A positive report is a governance blocker (A5.8). It operates on the
+A5.5 real-worktree change set, so it is provider-narrative-independent.
+
+### Capability binding (threat-model §11.2)
+
+| Field | Content |
+|---|---|
+| **Capability** | Quality gates run from trusted config and produce a verdict from real exit codes; check-weakening is detected. |
+| **Threat(s)** | T-INT-04 (self-certified gate result / gate spoofing), T-INT-07/08 + T-GIT-07 (CI/gate-script weakening), test deletion. |
+| **Control(s)** | Trusted-config gate commands run via the supervised command boundary; verdict = real exit code (not narrative); result bound to the tested diff hash; output captured as a hashed artifact; deleted-test + CI-config-change detection. **Implemented** in `execution/gates/`. |
+| **Milestone** | A5.6 (this PR). |
+| **Verification** | `qualityGates.test.ts` (7): all-pass → passed + diff-hash bound, a failing command → failed (real exit code authority), a policy-denied gate → failed (not silently passed); tampering: deleted test, renamed-away test, CI-workflow + root `package.json` change flagged, ordinary source change not flagged. |
+| **Recovery** | A failing/uncertain gate blocks the merge at A5.8; tampering reports are blockers; results are diff-hash-bound so a stale result cannot be reused. |
+| **Residual risk** | Tampering detection is heuristic (path patterns); a gate hidden by a novel config path could be missed — the trusted-config gate set + CODEOWNERS on CI files are the backstop. Accepted, owner. |
+
+### Open follow-ups
+
+- A5.7 repair loop reruns the gates after each owner repair.
+- A5.8 governance consumes the `QualityGateRunResult` + tampering report as merge
+  preconditions, bound to the tested diff hash.
