@@ -421,16 +421,19 @@ that touches the outside world.
 
 ## 11. Provider Adapter Architecture
 
-**[Implemented] (contract, A1) / [Planned] (adapters)** The `ProviderAdapter`
-contract that ADR 0027 deferred now exists as a provider-agnostic contract in
-`packages/shared` (`packages/shared/src/provider/adapter.ts`; A1, ADR 0033,
+**[Implemented] (contract A1; mock adapters A2; real READ-ONLY adapters A3) /
+[Planned] (writable adapters, runtime wiring)** The `ProviderAdapter` contract that
+ADR 0027 deferred exists as a provider-agnostic contract in `packages/shared`
+(`packages/shared/src/provider/adapter.ts`; A1, ADR 0033,
 `docs/specs/PROVIDER_CONTRACTS_SPEC.md`). The interface and its Zod-validated data
 shapes (availability, authentication, capabilities, request, usage, quota, error
-taxonomy, result) are real; **no adapter implements it yet** — mock adapters are
-A2 and real read-only adapters are A3. The shapes are **not frozen** against an
-installed CLI: they are versioned assumptions verified per provider version before
-any adapter is frozen (§12; quota spec), and a new `cliVersion` invalidates the
-prior capability snapshot. The interface:
+taxonomy, result) are real and are now **implemented** by the mock adapters (A2) and
+the real **read-only** Codex/Claude adapters (A3, `apps/api/src/providers/real`,
+ADR 0034, `docs/specs/REAL_PROVIDER_ADAPTERS_SPEC.md`) over an injectable
+`ProcessRunner`. **Writable execution and runtime wiring remain planned** (the
+runtime stays mock-only). The shapes are **not frozen** against an installed CLI:
+they are versioned assumptions verified per provider version (§12; quota spec), and
+a new `cliVersion` invalidates the prior capability snapshot. The interface:
 
 ```ts
 interface ProviderAdapter {
@@ -469,14 +472,17 @@ ADR 0028 and ADR 0029.
 
 ## 12. Event-Driven Integration
 
-**[Implemented] (contract, A1) / [Planned] (adapters)** The normalized
-`ProviderEvent` contract now exists in `packages/shared`
+**[Implemented] (contract A1; read-only normalizers A3) / [Planned] (writable)**
+The normalized `ProviderEvent` contract exists in `packages/shared`
 (`packages/shared/src/provider/events.ts`; A1, ADR 0033): a strict envelope
 (schemaVersion, executionId, provider, sequenceNumber, timestamp, rawEvidenceRef,
 payload) over a 13-member discriminated union with explicit terminal-event
-semantics. The adapters that **consume** the CLI event streams and normalize into
-this shape are still planned (A3). The future adapters will consume **structured
-event streams** from the CLIs rather than only a final message, to enable:
+semantics. The real read-only Codex/Claude **event normalizers** that consume each
+CLI's raw output stream and map it into this shape now exist (A3,
+`apps/api/src/providers/real`, ADR 0034); they preserve order, fill the envelope,
+surface parse errors / unknown kinds as `warning.raised` and always end with exactly
+one terminal. They consume **structured event streams** from the CLIs rather than
+only a final message, to enable:
 
 - live progress;
 - tool-use visibility;
@@ -858,15 +864,15 @@ developer/analysis facility — it is not invoked by the agent runtime.
 
 ## 21. Missing Components
 
-**[Planned]** None of the following exist yet (the `ProviderAdapter` **contract**
-now exists in `packages/shared` — A1, §11 — but no adapter **implements** it):
+**[Planned]** The provider **contract** (A1, §11), the **mock adapters + black-box
+harness + quota manager** (A2) and the **real READ-ONLY** Codex/Claude adapters
+with **event normalizers** (A3, `apps/api/src/providers/real`) now exist; capability
+detection exists as a version-bound snapshot in both the mock and real adapters. The
+following remain unbuilt (writable execution stays gated on A0.5 + the
+per-capability binding rule):
 
-- mock adapters (even the mock adapters the quota spec describes are not built);
-- capability detection;
-- Codex adapter;
-- Claude adapter;
-- event normalizer;
-- quota manager implementation;
+- **writable** (`implementation_write_limited`) Codex/Claude adapters;
+- runtime **wiring** of the real adapters (the runtime stays mock-only);
 - task router;
 - collaboration protocols (Specialist / Pair / Full Debate / Competitive /
   Review-Only);
