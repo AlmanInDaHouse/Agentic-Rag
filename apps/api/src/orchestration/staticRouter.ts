@@ -23,6 +23,12 @@ const BASELINE_SCORE = 0.5;
 export interface RouterContext {
   /** Capabilities each provider is KNOWN to support (from version-bound snapshots). */
   providerCapabilities?: Record<ProviderId, string[]>;
+  /**
+   * The repository the routing is for. Repository-specific rules (A6.5) fire ONLY
+   * when this matches their repo id — so a learned rule never auto-generalizes to
+   * another repository.
+   */
+  repoId?: string;
 }
 
 export interface CapabilityRule {
