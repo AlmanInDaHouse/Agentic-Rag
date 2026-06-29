@@ -113,7 +113,26 @@ crash-recovery is covered by the A5.1 suite (real git worktrees, CI).
 preserved); a corrupted persisted chain is rejected on reload; a missing file recovers to
 empty; no secret on disk to recover (redaction before write).
 
+## A9.5 Observability — run reconstruction
+
+### Design (`apps/api/src/execution/observability/runReconstruction.ts`; ADR 0053)
+
+`reconstructRun(input)` asserts a run is FULLY RECONSTRUCTABLE from its artifacts +
+mutation ledger + ordered event stream, with NO hidden state: every ledger entry is
+attributable (owner / tool / reason / sequence); every real worktree change maps to a
+ledger entry (an unrecorded mutation = hidden state); the events form a gapless ordered
+stream with lifecycle bookends (a start + a terminal event); and the recorded diff hash
+reconciles to the hash bound in governance. `reconstructable` is the conjunction. Pure +
+deterministic.
+
+### Verification
+
+`runReconstruction.test.ts` (6): a fully observable run is reconstructable; a hidden-state
+mutation (worktree change with no ledger entry) is detected; an unattributed ledger entry
+is detected; a sequence gap is detected; missing lifecycle bookends are detected; a diff
+that does not reconcile to the governance binding is detected.
+
 ## Open follow-ups
 
-- A9.5 observability; A9.6 packaging/installation; A9.7 docs; A9.8 RC cases; A9.9 release
-  gate → TriForge 1.0 DoD.
+- A9.6 packaging/installation; A9.7 docs; A9.8 RC cases; A9.9 release gate → TriForge 1.0
+  DoD.
