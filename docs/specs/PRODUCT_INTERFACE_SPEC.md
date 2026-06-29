@@ -47,12 +47,31 @@ confidence) / last-verified, plus sanitized warnings. Pure + deterministic.
 stripping (keeps tab/newline), secret redaction, truncation flag, safe filename; honest
 unknown states, unknown-quota-not-available, label mapping, warning/version sanitization.
 
+## A8.2 Task Composer
+
+### Design (`src/lib/taskComposer.ts` + `src/components/TaskComposer.tsx`; ADR 0052 arch)
+
+`validateTaskComposer(input)` validates the composed task on the frontend against the
+SAME contracts the backend enforces — the A1 `TaskSpecificationSchema` and a Zod
+`AllowedPathPolicySchema` mirroring the A5.2 shape (`readPaths`/`writePaths`/
+`blockedPaths`/`maxFilesChanged`) — plus risk (`RiskLevelSchema`), collaboration mode,
+budget, timeout and repair-rounds. It surfaces typed per-field errors, rejects an empty
+objective / negative budget / `maxFilesChanged < 1` / out-of-enum risk-or-mode /
+non-integer numerics, and normalizes path/list textareas (trim, drop empties). The
+frontend never applies a looser rule than the backend, which re-validates
+authoritatively. The `TaskComposer` form emits a `ComposedTask` only when valid.
+
+### Verification
+
+`src/lib/taskComposer.test.ts` (6): a valid task validates + paths normalized; empty
+objective rejected (A1 rule); negative budget rejected; `maxFilesChanged < 1` rejected
+(A5.2 shape); out-of-enum risk/mode rejected; non-integer numerics rejected.
+
 ## Open follow-ups
 
-- A8.2 task composer (validate against the A1 schemas front + back); A8.3 run timeline
-  (ORDER BY sequence number); A8.4 artifact explorer; A8.5 diff/review (never hide changed
-  files; diff-hash vs reviewed-hash); A8.6 governance dashboard; A8.7 budget/quota; A8.8
-  recovery UI.
+- A8.3 run timeline (ORDER BY sequence number); A8.4 artifact explorer; A8.5 diff/review
+  (never hide changed files; diff-hash vs reviewed-hash); A8.6 governance dashboard; A8.7
+  budget/quota; A8.8 recovery UI.
 - A later A8 step mounts `TriforgeDashboard` as the TriForge view (a backend wiring of the
   A5–A7 runtime into HTTP/Socket.IO is a prerequisite for live data; the panels are built
   against the contracts now).

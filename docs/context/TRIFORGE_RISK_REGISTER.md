@@ -4,7 +4,7 @@
 impact, qualitative probability, mitigation, status, owner, responsible milestone,
 evidence. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.2).
 
-**Last updated:** 2026-06-29 (Loop 26 — A8.1 Provider Status UI; honest states (no invented), sanitized untrusted content (XSS/terminal-escape/secret/hostile-filename), web vitest gate added per ADR 0052)
+**Last updated:** 2026-06-29 (Loop 27 — A8.2 Task Composer; front-end validation against the SAME A1/A5.2 Zod contracts the backend enforces (never looser); honest UI, no new writable risk)
 
 Owner is `AlmanInDaHouse` for accept/override decisions; Claude Code owns
 mitigation execution unless noted. Probability/impact are qualitative
