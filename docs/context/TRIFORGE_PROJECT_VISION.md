@@ -421,12 +421,20 @@ that touches the outside world.
 
 ## 11. Provider Adapter Architecture
 
-**[Planned] / [Proposed]** ADR 0027 explicitly **defers** the `ProviderAdapter`
-contract; no adapter exists, and this interface is a future design target, not a
-current contract:
+**[Implemented] (contract, A1) / [Planned] (adapters)** The `ProviderAdapter`
+contract that ADR 0027 deferred now exists as a provider-agnostic contract in
+`packages/shared` (`packages/shared/src/provider/adapter.ts`; A1, ADR 0033,
+`docs/specs/PROVIDER_CONTRACTS_SPEC.md`). The interface and its Zod-validated data
+shapes (availability, authentication, capabilities, request, usage, quota, error
+taxonomy, result) are real; **no adapter implements it yet** — mock adapters are
+A2 and real read-only adapters are A3. The shapes are **not frozen** against an
+installed CLI: they are versioned assumptions verified per provider version before
+any adapter is frozen (§12; quota spec), and a new `cliVersion` invalidates the
+prior capability snapshot. The interface:
 
 ```ts
 interface ProviderAdapter {
+  readonly provider: ProviderId;
   checkAvailability(): Promise<AvailabilityResult>;
   checkAuthentication(): Promise<AuthenticationResult>;
   getCapabilities(): Promise<ProviderCapabilities>;
@@ -461,8 +469,14 @@ ADR 0028 and ADR 0029.
 
 ## 12. Event-Driven Integration
 
-**[Planned]** The future adapters will consume **structured event streams** from
-the CLIs rather than only a final message, to enable:
+**[Implemented] (contract, A1) / [Planned] (adapters)** The normalized
+`ProviderEvent` contract now exists in `packages/shared`
+(`packages/shared/src/provider/events.ts`; A1, ADR 0033): a strict envelope
+(schemaVersion, executionId, provider, sequenceNumber, timestamp, rawEvidenceRef,
+payload) over a 13-member discriminated union with explicit terminal-event
+semantics. The adapters that **consume** the CLI event streams and normalize into
+this shape are still planned (A3). The future adapters will consume **structured
+event streams** from the CLIs rather than only a final message, to enable:
 
 - live progress;
 - tool-use visibility;
@@ -473,20 +487,23 @@ the CLIs rather than only a final message, to enable:
 - a complete timeline;
 - auditability.
 
-A conceptual normalized event union:
+The implemented normalized event union (A1, 13 events, discriminator `type`):
 
 ```ts
 type ProviderEvent =
-  | RunStarted
-  | AgentMessage
-  | PlanUpdated
-  | ToolStarted
-  | ToolCompleted
-  | FileChanged
-  | UsageUpdated
-  | QuotaUpdated
-  | RunFailed
-  | RunCompleted;
+  | RunStarted              // "run.started"
+  | AuthenticationUpdated   // "authentication.updated"
+  | AgentMessage            // "agent.message"
+  | PlanUpdated             // "plan.updated"
+  | ToolStarted             // "tool.started"
+  | ToolCompleted           // "tool.completed"
+  | FileChanged             // "file.changed"
+  | UsageUpdated            // "usage.updated"
+  | QuotaUpdated            // "quota.updated"
+  | ApprovalRequested       // "approval.requested"
+  | WarningRaised           // "warning.raised"
+  | RunFailed               // "run.failed"    (terminal)
+  | RunCompleted;           // "run.completed" (terminal)
 ```
 
 **[Requires verification]** These schemas are **not frozen**. The structured
@@ -841,9 +858,9 @@ developer/analysis facility — it is not invoked by the agent runtime.
 
 ## 21. Missing Components
 
-**[Planned]** None of the following exist yet:
+**[Planned]** None of the following exist yet (the `ProviderAdapter` **contract**
+now exists in `packages/shared` — A1, §11 — but no adapter **implements** it):
 
-- `ProviderAdapter` contract;
 - mock adapters (even the mock adapters the quota spec describes are not built);
 - capability detection;
 - Codex adapter;
@@ -883,8 +900,9 @@ aligned with the owner mandate (`docs/instrucciones.md` §13–§21) and
 
 ### A1 Provider Contracts
 - `ProviderAdapter` interface; provider event contract; capability snapshots;
-  Zod-validated artifact contracts; schema tests. No provider-specific logic.
-  (Mandate §13.)
+  Zod-validated artifact contracts; schema tests. No provider-specific logic or
+  per-provider branching — the only provider-named elements are vocabulary: the
+  provider enum and the inherited quota-flavor tokens. (Mandate §13.)
 
 ### A2 Mocks, Harness and Quota Manager
 - Mock Codex/Claude adapters and failure scenarios; black-box adapter harness;
