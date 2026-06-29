@@ -4,20 +4,20 @@
 and GitHub at the start of every loop; this file records the conclusion, not the
 history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.1).
 
-**Last updated:** 2026-06-30 (Loop 39 — A9.6, on branch `feat/a9-6-packaging`)
+**Last updated:** 2026-06-30 (Loop 40 — A9.7, on branch `feat/a9-7-docs-completeness`)
 
 ## Snapshot
 
 | Field | Value |
 |---|---|
-| Last closed milestone | A9.5 — Observability (`28073ef`, PR #71; ADR 0053) |
-| Active milestone | **A9.6 — Packaging & installation** (this PR; build + TRIFORGE_INSTALL.md + packaging test; ADR 0053) |
-| `main` SHA | `28073ef` |
-| Last `main` CI | `Validate` ✅ success (`28073ef`) |
-| Open PRs | A9.6 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
+| Last closed milestone | A9.6 — Packaging & installation (`90a861d`, PR #72; ADR 0053) |
+| Active milestone | **A9.7 — Documentation completeness** (this PR; TRIFORGE_OPERATOR_GUIDE.md + docs test; ADR 0053) |
+| `main` SHA | `90a861d` |
+| Last `main` CI | `Validate` ✅ success (`90a861d`) |
+| Open PRs | A9.7 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
 | Blockers | none |
 | Pending decisions | none |
-| Next loop | **A9.7 — Documentation completeness** (`docs`), mandate §11. Assert the operator-facing documentation is complete and consistent: an OPERATOR_GUIDE (or equivalent) covering create/observe/audit/cancel/recover for a run, linked to the install doc + the security/threat-model + the recovery + the canonical state; a docs-completeness check that the key docs exist and cross-reference. Then A9.8 release-candidate end-to-end cases, A9.9 release gate → TriForge 1.0 DoD. |
+| Next loop | **A9.8 — Release-candidate end-to-end cases** (`apps/api`), mandate §11. Compose the full stack into release-candidate acceptance scenarios that run green: a writable run end-to-end (A5.9 mocks: worktree → policy → gates → ledger → governance → merge in an isolated worktree), a competitive run selecting the winner by evidence (A7.1), a blocked/rejected run that never merges, a quota/auth degradation that pauses/hard-stops, and a recovery-after-restart. Reuse the existing E2E (A5.9 + A7.1 real-git) as the RC evidence and add any missing RC composition. Then A9.9 release gate → TriForge 1.0 DoD. |
 
 ## Follow-ups / tech debt
 
@@ -80,7 +80,7 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 - **A6 — COMPLETE** (`47c5e36`; profiler + static + quota-aware + metrics + repo profiles + protected adaptive)
 - A7 Competitive mode — **A7.1 merged** (`0610c54`; PR #58; ADR 0051)
 - **A8 — COMPLETE** (`d99b850`; 8 panels A8.1–A8.8: provider status, task composer, run timeline, artifact explorer, diff/review, governance, budget/quota, recovery; ADR 0052; 46 web tests)
-- A9 Hardening and release candidate — A9.1–A9.5 merged (`28073ef`; ADR 0053); **A9.6 active** (this PR); A9.7–A9.9 pending → TriForge 1.0 DoD
+- A9 Hardening and release candidate — A9.1–A9.6 merged (`90a861d`; ADR 0053); **A9.7 active** (this PR); A9.8–A9.9 pending → TriForge 1.0 DoD
 
 ## UNKNOWN
 
@@ -113,9 +113,9 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 
 | Metric | Value |
 |---|---|
-| Loops executed | …A9.2 (35); A9.3 (36); A9.4 (37); A9.5 (38); A9.6 (39) active |
-| PRs created | +33 this session (TD-1 #40 … A9.5 #71, A9.6 this); 41 total since A0.4 |
-| PRs merged | 40 (…#69 A9.3, #70 A9.4, #71 A9.5) |
+| Loops executed | …A9.3 (36); A9.4 (37); A9.5 (38); A9.6 (39); A9.7 (40) active |
+| PRs created | +34 this session (TD-1 #40 … A9.6 #72, A9.7 this); 42 total since A0.4 |
+| PRs merged | 41 (…#70 A9.4, #71 A9.5, #72 A9.6) |
 | CI failures | 1 (A5.3 first run: cross-platform binName — caught + fixed; re-run green) |
 | Repair rounds | 11 (A5.9: 1 — E2E surfaced + fixed an A5.5 new-dir reconcile bug, fail-closed) |
 | Regressions | 0 |
@@ -124,8 +124,8 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 | Human interventions | 1 (auth-method decision) |
 | Findings by severity (reviews) | A5.4–A5.8: 0; A5.9: 1 major (self-found integration bug in A5.5, fixed + regression test) |
 | Time-to-merge | same session per loop |
-| Diff size | A9.6: docs/TRIFORGE_INSTALL.md + apps/api packaging.test.ts (5) + HARDENING_SPEC §A9.6 |
-| Coverage | api ~703 +5 A9.6 packaging = ~708; web 46 (8 A8 panels); clean `pnpm -r build` verified |
+| Diff size | A9.7: docs/TRIFORGE_OPERATOR_GUIDE.md + apps/api docsCompleteness.test.ts (4) + HARDENING_SPEC §A9.7 |
+| Coverage | api ~708 +4 A9.7 docs = ~712; web 46 (8 A8 panels); clean `pnpm -r build` verified |
 | Quota usage | not yet instrumented (no provider runs) |
 | Reverted decisions | 0 |
 | Security incidents | 1 (PAT pasted into chat — R-SEC-2; external, owner must rotate; non-blocking) |
@@ -134,17 +134,19 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 ## Exact next loop
 
 ```text
-Loop 40 — A9.7 Documentation completeness (mandate §11 A9.7). Branch off main AFTER A9.6
-merges. Write/complete the operator-facing documentation and assert it is coherent: an
-OPERATOR_GUIDE covering the full lifecycle a user performs (compose a task → observe the
-run → audit artifacts/governance → cancel → recover), cross-linked to TRIFORGE_INSTALL,
-the A0.5 threat model / security SATs, the recovery behaviour, and the canonical state
-docs. Add a deterministic docs-completeness check (the key docs exist + cross-reference).
-  Tests: the operator guide + install + security + recovery docs exist and link to each
-  other; the doc set covers the lifecycle verbs (create/observe/audit/cancel/recover).
-Loop shape unchanged. Then A9.8 release-candidate end-to-end cases (the mandate's RC
-scenarios run green, composing the full stack), A9.9 release gate (all gates green: build,
-typecheck, lint, full test suite, security SATs, chaos, recovery, observability,
-packaging, docs; no open blockers/criticals; main green) → TriForge 1.0 Definition of
-Done.
+Loop 41 — A9.8 Release-candidate end-to-end cases (mandate §11 A9.8). Branch off main AFTER
+A9.7 merges. Compose the full stack into RC acceptance scenarios that run green (apps/api):
+(1) a writable run end-to-end in an ISOLATED worktree (A5.9 mocks: worktree → path/command
+policy → real gates → hash-chained ledger → governance verdict → merge only on a clean
+merge verdict); (2) a competitive run selecting the winner by re-derived evidence, merging
+only the winner, cleaning up both worktrees (A7.1); (3) a blocked/rejected run that NEVER
+merges; (4) a quota/auth degradation that pauses / hard-stops (no paid fallback); (5) a
+recovery-after-restart (ledger reload + chain verify). The A5.9 + A7.1 real-git E2E already
+provide (1)+(2)+(3); A9.8 adds an RC index/acceptance test tying the scenarios to the DoD.
+  Tests: each RC scenario runs green; the RC index asserts the scenario suite is present
+  and passing (writable E2E, competitive E2E, negative no-merge, degradation, recovery).
+Loop shape unchanged. Then A9.9 release gate: assert ALL gates green (build, typecheck,
+lint, full test suite incl. chaos/SAT/recovery/observability/packaging/docs/RC), no open
+blockers/criticals, main green, every writable capability bound → declare TriForge 1.0
+Definition of Done with executable evidence (not a declaration).
 ```

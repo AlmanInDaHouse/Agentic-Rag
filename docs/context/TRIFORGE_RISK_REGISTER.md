@@ -4,7 +4,7 @@
 impact, qualitative probability, mitigation, status, owner, responsible milestone,
 evidence. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.2).
 
-**Last updated:** 2026-06-30 (Loop 39 — A9.6 Packaging; product installable + buildable + runnable from a fresh checkout (clean build verified), install doc + packaging-coherence test; no new runtime risk)
+**Last updated:** 2026-06-30 (Loop 40 — A9.7 Documentation; operator guide covers the full lifecycle (create/observe/audit/cancel/recover) + safety guarantees, cross-linked; docs-completeness test)
 
 Owner is `AlmanInDaHouse` for accept/override decisions; Claude Code owns
 mitigation execution unless noted. Probability/impact are qualitative
