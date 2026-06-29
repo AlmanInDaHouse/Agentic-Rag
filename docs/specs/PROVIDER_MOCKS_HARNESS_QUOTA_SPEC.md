@@ -378,6 +378,71 @@ adapters later) and must verify, treating the adapter as opaque:
 A2.1 deliberately ships the inputs (conformant + violating scenarios) that make
 each of these assertions falsifiable.
 
+### 12.1 A3-gate hardening (`DECIDED`)
+
+Because the SAME harness is the gate for the A3 REAL read-only Codex/Claude
+adapters ("harness before trust"), several invariants are tightened so the
+harness is correct against an untrusted, real, possibly-hanging adapter — not
+just against the cooperative mocks:
+
+- **Read-only authority is the REQUEST, never the adapter payload.** The
+  `NO_WRITE_UNDER_READ_ONLY` (T-INT-14) check reads `request.readOnly` (the
+  orchestrator's authoritative input), NOT `run.started.readOnly` (which the
+  adapter emits and could spoof). Under `request.readOnly === true` ANY
+  `file.changed` fails the invariant, regardless of payload; additionally, a
+  `run.started.readOnly` that diverges from `request.readOnly` is itself a defect
+  (the adapter must reflect the input it was given). This closes a false-pass
+  where a write is laundered by claiming `readOnly:false` in the payload.
+- **Cancellation tolerates a bounded in-flight drain.** A real adapter cannot
+  stop instantly, so `CANCELLATION_STOPS_EMISSION` allows up to
+  `cancelDrainAllowance` (default 3) in-flight events after `cancel()` and passes
+  when the run then closes in a `cancelled` terminal (cancel honoured) OR a
+  `completed` terminal (it finished before cancel took effect — a legitimate
+  race). It fails only if emission runs past the allowance with no terminal, or
+  events continue after the terminal.
+- **Liveness budget for real runs (`REQUIRES_VERIFICATION`).** A black-box
+  adapter can hang. An optional `livenessTimeoutMs` races each pull of the event
+  stream against a wall-clock timer (the only real timer the harness uses) and,
+  on timeout, abandons the wedged stream and fails `ADAPTER_LIVENESS`. It is
+  UNDEFINED by default so the deterministic mock tests consume no real time;
+  **A3 real-adapter runs MUST set `livenessTimeoutMs`** (a hung CLI must be a
+  failure, not a hang).
+- **A throwing adapter is a failure, not a crash.** `execute()`/iteration
+  throwing is caught and surfaced as `ADAPTER_NO_THROW`; the harness never
+  propagates the exception.
+- **Output-limit accounting includes content-bearing terminals.**
+  `OUTPUT_LIMITS_ENFORCED` counts the payload bytes of every event INCLUDING a
+  terminal that carries content (e.g. a huge `run.completed.summary`), EXCEPT the
+  synthetic `output_limit_exceeded` terminal itself. Excluding all terminals
+  false-passed an adapter that hid its flood in the terminal. The byte base is
+  the normalized-JSON payload — an APPROXIMATION of a real adapter's raw stdout
+  volume (refined in A3/A9; see §15).
+- **Secret scan: specific shapes hard-fail, generic entropy warns.** Specific
+  credential SHAPES (AWS key id, PEM block, JWT, prefixed provider key, Slack
+  token) hard-fail `NO_SECRET_LEAKAGE`. The generic high-entropy heuristic is
+  DOWNGRADED to a non-failing warning (`entropyFindings` on the report): a real
+  read-only reviewer legitimately cites base64 blobs and content hashes, so an
+  entropy hit must not false-fail conformance. The fake-secret fixture still
+  hard-fails via the AWS shape, not via entropy.
+- **Content-before-start is illegitimate.** `FIRST_EVENT_VALID` treats a content
+  event (`agent.message`/`plan.updated`/`tool.*`/`file.changed`) — or a
+  `run.completed` — with no preceding `run.started` as a failure. A legitimate
+  pre-start failure carries only status events plus a normalized `run.failed`
+  terminal.
+- **Partial-evidence counts only real output.** `PARTIAL_EVIDENCE_PRESERVED`
+  counts only OUTPUT events (`agent.message`/`tool.*`/`file.changed`/
+  `plan.updated`) as partial work; status events
+  (`quota.updated`/`warning.raised`/`authentication.updated`/`usage.updated`) do
+  not force `partial=true`.
+
+**Known coverage limits (`REQUIRES_VERIFICATION` / limitations).** The secret
+scan does not flag hex-encoded secrets (they fall below the alnum-run entropy
+threshold) and the entropy heuristic is advisory only; the harness does not
+assert semantic quota coherence (e.g. that a reported utilization is consistent
+with a later `quota_exhausted`) — only that quota/auth payloads are well-formed.
+These are deferred to A3 (real-CLI reconciliation) and the redaction control
+(A4/A5).
+
 ---
 
 ## 13. Invariants (A2 overall, `DECIDED`)
