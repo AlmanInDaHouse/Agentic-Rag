@@ -6,7 +6,9 @@
  *
  * Uses the hardened `GitRunner` (A5.1) and NUL-delimited porcelain (`-z`) so hostile
  * filenames (spaces, quotes, newlines) are handled literally and cannot be
- * misparsed. Content hashes are computed by reading the working file directly.
+ * misparsed. `--untracked-files=all` lists every untracked FILE individually (git
+ * otherwise collapses a wholly-untracked NEW directory to `dir/`, which would hide
+ * the actual files from reconciliation). Content hashes are read from the working file.
  */
 
 import { createHash } from "node:crypto";
@@ -58,7 +60,7 @@ export async function computeWorktreeChanges(
   git: GitRunner,
   worktreePath: string
 ): Promise<WorktreeChange[]> {
-  const res = await git.run(["status", "--porcelain", "-z"], { cwd: worktreePath });
+  const res = await git.run(["status", "--porcelain", "-z", "--untracked-files=all"], { cwd: worktreePath });
   if (res.spawnFailed || res.code !== 0) {
     throw new Error(`git status failed in ${worktreePath}: ${res.stderr.trim()}`);
   }

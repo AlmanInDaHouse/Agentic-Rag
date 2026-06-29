@@ -195,6 +195,17 @@ describe("computeWorktreeChanges — real git", () => {
     expect(byPath.get("src/a.ts")?.hash).toMatch(/^[0-9a-f]{64}$/);
   });
 
+  it("lists individual files in a wholly-new untracked directory (not the collapsed dir/)", async () => {
+    const repo = makeRepo();
+    mkdirSync(path.join(repo, "newpkg"), { recursive: true });
+    writeFileSync(path.join(repo, "newpkg", "mod.ts"), "export const m = 1;\n");
+    const changes = await computeWorktreeChanges(new NodeGitRunner(), repo);
+    const paths = changes.map((c) => c.relPath);
+    expect(paths).toContain("newpkg/mod.ts"); // individual file, not "newpkg/"
+    expect(paths).not.toContain("newpkg/");
+    expect(changes.find((c) => c.relPath === "newpkg/mod.ts")?.hash).toMatch(/^[0-9a-f]{64}$/);
+  });
+
   it("reconciles the real worktree against an empty ledger as tampered (SAT-A5-6)", async () => {
     const repo = makeRepo();
     writeFileSync(path.join(repo, "src", "b.ts"), "export const b = 1;\n");

@@ -4,20 +4,20 @@
 and GitHub at the start of every loop; this file records the conclusion, not the
 history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.1).
 
-**Last updated:** 2026-06-29 (Loop 16 — A5.8, on branch `feat/a5-8-governance-decision`)
+**Last updated:** 2026-06-29 (Loop 17 — A5.9, on branch `feat/a5-9-writable-e2e`)
 
 ## Snapshot
 
 | Field | Value |
 |---|---|
-| Last closed milestone | A5.7 — Repair Loop (`ea36465`, PR #48; ADR 0042) |
-| Active milestone | **A5.8 — Autonomous Governance Decision** (this PR; `execution/governance`; ADR 0043) |
-| `main` SHA | `ea36465` |
-| Last `main` CI | `Validate` ✅ success (`ea36465`) |
-| Open PRs | A5.8 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
+| Last closed milestone | A5.8 — Autonomous Governance Decision (`3f128bc`, PR #49; ADR 0043) |
+| Active milestone | **A5.9 — Writable E2E (mock-first) — the FUNCTIONAL MVP** (this PR; `execution/e2e`; ADR 0044). Also fixes an A5.5 `computeWorktreeChanges` bug (new-dir collapse) surfaced by the E2E. |
+| `main` SHA | `3f128bc` |
+| Last `main` CI | `Validate` ✅ success (`3f128bc`) |
+| Open PRs | A5.9 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
 | Blockers | none |
 | Pending decisions | none |
-| Next loop | **A5.9 — Writable E2E fixture (mock-first)** — the MVP demonstration. Wire the full pipeline over the mock providers: create worktree (A5.1) → assign owner (A5.4) → apply allowed paths (A5.2) → owner implements → capture mutations (A5.5) → run gates (A5.6) → reviewer findings → repair (A5.7) → GovernanceDecision (A5.8) → commit → controlled merge → cleanup. Plus negative cases (.git write, out-of-workspace, reviewer write, blocked command, test deletion, CI weakening, diff-changed-after-review, approval-hash mismatch, quota exhausted, repair-limit, cleanup failure). Then A5.10 real pilot (gated on A5.1–A5.9 green; if writable capability can't be safely verified, leave BLOCKED + demonstrate MVP with mock + continue to A6). |
+| Next loop | **A5.10 — Low-risk real provider pilot** (gated on A5.1–A5.9 green). Re-verify Codex/Claude CLI versions + auth WITHOUT reading creds; confirm writable capability actually observed (keep UNKNOWN otherwise); run only on a controlled fixture, minimal allowed-paths + command policy, small budget, network blocked, no main-repo access, no deploy/secrets. **If the writable capability cannot be safely verified (the WSL2 distro / Codex+Claude install+auth is REQUIRES_VERIFICATION), leave the pilot BLOCKED with the exact missing verification recorded, keep the MVP demonstrated via the mock adapter (A5.9), and proceed to A6.** Then A6 routing → A7 → A8 → A9. |
 
 ## Follow-ups / tech debt
 
@@ -66,9 +66,9 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
   - A5.5 Diff Capture + Mutation Ledger — **merged** (`31446da`; PR #46; ADR 0040)
   - A5.6 Quality Gate Runner — **merged** (`a604336`; PR #47; ADR 0041)
   - A5.7 Repair Loop — **merged** (`ea36465`; PR #48; ADR 0042)
-  - A5.8 Autonomous Governance Decision — **active** (this PR; ADR 0043)
-  - A5.9 Writable E2E fixture (mock-first) — pending
-  - A5.10 Low-risk real provider pilot — pending (gated on A5.1–A5.9 green)
+  - A5.8 Autonomous Governance Decision — **merged** (`3f128bc`; PR #49; ADR 0043)
+  - A5.9 Writable E2E (mock-first) — **active / FUNCTIONAL MVP** (this PR; ADR 0044)
+  - A5.10 Low-risk real provider pilot — next (gated on A5.1–A5.9 green; may stay BLOCKED if CLI capability unverifiable)
 - A6 Routing and learning — pending
 - A7 Competitive mode — pending (not required for MVP)
 - A8 Product interface — pending
@@ -97,19 +97,19 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 
 | Metric | Value |
 |---|---|
-| Loops executed | A0.4–A4 (0–6); TD-1..A5.7 merged (7–15); A5.8 (16) active |
-| PRs created | +10 this session (TD-1 #40 … A5.7 #48, A5.8 this); 18 total since A0.4 |
-| PRs merged | 17 (…#46 A5.5, #47 A5.6, #48 A5.7) |
+| Loops executed | A0.4–A4 (0–6); TD-1..A5.8 merged (7–16); A5.9 (17) active = FUNCTIONAL MVP |
+| PRs created | +11 this session (TD-1 #40 … A5.8 #49, A5.9 this); 19 total since A0.4 |
+| PRs merged | 18 (…#47 A5.6, #48 A5.7, #49 A5.8) |
 | CI failures | 1 (A5.3 first run: cross-platform binName — caught + fixed; re-run green) |
-| Repair rounds | 10 (A5.5/A5.6: pre-PR NUL fixes; A5.7: typecheck fix; A5.8: clean) |
+| Repair rounds | 11 (A5.9: 1 — E2E surfaced + fixed an A5.5 new-dir reconcile bug, fail-closed) |
 | Regressions | 0 |
 | Reverts | 0 |
 | Blockers hit | 0 |
 | Human interventions | 1 (auth-method decision) |
-| Findings by severity (reviews) | A5.4–A5.8: 0 (pre-PR fixes caught locally) |
+| Findings by severity (reviews) | A5.4–A5.8: 0; A5.9: 1 major (self-found integration bug in A5.5, fixed + regression test) |
 | Time-to-merge | same session per loop |
-| Diff size | A5.8: 2 new src files (governanceGate+index ~270 LoC) + test (~150) + ADR 0043 + spec §A5.8 |
-| Coverage | +13 A5.8 governance tests → 481 pure (+3 POSIX-only in CI) = 484; full api suite ~618 |
+| Diff size | A5.9: 2 new src files (writableRun+index ~340 LoC) + E2E test (~180) + A5.5 worktreeState fix + ADR 0044 + spec §A5.9 |
+| Coverage | +4 A5.9 E2E + 1 A5.5 regression → 486 pure (+3 POSIX-only in CI) = 489; full api suite ~623 |
 | Quota usage | not yet instrumented (no provider runs) |
 | Reverted decisions | 0 |
 | Security incidents | 1 (PAT pasted into chat — R-SEC-2; external, owner must rotate; non-blocking) |
@@ -118,22 +118,18 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 ## Exact next loop
 
 ```text
-Loop 17 — A5.9 Writable E2E fixture (mock-first) — the MVP demonstration (mandate
-§A5.9). Branch off main AFTER A5.8 merges. Wire the full writable pipeline end to end
-over a controlled FIXTURE repo using the MOCK owner/reviewer (no real provider):
-  create worktree (A5.1) → assign single owner (A5.4) → apply allowed paths (A5.2) →
-  owner implements a bounded change → capture mutations in the ledger (A5.5) → run the
-  quality gates (A5.6) → reviewer produces findings → repair loop (A5.7) →
-  GovernanceDecision (A5.8, re-derived) → commit on the worktree branch → controlled
-  merge → cleanup. Demonstrate the POSITIVE path reaches verdict=merge, AND the
-  negative cases each block: .git write, out-of-workspace write, reviewer write,
-  blocked command, test deletion, CI weakening, diff-changed-after-review, approval-
-  hash mismatch, quota exhausted, repair-limit reached, cleanup failure.
-  This is real writes confined to an isolated worktree/fixture — NEVER the live tree
-  or main. Closing A5.9 demonstrates the functional MVP with mocks.
-Loop shape unchanged. Then A5.10 real provider pilot — ONLY after A5.1–A5.9 green;
-re-verify CLI versions/auth without reading creds; if writable capability cannot be
-safely verified (the WSL distro / Codex+Claude install+auth is REQUIRES_VERIFICATION),
-leave the pilot BLOCKED with the exact missing verification recorded, keep the MVP
-demonstrated via the mock adapter, and continue to A6 (routing).
+Loop 18 — A5.10 Low-risk real provider pilot (mandate §A5.10). Branch off main AFTER
+A5.9 merges. This is the ONLY A5 piece needing a real provider, and it is gated on a
+safe capability verification that the current substrate likely cannot satisfy:
+  1. Re-verify Codex/Claude CLI versions (invalidate old snapshots if changed).
+  2. Verify authentication WITHOUT reading credentials.
+  3. Confirm writable capability ACTUALLY observed (else keep UNKNOWN).
+  4. Run only on a controlled FIXTURE, minimal allowed-paths + command policy, small
+     budget, network blocked, no main-repo access, no deploy/secrets.
+  If the writable capability cannot be safely verified (the WSL2 Ubuntu distro is not
+  started and Codex CLI + Claude Code install+auth is REQUIRES_VERIFICATION, A0.4 §5),
+  DO NOT invent a result: leave the pilot BLOCKED, record the exact missing external
+  verification, note the MVP is already demonstrated end-to-end with the MOCK owner
+  (A5.9, runWritableTask), and PROCEED to A6 (independent of the real pilot).
+Then A6 Task Profiler/Routing → A7 Competitive → A8 UI → A9 Hardening + release.
 ```
