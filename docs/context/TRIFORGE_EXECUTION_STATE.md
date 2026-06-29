@@ -4,20 +4,20 @@
 and GitHub at the start of every loop; this file records the conclusion, not the
 history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.1).
 
-**Last updated:** 2026-06-29 (Loop 9 — A5.1, on branch `feat/a5-1-worktree-manager`)
+**Last updated:** 2026-06-29 (Loop 10 — A5.2, on branch `feat/a5-2-allowed-path-policy`)
 
 ## Snapshot
 
 | Field | Value |
 |---|---|
-| Last closed milestone | A4 — Collaboration runtime (`cc57793`, PR #39) → A1–A4 complete; then chores TD-1 (`9d1dca2`, PR #40) + TD-2 (`afc3607`, PR #41) |
-| Active milestone | **A5.1 — Worktree Manager** (this PR; first piece of A5 writable execution) |
-| `main` SHA | `afc3607` |
-| Last `main` CI | `Validate` ✅ success (`afc3607`) |
-| Open PRs | A5.1 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
+| Last closed milestone | A5.1 — Worktree Manager (`909d54c`, PR #42; ADR 0036) |
+| Active milestone | **A5.2 — Allowed-Path Policy** (this PR; `execution/path`; ADR 0037) |
+| `main` SHA | `909d54c` |
+| Last `main` CI | `Validate` ✅ success (`909d54c`) |
+| Open PRs | A5.2 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
 | Blockers | none |
 | Pending decisions | none |
-| Next loop | **A5.2 — Allowed-Path Policy** (`readPaths/writePaths/blockedPaths/maxFilesChanged`; normalize→realpath→containment→symlink/hardlink/TOCTOU; block `.git`/home/external/secrets/other-worktrees/state-root). Then A5.3…A5.10. |
+| Next loop | **A5.3 — Safe Command Policy + Process Supervision** (action categories; deny-by-default; shell off; explicit binary+argv+cwd+env-allowlist+timeout+output-limits; reuse the A3 NodeProcessRunner process-group model: cancel→SIGTERM group→grace→SIGKILL→partial evidence→single terminal). Then A5.4…A5.10. |
 
 ## Follow-ups / tech debt
 
@@ -59,8 +59,8 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 - TD-1 Clock extraction — **merged** (`9d1dca2`; PR #40)
 - TD-2 `request_rejected` error code — **merged** (`afc3607`; PR #41)
 - A5 Controlled writable execution (MVP) — **active**, split A5.1–A5.10 (spec `WRITABLE_EXECUTION_SPEC.md`):
-  - A5.1 Worktree Manager — **active** (this PR; ADR 0036)
-  - A5.2 Allowed-Path Policy — next
+  - A5.1 Worktree Manager — **merged** (`909d54c`; PR #42; ADR 0036)
+  - A5.2 Allowed-Path Policy — **active** (this PR; ADR 0037)
   - A5.3 Safe Command Policy + Process Supervision — pending
   - A5.4 Owner/Reviewer enforcement — pending
   - A5.5 Diff Capture + Mutation Ledger — pending
@@ -97,19 +97,19 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 
 | Metric | Value |
 |---|---|
-| Loops executed | A0.4–A4 closed (Loops 0–6); Loop 7 TD-1, Loop 8 TD-2, Loop 9 A5.1 (active) |
-| PRs created | +3 this session (TD-1 #40, TD-2 #41, A5.1 this); 11 total since A0.4 |
-| PRs merged | 10 (#31 A0.4, #32 Gov, #33 A0.5, #34 A1, #35–#37 A2, #38 A3, #39 A4, #40 TD-1, #41 TD-2) |
+| Loops executed | A0.4–A4 closed (Loops 0–6); TD-1 (7), TD-2 (8), A5.1 (9) merged; A5.2 (10) active |
+| PRs created | +4 this session (TD-1 #40, TD-2 #41, A5.1 #42, A5.2 this); 12 total since A0.4 |
+| PRs merged | 11 (#31 A0.4, #32 Gov, #33 A0.5, #34 A1, #35–#37 A2, #38 A3, #39 A4, #40 TD-1, #41 TD-2, #42 A5.1) |
 | CI failures | 0 |
-| Repair rounds | 9 (…A4; A5.1 self-review: 1 security finding — hardening dir moved off world-writable temp) |
+| Repair rounds | 9 (…A4; A5.1 self-review: 1 security finding fixed; A5.2: clean) |
 | Regressions | 0 |
 | Reverts | 0 |
 | Blockers hit | 0 |
 | Human interventions | 1 (auth-method decision) |
-| Findings by severity (reviews) | …A4 as before; A5.1: 1 major (self-found) hardening-dir-in-temp → fixed pre-PR |
+| Findings by severity (reviews) | …A4; A5.1: 1 major (self-found, fixed); A5.2: 0 |
 | Time-to-merge | same session per loop |
-| Diff size | A5.1: 4 new src files (gitRunner+worktreeManager+index+test, ~900 LoC) + spec + ADR 0036 |
-| Coverage | provider+orchestration suite 379 pure/no-DB; +19 A5.1 worktree tests (real-git integration) = 398 pure; full api suite ~532 |
+| Diff size | A5.2: 2 new src files (pathPolicy+index ~330 LoC) + test (~250) + ADR 0037 + spec §A5.2 |
+| Coverage | 379 pure + 19 A5.1 worktree + 16 A5.2 path = 414 pure/no-DB; full api suite ~548 |
 | Quota usage | not yet instrumented (no provider runs) |
 | Reverted decisions | 0 |
 | Security incidents | 1 (PAT pasted into chat — R-SEC-2; external, owner must rotate; non-blocking) |
@@ -118,23 +118,23 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 ## Exact next loop
 
 ```text
-Loop 10 — A5.2 Allowed-Path Policy (mandate §A5.2; threat-model SAT-A5-1/2/3).
-Branch off main AFTER A5.1 merges. Implement the contract + enforcement of
-{readPaths, writePaths, blockedPaths, maxFilesChanged}:
-  - relative-to-workspace, POSIX semantics, normalize → canonicalize → realpath →
-    real containment; reject `..`/prefix-confusion/absolute escape; symlink + hardlink
-    validation; validate a NONEXISTENT path via its nearest existing ancestor;
-  - block `.git` and every worktree's `.git/objects` (shared object store, T-FS-08),
-    credential stores, `$HOME`, other worktrees, the state root, `/mnt/c`/external;
-  - enforce maxFilesChanged; typed errors; audited decisions; cover TOCTOU to a
-    reasonable MVP level and record residual (RR-2).
-Wire it onto the A5.1 worktree (block the worktree's own `.git`). SATs to demonstrate:
-SAT-A5-1 (symlink/traversal/hardlink corpus rejected before open), SAT-A5-2 (`/mnt/c`
-+ `$HOME` out-of-bounds), SAT-A5-3 (cross-worktree + `.git/objects` blocked).
+Loop 11 — A5.3 Safe Command Policy + Process Supervision (mandate §A5.3; threat-model
+SAT-A5-4/5, T-EXE-*, T-CMP-06). Branch off main AFTER A5.2 merges. Implement:
+  - command categories (read_only/test/build/write_local/network/destructive/
+    privileged/blocked) with DENY BY DEFAULT;
+  - explicit binary (no shell), separated argv, explicit cwd, env allowlist, PATH
+    controlled, timeout, output-size limit, stdout/stderr separated;
+  - process supervision: ownership + process group, idempotent cancellation, SIGTERM
+    → grace → SIGKILL, partial evidence, single terminal event, orphan detection,
+    cleanup, audit — REUSE the A3 NodeProcessRunner process-group model
+    (apps/api/src/providers/real/processRunner.ts).
+  Tests: shell metachars/hostile filenames/flag injection treated as literal data;
+  fork/orphan/timeout/ignored-cancellation/output-flood; command-outside-workspace,
+  network/destructive/privileged blocked; env leakage. Wire the A5.2 path policy +
+  A5.1 worktree as the cwd/containment.
 Loop shape unchanged: spec/impl → gates (typecheck + vitest + lint:deps) → adversarial
 review → repair → PR → CI → squash-merge → verify main → persist this file.
-Then A5.3 Safe Command Policy + Process Supervision (reuse the A3 NodeProcessRunner
-process-group model), A5.4 owner/reviewer, A5.5 mutation ledger, A5.6 gate runner,
-A5.7 repair loop, A5.8 GovernanceDecision builder, A5.9 mock-first writable E2E,
-A5.10 real pilot (only after A5.1–A5.9 green). Closure of A5 = the functional MVP.
+Then A5.4 owner/reviewer enforcement, A5.5 mutation ledger, A5.6 gate runner, A5.7
+repair loop, A5.8 GovernanceDecision builder, A5.9 mock-first writable E2E, A5.10 real
+pilot (only after A5.1–A5.9 green). Closure of A5 = the functional MVP.
 ```
