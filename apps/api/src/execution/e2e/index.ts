@@ -3,6 +3,7 @@
  */
 export {
   runWritableTask,
+  mergeWorktreeBranch,
   type OwnerContext,
   type ReviewContext,
   type OwnerImplement,
