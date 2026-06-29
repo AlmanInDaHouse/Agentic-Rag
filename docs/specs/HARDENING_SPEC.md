@@ -132,7 +132,26 @@ mutation (worktree change with no ledger entry) is detected; an unattributed led
 is detected; a sequence gap is detected; missing lifecycle bookends are detected; a diff
 that does not reconcile to the governance binding is detected.
 
+## A9.6 Packaging & installation
+
+### Design (`docs/TRIFORGE_INSTALL.md` + `apps/api/src/test/packaging.test.ts`; ADR 0053)
+
+The product is installable + buildable + runnable from a fresh checkout: `pnpm install
+--frozen-lockfile` → `pnpm -r build` (shared → api → web) → `pnpm typecheck` / `lint:deps`
+/ `test` (the surface CI runs every PR). `TRIFORGE_INSTALL.md` documents the prerequisites
+(Node ≥ 20.11 / pnpm 11 / Git; the Codex/Claude CLIs only for a REAL run — the MVP + tests
+run on mocks), install/build/test steps, the run entrypoints (`pnpm dev` / `dev:api` /
+`dev:web`), and the safety notes. A deterministic packaging-coherence test asserts the
+manifests are consistent.
+
+### Verification
+
+Clean `pnpm -r build` succeeds locally (shared + api + web) and on CI.
+`packaging.test.ts` (5): the toolchain is pinned (Node engine + pnpm packageManager); the
+root exposes build/test/typecheck/lint:deps; every package builds + type-checks and the
+apps run a test suite; the workspace + lockfile + install docs are present; the workspace
+globs cover `packages/*` and `apps/*`.
+
 ## Open follow-ups
 
-- A9.6 packaging/installation; A9.7 docs; A9.8 RC cases; A9.9 release gate → TriForge 1.0
-  DoD.
+- A9.7 docs; A9.8 RC cases; A9.9 release gate → TriForge 1.0 DoD.
