@@ -78,3 +78,13 @@ export {
   type ProfileOverride,
   type ProfileResult
 } from "./taskProfiler.js";
+
+export {
+  routeStatically,
+  DEFAULT_RULES,
+  STATIC_ROUTER_VERSION,
+  type RouterContext,
+  type CapabilityRule,
+  type AppliedRule,
+  type StaticRoutingResult
+} from "./staticRouter.js";

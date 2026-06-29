@@ -4,20 +4,20 @@
 and GitHub at the start of every loop; this file records the conclusion, not the
 history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.1).
 
-**Last updated:** 2026-06-29 (Loop 19 — A6.1, on branch `feat/a6-1-task-profiler`)
+**Last updated:** 2026-06-29 (Loop 20 — A6.2, on branch `feat/a6-2-static-router`)
 
 ## Snapshot
 
 | Field | Value |
 |---|---|
-| Last closed milestone | A5.10 real pilot blocked-documented → **A5 functionally COMPLETE** (`aefbe5a`, PR #51) |
-| Active milestone | **A6.1 — Task Profiler** (this PR; `orchestration/taskProfiler.ts`; ADR 0045) |
-| `main` SHA | `aefbe5a` |
-| Last `main` CI | `Validate` ✅ success (`aefbe5a`) |
-| Open PRs | A6.1 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
+| Last closed milestone | A6.1 — Task Profiler (`dd2894e`, PR #52; ADR 0045) |
+| Active milestone | **A6.2 — Static capability router** (this PR; `orchestration/staticRouter.ts`; ADR 0046) |
+| `main` SHA | `dd2894e` |
+| Last `main` CI | `Validate` ✅ success (`dd2894e`) |
+| Open PRs | A6.2 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
 | Blockers | none |
 | Pending decisions | none |
-| Next loop | **A6.2 — Static capability router** (explicit, EVIDENCE-bearing rules mapping a `TaskProfile` → preferred provider; each rule carries evidence basis / confidence / fallback / reason / version; NO eternal stereotypes. Feeds/extends the A4 `orchestration/routing.ts` owner selection). Then A6.3 quota-aware, A6.4 metrics, A6.5 repo profiles, A6.6 adaptive. |
+| Next loop | **A6.3 — Quota-aware router** (combine A6.2 capability scores + provider availability + auth state + quota + reservations + task risk + historical repo performance + confidence; degradation rules by risk: low=fallback allowed, medium=visible degraded, high=reinforced control, critical=pause/reject; quota unknown ≠ available; quota exhausted = hard stop; NO paid fallback. Extends/wires the A4 `orchestration/routing.ts` + A2.3 quota manager). Then A6.4 metrics, A6.5 repo profiles, A6.6 adaptive. |
 
 ## Follow-ups / tech debt
 
@@ -71,8 +71,8 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
   - A5.10 Low-risk real provider pilot — **BLOCKED (documented)**: writable capability not safely verifiable (WSL2 stopped; auth UNKNOWN; A3 adapter read-only). Does not block A6–A9.
 - **A5 — functionally COMPLETE** (MVP demonstrated via mocks; real pilot blocked-and-documented)
 - A6 Routing and learning — **active**:
-  - A6.1 Task Profiler — **active** (this PR; ADR 0045; `ROUTING_LEARNING_SPEC.md`)
-  - A6.2 Static capability router — next
+  - A6.1 Task Profiler — **merged** (`dd2894e`; PR #52; ADR 0045)
+  - A6.2 Static capability router — **active** (this PR; ADR 0046)
   - A6.3 Quota-aware router / A6.4 metrics / A6.5 repo profiles / A6.6 adaptive — pending
 - A7 Competitive mode — pending (not required for MVP)
 - A8 Product interface — pending
@@ -109,9 +109,9 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 
 | Metric | Value |
 |---|---|
-| Loops executed | A0.4–A4 (0–6); TD-1..A5.9 (7–17)=MVP; A5.10 blocked (18); A6.1 (19) active |
-| PRs created | +13 this session (TD-1 #40 … A5.10 #51, A6.1 this); 21 total since A0.4 |
-| PRs merged | 20 (…#49 A5.8, #50 A5.9=MVP, #51 A5.10 docs) |
+| Loops executed | A0.4–A4 (0–6); TD-1..A5.9 (7–17)=MVP; A5.10 (18); A6.1 (19) merged; A6.2 (20) active |
+| PRs created | +14 this session (TD-1 #40 … A6.1 #52, A6.2 this); 22 total since A0.4 |
+| PRs merged | 21 (…#50 A5.9=MVP, #51 A5.10 docs, #52 A6.1) |
 | CI failures | 1 (A5.3 first run: cross-platform binName — caught + fixed; re-run green) |
 | Repair rounds | 11 (A5.9: 1 — E2E surfaced + fixed an A5.5 new-dir reconcile bug, fail-closed) |
 | Regressions | 0 |
@@ -120,8 +120,8 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 | Human interventions | 1 (auth-method decision) |
 | Findings by severity (reviews) | A5.4–A5.8: 0; A5.9: 1 major (self-found integration bug in A5.5, fixed + regression test) |
 | Time-to-merge | same session per loop |
-| Diff size | A6.1: 1 new src file (taskProfiler ~230 LoC) + test (~110) + ADR 0045 + ROUTING_LEARNING_SPEC §A6.1 |
-| Coverage | +9 A6.1 profiler tests → 495 pure (+3 POSIX-only in CI) = 498; full api suite ~632 |
+| Diff size | A6.2: 1 new src file (staticRouter ~180 LoC) + test (~90) + ADR 0046 + ROUTING_LEARNING_SPEC §A6.2 |
+| Coverage | +5 A6.2 router tests → 500 pure (+3 POSIX-only in CI) = 503; full api suite ~637 |
 | Quota usage | not yet instrumented (no provider runs) |
 | Reverted decisions | 0 |
 | Security incidents | 1 (PAT pasted into chat — R-SEC-2; external, owner must rotate; non-blocking) |
@@ -130,18 +130,19 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 ## Exact next loop
 
 ```text
-Loop 20 — A6.2 Static capability router (mandate §A6.2). Branch off main AFTER A6.1
-merges. Implement explicit, evidence-bearing rules mapping a TaskProfile (A6.1) → a
-preferred provider, where EACH rule carries {evidence basis, confidence, fallback,
-reason, version}. No eternal stereotypes — rules are versioned + overridable. Produce a
-routing recommendation that the A4 orchestration/routing.ts owner-selection consumes
-(capability score input). Pure + deterministic.
-  Tests: a rule fires with its evidence/confidence/fallback recorded; an unknown profile
-  falls back; conflicting rules resolve by confidence; versioned + overrideable.
-Loop shape unchanged: spec/impl → gates → adversarial review → repair → PR → CI →
-squash-merge → verify main → persist this file.
-Then A6.3 quota-aware router (combine capability + availability + auth + quota +
-reservations + risk + history + confidence; degradation rules; no paid fallback), A6.4
-execution metrics, A6.5 repository profiles, A6.6 protected adaptive router. Then A7
-competitive, A8 UI, A9 hardening + release.
+Loop 21 — A6.3 Quota-aware router (mandate §A6.3). Branch off main AFTER A6.2 merges.
+Combine: A6.2 capability scores + provider availability + auth state + quota +
+reservations + task risk + historical repo performance + confidence → a final routing
+recommendation, wiring the A4 orchestration/routing.ts owner-selection (which already
+does quota-gated degradation) with the A2.3 quota manager. Degradation rules:
+  low risk = fallback allowed under policy; medium = degraded state VISIBLE; high =
+  reinforced control; critical = pause/reject; quota UNKNOWN ≠ available (don't present
+  as guaranteed); quota EXHAUSTED = hard stop; NO paid fallback.
+  Tests: capability+quota produce the expected owner; unknown quota is not treated as
+  available; exhausted quota hard-stops; high/critical degradation gated; deterministic.
+Loop shape unchanged. Then A6.4 execution metrics (protected against duplication/
+cross-run contamination/self-reporting/missing-samples/cherry-picking), A6.5 repository
+profiles (no auto-generalization), A6.6 protected adaptive router (min sample +
+confidence + fallback + human override + explainable + security/correctness priority).
+Then A7 competitive, A8 UI, A9 hardening + release.
 ```

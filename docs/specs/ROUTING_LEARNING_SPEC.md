@@ -13,8 +13,8 @@ capability, so it carries no A0.5 capability binding (unlike A5).
 
 | Piece | Component | Status |
 |---|---|---|
-| A6.1 | Task Profiler (`orchestration/taskProfiler.ts`) | **this PR** (ADR 0045) |
-| A6.2 | Static capability router | planned |
+| A6.1 | Task Profiler (`orchestration/taskProfiler.ts`) | merged (ADR 0045) |
+| A6.2 | Static capability router (`orchestration/staticRouter.ts`) | **this PR** (ADR 0046) |
 | A6.3 | Quota-aware router (extends A4 `orchestration/routing.ts`) | planned |
 | A6.4 | Execution metrics | planned |
 | A6.5 | Repository-specific profiles | planned |
@@ -67,3 +67,46 @@ no-op override not recorded.
 
 - A6.2 static router consumes the profile with explicit, evidence-bearing rules.
 - A6.3 combines the profile with quota/auth/history (extends the A4 router).
+
+---
+
+## A6.2 Static capability router
+
+### Objective
+
+Map a `TaskProfile` (A6.1) to a per-provider **capability score** that the A4
+owner-selection (`routing.ts`) consumes as its PRIMARY factor — honestly, with no
+provider stereotypes.
+
+### Design (`orchestration/staticRouter.ts`; ADR 0046)
+
+`routeStatically(profile, extended, providers, opts?)` starts every provider at a
+NEUTRAL baseline (0.5) and applies a configurable rule set. Each `CapabilityRule`
+carries an **evidence basis, confidence, fallback, reason and version**; rules return
+per-provider score deltas (clamped to 0–1) or `null` when not applicable.
+
+The DEFAULT rules are conservative and evidence-grounded — TriForge has **no repository
+performance evidence yet** (that is A6.4/A6.5), so it does NOT encode "provider X is
+better at Y":
+
+- `required-capability-snapshot` (confidence 1): a provider whose version-bound
+  capability snapshot lacks a capability the task REQUIRES is driven to 0 (a hard fact,
+  not a stereotype); neutral when no snapshot is available.
+- `neutral-baseline` (confidence 0.5): documents the no-stereotype stance and applies
+  no adjustment — providers are equally capable until measured.
+
+The result (scores + the applied rules with their evidence/confidence) is auditable,
+versioned and overridable (pass custom evidence-bearing rules, e.g. from A6.4/A6.5
+metrics). Pure + deterministic.
+
+### Verification
+
+`staticRouter.test.ts` (5): neutral default (no stereotype), required-capability drives
+a provider to 0 (recorded with evidence/confidence), neutral when both support all
+required caps, overridable custom rule (versioned + recorded), reproducible.
+
+### Open follow-ups
+
+- A6.3 combines these scores with quota/auth/reservations/risk/history/confidence and
+  the degradation rules (extends `orchestration/routing.ts`).
+- A6.4/A6.5 add learned, evidence-bearing rules from repository metrics.
