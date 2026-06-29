@@ -15,8 +15,8 @@ capability, so it carries no A0.5 capability binding (unlike A5).
 |---|---|---|
 | A6.1 | Task Profiler (`orchestration/taskProfiler.ts`) | merged (ADR 0045) |
 | A6.2 | Static capability router (`orchestration/staticRouter.ts`) | merged (ADR 0046) |
-| A6.3 | Quota-aware router (`orchestration/quotaAwareRouter.ts`) | **this PR** (ADR 0047) |
-| A6.4 | Execution metrics | planned |
+| A6.3 | Quota-aware router (`orchestration/quotaAwareRouter.ts`) | merged (ADR 0047) |
+| A6.4 | Execution metrics (`orchestration/executionMetrics.ts`) | **this PR** (ADR 0048) |
 | A6.5 | Repository-specific profiles | planned |
 | A6.6 | Protected adaptive router | planned |
 
@@ -153,3 +153,44 @@ unknown-capacity quota as guaranteed availability.
   contamination / unverified self-reporting / missing samples / cherry-picking).
 - A6.5 repository profiles; A6.6 protected adaptive router (min sample + confidence +
   fallback + human override + explainable; security/correctness over speed).
+
+---
+
+## A6.4 Execution metrics
+
+### Objective
+
+Record per-run outcomes as evidence the adaptive router (A6.6) and repository profiles
+(A6.5) can learn from — protected against the five ways metrics could lie.
+
+### Design (`orchestration/executionMetrics.ts`; ADR 0048)
+
+`MetricsStore` is an append-only store of `RunMetric` samples (task type, owner,
+reviewer, provider versions, mode, first-pass success, repair rounds, findings,
+regressions, wall time, command count, files changed, diff size, governance decision,
+merge result, rollback, failure reason, provenance). Protections:
+
+- **duplication** — `record` is idempotent on the `(runId, taskId)` key; a repeat is
+  ignored (one run/task = one sample);
+- **cross-run contamination** — every sample carries its `runId`; the store keys by it
+  and never overwrites another run's sample;
+- **unverified provider self-reporting** — `provenance ∈ {re_derived, provider_reported}`;
+  `aggregate` counts ONLY `re_derived` samples (gates/ledger/governance), reporting how
+  many `provider_reported` it excluded;
+- **missing samples** — an aggregate over zero matching samples reports `"unknown"`,
+  never a fabricated 0/rate;
+- **cherry-picking** — the store is append-only (no delete API); aggregates use ALL
+  matching samples and report the sample count `n`.
+
+Pure + deterministic (timestamps supplied by the caller).
+
+### Verification
+
+`executionMetrics.test.ts` (6): dedup (idempotent), no cross-run contamination,
+provider-reported excluded from aggregates (retained for audit), unknown-not-zero on no
+samples, append-only + `n` reported (no delete API), filter by task type + owner.
+
+### Open follow-ups
+
+- A6.5 builds repository-specific profiles from these samples (no auto-generalization).
+- A6.6 adaptive router consumes them only above a minimum sample + confidence.

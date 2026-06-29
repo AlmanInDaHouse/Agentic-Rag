@@ -96,3 +96,13 @@ export {
   type QuotaAwareRoutingInput,
   type QuotaAwareRoutingResult
 } from "./quotaAwareRouter.js";
+
+export {
+  MetricsStore,
+  type RunMetric,
+  type MetricProvenance,
+  type MergeResult,
+  type RecordOutcome,
+  type AggregateFilter,
+  type Aggregate
+} from "./executionMetrics.js";
