@@ -689,22 +689,22 @@ See `docs/adr/0027-quota-aware-provider-orchestration.md` and
 
 ## 18. Execution Environment
 
-**[Planned] — `REQUIRES ADR BEFORE WRITABLE PROVIDER INTEGRATION`**
+**[Decided] (A0.4, ADR 0030) — substrate decided; writable execution still
+unauthorized**
 
-The execution substrate is an **open decision**, not a settled one:
+The execution substrate is **WSL2-first**: the runtime, Git, Node, pnpm, both
+provider CLIs, the working repository, worktrees and quality gates run inside one
+WSL2 distribution on the Linux filesystem; Windows hosts only the editor (remote-WSL
+integration) and the browser (`localhost` to the WSL2 service). Native Windows
+execution is deferred. Worktrees live in an external TriForge-managed state root on
+the Linux filesystem, outside the active working tree. See
+`docs/specs/WINDOWS_WSL2_EXECUTION_SUBSTRATE_SPEC.md` and ADR 0030.
 
-- the primary workstation is **Windows 11**;
-- the **recommended candidate** is a WSL2-first layout, with the repository
-  inside the Linux filesystem;
-- isolation via **git worktrees** (one per competing owner in Competitive Mode);
-- an **allowed-path policy** restricting where owners may write;
-- **process control** (timeouts, cancellation, subprocess limits);
-- **sandboxing** of provider invocations.
-
-WSL2 is a recommendation, **not** a final decision. No ADR records it yet, and it
-must not be treated as decided. A dedicated execution-substrate ADR
-(roadmap item A0.4) must be accepted before any provider is allowed to write to
-the repository.
+WSL2 is the operational and compatibility substrate; it is **not** a security
+sandbox for untrusted repository content. The full provider/repository threat model
+is Milestone A0.5. Allowed-path enforcement, command policy, the worktree manager,
+real cancellation and **writable provider execution remain unbuilt and unauthorized**
+until A0.4 and A0.5 are closed.
 
 ---
 
@@ -845,9 +845,12 @@ developer/analysis facility — it is not invoked by the agent runtime.
 ### A0 Foundations
 - **A0.1** Quota-aware orchestration — **completed** (spec + ADR 0027).
 - **A0.2** Canonical project vision — **completed** (this document).
-- **A0.3** Official CLI integration and local authentication — **current**
+- **A0.3** Official CLI integration and local authentication — **completed**
   (`OFFICIAL_CLI_PROVIDER_INTEGRATION_SPEC.md`, ADR 0028, ADR 0029).
-- **A0.4** Windows/WSL2 execution-substrate ADR.
+- **A0.4** Windows/WSL2 execution substrate — **current**
+  (`WINDOWS_WSL2_EXECUTION_SUBSTRATE_SPEC.md`, ADR 0030).
+- **A0.5** Provider and repository threat model — **next** (security sandbox and
+  the prerequisite for any writable provider execution).
 
 ### A1 Provider Contracts
 - `ProviderAdapter` spec; provider event contract; capability detection; mock
