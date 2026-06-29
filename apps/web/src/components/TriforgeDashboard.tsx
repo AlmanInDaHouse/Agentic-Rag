@@ -10,20 +10,24 @@
 
 import { ProviderStatusPanel } from "./ProviderStatus.js";
 import { TaskComposer } from "./TaskComposer.js";
+import { RunTimeline } from "./RunTimeline.js";
 import type { ProviderStatusSnapshot } from "../lib/providerStatus.js";
 import type { ComposedTask } from "../lib/taskComposer.js";
+import type { RunEvent } from "../lib/runTimeline.js";
 
 export interface TriforgeDashboardProps {
   providerStatus: ProviderStatusSnapshot[];
+  runEvents?: RunEvent[];
   onCreateTask?: (task: ComposedTask) => void;
 }
 
-export function TriforgeDashboard({ providerStatus, onCreateTask }: TriforgeDashboardProps): JSX.Element {
+export function TriforgeDashboard({ providerStatus, runEvents = [], onCreateTask }: TriforgeDashboardProps): JSX.Element {
   return (
     <main className="triforge-dashboard">
       <h1>TriForge</h1>
       <ProviderStatusPanel snapshots={providerStatus} />
       <TaskComposer onSubmit={onCreateTask} />
+      <RunTimeline events={runEvents} />
     </main>
   );
 }
