@@ -40,7 +40,7 @@ import type {
 // is a generic injectable clock that lives in the mock leaf module. Reusing it
 // (rather than redefining a second, incompatible `Clock`) keeps determinism
 // consistent across the provider boundary; this is NOT a dependency on mock logic.
-import { ManualClock, type Clock } from "../mock/clock.js";
+import { ManualClock, type Clock } from "../clock.js";
 import { QuotaErrorCode, err, ok, type QuotaError, type QuotaResult } from "./errors.js";
 
 /** Why a step needs capacity. Implementation/review/repair have protected reserves. */

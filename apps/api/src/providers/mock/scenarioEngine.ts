@@ -38,7 +38,7 @@ import {
   type AuthenticationState,
   type CapabilityState
 } from "@triforge/shared";
-import type { Clock } from "./clock.js";
+import type { Clock } from "../clock.js";
 
 /** Default per-event clock advance. Small and fixed for readable timestamps. */
 export const DEFAULT_TICK_MS = 1000;

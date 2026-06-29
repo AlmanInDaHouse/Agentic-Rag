@@ -1,14 +1,18 @@
 /**
- * Injectable, deterministic clock for the mock provider framework (A2.1).
+ * Injectable, deterministic clock — a NEUTRAL provider primitive (extracted from
+ * `mock/clock.ts` as tech-debt TD-1 so product/domain code no longer depends on
+ * the `mock/` test-double tree).
  *
- * Production paths must never read `Date.now()` directly (mandate determinism
- * requirement; PROVIDER_MOCKS_HARNESS_QUOTA_SPEC §"Determinism model"). The
- * scenario engine stamps every event timestamp from an injected `Clock`, so an
- * identical scenario produces an identical, byte-for-byte reproducible event
- * stream regardless of wall-clock time or machine speed.
+ * This is the single time source for the provider stack. It is consumed by the
+ * mock framework (A2.1), the real normalizer/adapter (A3), the quota manager
+ * (A2.3) and the writable-execution runtime (A5+). Production paths must never
+ * read `Date.now()` directly (mandate determinism requirement;
+ * PROVIDER_MOCKS_HARNESS_QUOTA_SPEC §"Determinism model"): a `Clock` is injected
+ * so identical inputs produce identical, byte-for-byte reproducible output
+ * regardless of wall-clock time or machine speed.
  *
  * `ManualClock` starts at a fixed epoch and only ever moves forward when the
- * engine explicitly calls `advance(ms)`. There are no real timers and no real
+ * caller explicitly calls `advance(ms)`. There are no real timers and no real
  * sleeps anywhere in this module.
  */
 

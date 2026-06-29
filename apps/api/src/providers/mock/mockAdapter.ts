@@ -26,7 +26,7 @@ import type {
   ProviderId,
   ProviderResult
 } from "@triforge/shared";
-import { ManualClock, type Clock } from "./clock.js";
+import { ManualClock, type Clock } from "../clock.js";
 import {
   runScenario,
   type CancelState,
