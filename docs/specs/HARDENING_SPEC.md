@@ -76,7 +76,27 @@ security gate for the release candidate):
 matrix, command classification, ledger chain, governance preconditions) remain covered by
 the A5.2/A5.3/A5.5/A5.8 suites.
 
+## A9.3 Version & capability drift
+
+### Design (`apps/api/src/execution/drift/versionDrift.ts`; ADR 0053)
+
+The runtime treats a drifted provider version / capability HONESTLY:
+`checkVersionSupport(installed, floor)` → `unsupported` below the supported floor,
+`unknown` for an absent/unparseable version (never silently trusted), `supported` at or
+above the floor (`parseSemver`/`compareSemver` are pure). `checkCapability(requested,
+snapshot)` → `unknown` with no snapshot, `refused` for a capability not in the snapshot
+(never assumed) or a WRITABLE capability requested against a read-only snapshot (never
+inferred), `granted` otherwise. The A8.1 provider-status view-model already surfaces
+unknown/unsupported; A9.3 is the backend derivation.
+
+### Verification
+
+`versionDrift.test.ts` (8): semver parse/compare; below-floor → unsupported; absent/
+unparseable → unknown; at/above floor → supported; no snapshot → unknown; present →
+granted; absent → refused; writable-against-read-only → refused, writable-verified →
+granted.
+
 ## Open follow-ups
 
-- A9.3 version drift; A9.4 recovery; A9.5 observability; A9.6 packaging/installation; A9.7
-  docs; A9.8 RC cases; A9.9 release gate → TriForge 1.0 DoD.
+- A9.4 recovery; A9.5 observability; A9.6 packaging/installation; A9.7 docs; A9.8 RC cases;
+  A9.9 release gate → TriForge 1.0 DoD.
