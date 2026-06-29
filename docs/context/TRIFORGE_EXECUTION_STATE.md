@@ -4,20 +4,20 @@
 and GitHub at the start of every loop; this file records the conclusion, not the
 history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.1).
 
-**Last updated:** 2026-06-29 (Loop 27 — A8.2, on branch `feat/a8-2-task-composer`)
+**Last updated:** 2026-06-29 (Loop 28 — A8.3, on branch `feat/a8-3-run-timeline`)
 
 ## Snapshot
 
 | Field | Value |
 |---|---|
-| Last closed milestone | A8.1 — Provider Status panel (`5c2d550`, PR #59; ADR 0052) |
-| Active milestone | **A8.2 — Task Composer** (this PR; `apps/web` taskComposer view-model/validator + form; ADR 0052 arch) |
-| `main` SHA | `5c2d550` |
-| Last `main` CI | `Validate` ✅ success (`5c2d550`) |
-| Open PRs | A8.2 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
+| Last closed milestone | A8.2 — Task Composer (`1afb7fe`, PR #60; ADR 0052 arch) |
+| Active milestone | **A8.3 — Run Timeline** (this PR; `apps/web` runTimeline view-model + panel) |
+| `main` SHA | `1afb7fe` |
+| Last `main` CI | `Validate` ✅ success (`1afb7fe`) |
+| Open PRs | A8.3 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
 | Blockers | none |
 | Pending decisions | none |
-| Next loop | **A8.3 — Run Timeline** (`apps/web`). A view-model that renders live run events ORDERED BY SEQUENCE NUMBER (not just timestamps — the A1 ProviderEvent carries `sequenceNumber`); dedupe duplicate sequence numbers; flag a sequence GAP; render each event type (run start/provider start/plan/tool/command/file mutation/quota/warning/finding/repair/failure/governance/merge/completion) with the sanitizer. Pure view-model + test + presentational timeline. Then A8.4 artifact explorer, A8.5 diff/review, A8.6 governance, A8.7 budget/quota, A8.8 recovery. Then A9. |
+| Next loop | **A8.4 — Artifact Explorer** (`apps/web`). A view-model + panel to browse the 12 A1 artifacts (TaskSpecification, ContextManifest, AgentPlan, CrossReview, StrategyDecision, TaskProfile, RoutingDecision, ImplementationResult, ReviewFindings, QualityGateResult, GovernanceDecision, RunFinalReport) + the mutation ledger + raw evidence references, each sanitized; never hide an artifact; show hashes/refs. Pure view-model + test + panel. Then A8.5 diff/review (never hide changed files; diff-hash vs reviewed-hash), A8.6 governance, A8.7 budget/quota, A8.8 recovery. Then A9. |
 
 ## Follow-ups / tech debt
 
@@ -79,7 +79,7 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
   - A6.6 Protected adaptive router — **active** (this PR; ADR 0050)
 - **A6 — COMPLETE** (`47c5e36`; profiler + static + quota-aware + metrics + repo profiles + protected adaptive)
 - A7 Competitive mode — **A7.1 merged** (`0610c54`; PR #58; ADR 0051)
-- A8 Product Interface (UI) — A8.1 merged (`5c2d550`; PR #59; ADR 0052); **A8.2 active** (this PR); A8.3–A8.8 pending
+- A8 Product Interface (UI) — A8.1 (`5c2d550`) + A8.2 (`1afb7fe`) merged; **A8.3 active** (this PR); A8.4–A8.8 pending
 - A9 Hardening + release — pending
 - A8 Product interface — pending
 - A9 Hardening and release — pending
@@ -115,9 +115,9 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 
 | Metric | Value |
 |---|---|
-| Loops executed | A0.4–A4 (0–6); TD-1..A5.9 (7–17)=MVP; A5.10 (18); A6 (19–24); A7.1 (25); A8.1 (26); A8.2 (27) active |
-| PRs created | +21 this session (TD-1 #40 … A8.1 #59, A8.2 this); 29 total since A0.4 |
-| PRs merged | 28 (…#57 A6.6, #58 A7.1, #59 A8.1) |
+| Loops executed | …A6 (19–24); A7.1 (25); A8.1 (26); A8.2 (27); A8.3 (28) active |
+| PRs created | +22 this session (TD-1 #40 … A8.2 #60, A8.3 this); 30 total since A0.4 |
+| PRs merged | 29 (…#58 A7.1, #59 A8.1, #60 A8.2) |
 | CI failures | 1 (A5.3 first run: cross-platform binName — caught + fixed; re-run green) |
 | Repair rounds | 11 (A5.9: 1 — E2E surfaced + fixed an A5.5 new-dir reconcile bug, fail-closed) |
 | Regressions | 0 |
@@ -126,8 +126,8 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 | Human interventions | 1 (auth-method decision) |
 | Findings by severity (reviews) | A5.4–A5.8: 0; A5.9: 1 major (self-found integration bug in A5.5, fixed + regression test) |
 | Time-to-merge | same session per loop |
-| Diff size | A8.2: web taskComposer lib+test + TaskComposer.tsx form + dashboard wire + PRODUCT_INTERFACE_SPEC §A8.2 |
-| Coverage | api ~660; web suite +6 task-composer tests → 18 web tests (CI runs `@triforge/web test`) |
+| Diff size | A8.3: web runTimeline lib+test + RunTimeline.tsx + dashboard wire + PRODUCT_INTERFACE_SPEC §A8.3 |
+| Coverage | api ~660; web suite +5 timeline tests → 23 web tests (CI runs `@triforge/web test`) |
 | Quota usage | not yet instrumented (no provider runs) |
 | Reverted decisions | 0 |
 | Security incidents | 1 (PAT pasted into chat — R-SEC-2; external, owner must rotate; non-blocking) |
@@ -136,21 +136,21 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 ## Exact next loop
 
 ```text
-Loop 28 — A8.3 Run Timeline (mandate §10 A8.3). Branch off main AFTER A8.2 merges. In
-apps/web build a PURE view-model (testable) + presentational timeline that renders run
-events ORDERED BY SEQUENCE NUMBER (the A1 ProviderEvent carries sequenceNumber; NOT just
-timestamps). DEDUPE duplicate sequence numbers; FLAG a sequence GAP; render each event
-type (run start / provider start / plan / tool / command / file mutation / quota /
-warning / finding / repair / failure / governance decision / merge / completion) with
-the A8 sanitizer (safeText) so captured content is safe. Pure view-model + test.
-  Tests: out-of-order events are sorted by sequence; a duplicate sequence number is
-  deduped; a gap is flagged; event payload text is sanitized.
+Loop 29 — A8.4 Artifact Explorer (mandate §10 A8.4). Branch off main AFTER A8.3 merges.
+In apps/web build a PURE view-model (testable) + panel that browses the 12 A1 artifacts
+(TaskSpecification, ContextManifest, AgentPlan, CrossReview, StrategyDecision,
+TaskProfile, RoutingDecision, ImplementationResult, ReviewFindings, QualityGateResult,
+GovernanceDecision, RunFinalReport) + the mutation ledger + raw evidence references. Each
+artifact is rendered safely (safeText on free text; never hide an artifact; show its
+hashes/refs). The view-model normalizes a heterogeneous artifact set into a uniform
+display list (kind, title, fields, evidence refs) without inventing data.
+  Tests: all present artifact kinds are listed (none hidden); free text is sanitized;
+  hashes/refs are surfaced; an absent artifact is reported as absent, not fabricated.
 Loop shape unchanged: spec/impl → gates (web typecheck + web vitest + lint:deps + build)
 → adversarial review → repair → PR → CI → squash-merge → verify main → persist this file.
-Then A8.4 artifact explorer (12 A1 artifacts + ledger + raw evidence refs), A8.5
-diff/review (never hide changed files; diff-hash vs reviewed-hash), A8.6 governance
-dashboard, A8.7 budget/quota, A8.8 recovery UI. A8 closure: a user can create/observe/
-audit/cancel/recover/understand a full run without console logs. Then A9 Hardening
-(chaos + A0.5 security acceptance tests + version drift + recovery + observability +
-packaging/installation + docs + release candidate) + TriForge 1.0 Definition of Done.
+Then A8.5 diff/review (never hide changed files; diff-hash vs reviewed-hash), A8.6
+governance dashboard, A8.7 budget/quota, A8.8 recovery UI. A8 closure: a user can
+create/observe/audit/cancel/recover/understand a full run without console logs. Then A9
+Hardening (chaos + A0.5 security acceptance tests + version drift + recovery +
+observability + packaging/installation + docs + release candidate) + TriForge 1.0 DoD.
 ```

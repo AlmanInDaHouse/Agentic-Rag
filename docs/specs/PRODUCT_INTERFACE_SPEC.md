@@ -67,9 +67,27 @@ authoritatively. The `TaskComposer` form emits a `ComposedTask` only when valid.
 objective rejected (A1 rule); negative budget rejected; `maxFilesChanged < 1` rejected
 (A5.2 shape); out-of-enum risk/mode rejected; non-integer numerics rejected.
 
+## A8.3 Run Timeline
+
+### Design (`src/lib/runTimeline.ts` + `src/components/RunTimeline.tsx`; ADR 0052 arch)
+
+`buildTimeline(events)` renders run events ORDERED BY SEQUENCE NUMBER (the A1
+`ProviderEvent` carries a monotonic `sequenceNumber`; timestamps can tie/skew), DEDUPES a
+repeated sequence number (keeps the first), FLAGS a sequence GAP (a possible dropped
+event), and sanitizes the event type + detail via `safeText` (no terminal-escape /
+control / secret leak). Input is a minimal `RunEvent` the caller maps from a
+`ProviderEvent`, so the view-model is decoupled from the payload union. Pure +
+deterministic.
+
+### Verification
+
+`src/lib/runTimeline.test.ts` (5): out-of-order events sorted by sequence (not
+timestamp); duplicate sequence deduped + recorded; gap flagged; contiguous → no gaps;
+type/detail sanitized (ANSI/secret stripped).
+
 ## Open follow-ups
 
-- A8.3 run timeline (ORDER BY sequence number); A8.4 artifact explorer; A8.5 diff/review
+- A8.4 artifact explorer (12 A1 artifacts + ledger + raw evidence refs); A8.5 diff/review
   (never hide changed files; diff-hash vs reviewed-hash); A8.6 governance dashboard; A8.7
   budget/quota; A8.8 recovery UI.
 - A later A8 step mounts `TriforgeDashboard` as the TriForge view (a backend wiring of the
