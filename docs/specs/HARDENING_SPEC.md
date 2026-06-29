@@ -170,6 +170,28 @@ lifecycle verbs (create/observe/audit/cancel/recover); it cross-references the i
 threat-model / hardening / execution-state docs; it states the core safety guarantees
 (isolated worktrees; never api-keys / force-push / main).
 
+## A9.8 Release-candidate end-to-end cases
+
+### Design (`apps/api/src/test/rc.acceptance.test.ts`; ADR 0053)
+
+An RC acceptance INDEX ties the release-candidate scenarios to the TriForge 1.0 DoD. The
+heavy real-git scenarios live in their own suites (CI runs them every PR); the index
+asserts they are present and re-asserts the cross-cutting RC invariants by composing the
+real building blocks deterministically:
+
+1. writable run end-to-end in an isolated worktree → `writableRun.e2e.test.ts` (real git).
+2. competitive run, winner by evidence → `competitiveRun.e2e.test.ts` (real git).
+3. a run that must NOT merge (blocker / tampered ledger / failed gates) → governance
+   `decideVerdict` never returns merge.
+4. quota/auth degradation pauses or hard-stops (never a fabricated route) → `routeQuotaAware`.
+5. recovery after restart (ledger reloads + verifies its chain) → `MutationLedger.load`.
+
+### Verification
+
+`rc.acceptance.test.ts` (4): every RC scenario suite is present (writable E2E, competitive
+E2E, chaos, SAT, recovery, observability); RC-4 degradation pauses/hard-stops; RC-3 a
+blocker/tampered/failed-gate run never merges; RC-5 a run recovers after a restart.
+
 ## Open follow-ups
 
-- A9.8 RC cases; A9.9 release gate → TriForge 1.0 DoD.
+- A9.9 release gate → TriForge 1.0 DoD.
