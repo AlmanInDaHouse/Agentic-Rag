@@ -4,20 +4,20 @@
 and GitHub at the start of every loop; this file records the conclusion, not the
 history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.1).
 
-**Last updated:** 2026-06-30 (Loop 36 — A9.3, on branch `feat/a9-3-version-drift`)
+**Last updated:** 2026-06-30 (Loop 37 — A9.4, on branch `feat/a9-4-recovery-restart`)
 
 ## Snapshot
 
 | Field | Value |
 |---|---|
-| Last closed milestone | A9.2 — Security acceptance tests (`0a88e06`, PR #68; ADR 0053) |
-| Active milestone | **A9.3 — Version & capability drift** (this PR; `apps/api` versionDrift; ADR 0053) |
-| `main` SHA | `0a88e06` |
-| Last `main` CI | `Validate` ✅ success (`0a88e06`) |
-| Open PRs | A9.3 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
+| Last closed milestone | A9.3 — Version & capability drift (`762d89f`, PR #69; ADR 0053) |
+| Active milestone | **A9.4 — Recovery & restart** (this PR; `apps/api` restart acceptance test; ADR 0053) |
+| `main` SHA | `762d89f` |
+| Last `main` CI | `Validate` ✅ success (`762d89f`) |
+| Open PRs | A9.4 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
 | Blockers | none |
 | Pending decisions | none |
-| Next loop | **A9.4 — Recovery & restart** (`apps/api`), mandate §11. Assert the runtime recovers across a simulated restart: the A5.5 mutation ledger reloads from its JSONL and verifies the hash chain (a broken chain throws); a stale/orphaned worktree from a prior run is detected and cleanable (A5.1 crash-recovery); a partially-applied run is reconstructable from the ledger + artifacts; rollback restores the base. Compose the A5.1 + A5.5 recovery surfaces in a restart acceptance test. Then A9.5 observability, A9.6 packaging, A9.7 docs, A9.8 RC cases, A9.9 release gate → TriForge 1.0 DoD. |
+| Next loop | **A9.5 — Observability** (`apps/api`), mandate §11. Assert a run is FULLY RECONSTRUCTABLE from its artifacts + mutation ledger + event stream — no hidden state: the 12 A1 artifacts + ledger + ordered events together answer who/what/why/when for every decision and mutation; an observer can replay the run's sequence and reconcile the final diff to the ledger; nothing material happens without a recorded, ordered, attributable signal. Compose the A1 artifacts + A5.5 ledger + the A1 event ordering. Then A9.6 packaging, A9.7 docs, A9.8 RC cases, A9.9 release gate → TriForge 1.0 DoD. |
 
 ## Follow-ups / tech debt
 
@@ -80,7 +80,7 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 - **A6 — COMPLETE** (`47c5e36`; profiler + static + quota-aware + metrics + repo profiles + protected adaptive)
 - A7 Competitive mode — **A7.1 merged** (`0610c54`; PR #58; ADR 0051)
 - **A8 — COMPLETE** (`d99b850`; 8 panels A8.1–A8.8: provider status, task composer, run timeline, artifact explorer, diff/review, governance, budget/quota, recovery; ADR 0052; 46 web tests)
-- A9 Hardening and release candidate — A9.1–A9.2 merged (`0a88e06`; ADR 0053); **A9.3 active** (this PR); A9.4–A9.9 pending → TriForge 1.0 DoD
+- A9 Hardening and release candidate — A9.1–A9.3 merged (`762d89f`; ADR 0053); **A9.4 active** (this PR); A9.5–A9.9 pending → TriForge 1.0 DoD
 
 ## UNKNOWN
 
@@ -113,9 +113,9 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 
 | Metric | Value |
 |---|---|
-| Loops executed | …A8.7 (32); A8.8 (33)=A8 done; A9.1 (34); A9.2 (35); A9.3 (36) active |
-| PRs created | +30 this session (TD-1 #40 … A9.2 #68, A9.3 this); 38 total since A0.4 |
-| PRs merged | 37 (…#66 A8.8, #67 A9.1, #68 A9.2) |
+| Loops executed | …A8.8 (33)=A8 done; A9.1 (34); A9.2 (35); A9.3 (36); A9.4 (37) active |
+| PRs created | +31 this session (TD-1 #40 … A9.3 #69, A9.4 this); 39 total since A0.4 |
+| PRs merged | 38 (…#67 A9.1, #68 A9.2, #69 A9.3) |
 | CI failures | 1 (A5.3 first run: cross-platform binName — caught + fixed; re-run green) |
 | Repair rounds | 11 (A5.9: 1 — E2E surfaced + fixed an A5.5 new-dir reconcile bug, fail-closed) |
 | Regressions | 0 |
@@ -124,8 +124,8 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 | Human interventions | 1 (auth-method decision) |
 | Findings by severity (reviews) | A5.4–A5.8: 0; A5.9: 1 major (self-found integration bug in A5.5, fixed + regression test) |
 | Time-to-merge | same session per loop |
-| Diff size | A9.3: apps/api execution/drift/versionDrift.ts + test (8) + HARDENING_SPEC §A9.3 |
-| Coverage | api ~685 +8 A9.3 drift = ~693; web 46 (8 A8 panels) (CI runs api + `@triforge/web test`) |
+| Diff size | A9.4: apps/api recovery.restart.test.ts (4) + HARDENING_SPEC §A9.4 |
+| Coverage | api ~693 +4 A9.4 recovery = ~697; web 46 (8 A8 panels) (CI runs api + `@triforge/web test`) |
 | Quota usage | not yet instrumented (no provider runs) |
 | Reverted decisions | 0 |
 | Security incidents | 1 (PAT pasted into chat — R-SEC-2; external, owner must rotate; non-blocking) |
@@ -134,18 +134,19 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 ## Exact next loop
 
 ```text
-Loop 37 — A9.4 Recovery & restart (mandate §11 A9.4). Branch off main AFTER A9.3 merges.
-Assert the runtime RECOVERS across a simulated restart (apps/api): the A5.5 mutation
-ledger reloads from its JSONL file and re-verifies the hash chain (a tampered/broken chain
-THROWS, not silently loads); a stale or orphaned worktree left by a prior run is DETECTED
-and cleanable (A5.1 crash-recovery / stale-detection); a partially-applied run is
-reconstructable from the ledger + artifacts (no lost mutations); rollback restores the
-base state. Compose the A5.1 worktree manager + A5.5 ledger recovery in a restart
-acceptance test (real tmp fs; deterministic).
-  Tests: a ledger round-trips through reload + verifies; a corrupted persisted chain is
-  rejected on reload; a stale worktree is detected; a reconstructed mutation set matches
-  the ledger.
-Loop shape unchanged. Then A9.5 observability (a run is fully reconstructable from
-artifacts + ledger + events, no hidden state), A9.6 packaging/installation, A9.7 docs,
-A9.8 release-candidate end-to-end cases, A9.9 release gate → TriForge 1.0 DoD.
+Loop 38 — A9.5 Observability (mandate §11 A9.5). Branch off main AFTER A9.4 merges. Assert
+a run is FULLY RECONSTRUCTABLE from its artifacts + mutation ledger + ordered event stream
+— NO hidden state (apps/api): every mutation in the ledger is attributable (owner / tool /
+reason / sequence / hashes); the ordered events answer who/what/why/when for every
+decision; an observer can replay the sequence and reconcile the final diff hash to the
+ledger; nothing material happens without a recorded, ordered, attributable signal.
+Deterministic.
+  Tests: the ledger attributes every mutation (owner/tool/reason/sequence); events sort
+  to a gapless sequence and cover the decision points; the reconstructed diff hash matches
+  the ledger head binding; an unrecorded mutation is detected as unattributed (no hidden
+  state).
+Loop shape unchanged. Then A9.6 packaging/installation (the app builds + the runtime is
+installable/runnable from the repo with documented steps), A9.7 docs (operator + recovery
++ security docs complete), A9.8 release-candidate end-to-end cases, A9.9 release gate →
+TriForge 1.0 Definition of Done.
 ```

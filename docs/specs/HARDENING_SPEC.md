@@ -96,7 +96,24 @@ unparseable → unknown; at/above floor → supported; no snapshot → unknown; 
 granted; absent → refused; writable-against-read-only → refused, writable-verified →
 granted.
 
+## A9.4 Recovery & restart
+
+### Design (`apps/api/src/test/recovery.restart.test.ts`; ADR 0053)
+
+Asserts the runtime RECOVERS across a simulated restart: the A5.5 mutation ledger reloads
+from its persisted JSONL and re-verifies the hash chain (a tampered/broken chain THROWS,
+never silently loads); a reconstructed mutation set matches the recorded one (no lost
+mutations); a missing ledger file recovers gracefully (empty); and secrets were redacted
+BEFORE persistence (nothing secret on disk to recover). Worktree stale-detection /
+crash-recovery is covered by the A5.1 suite (real git worktrees, CI).
+
+### Verification
+
+`recovery.restart.test.ts` (4): reload + verify + reconstruct every mutation (head hash
+preserved); a corrupted persisted chain is rejected on reload; a missing file recovers to
+empty; no secret on disk to recover (redaction before write).
+
 ## Open follow-ups
 
-- A9.4 recovery; A9.5 observability; A9.6 packaging/installation; A9.7 docs; A9.8 RC cases;
-  A9.9 release gate → TriForge 1.0 DoD.
+- A9.5 observability; A9.6 packaging/installation; A9.7 docs; A9.8 RC cases; A9.9 release
+  gate → TriForge 1.0 DoD.
