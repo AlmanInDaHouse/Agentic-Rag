@@ -23,8 +23,8 @@ separate from `providers/`). Sub-pieces:
 |---|---|---|
 | A5.1 | Worktree Manager (`execution/worktree`) | merged (ADR 0036) |
 | A5.2 | Allowed-Path Policy (`execution/path`) | merged (ADR 0037) |
-| A5.3 | Safe Command Policy + Process Supervision (`execution/command`) | **this PR** (ADR 0038) |
-| A5.4 | Owner/Reviewer enforcement | planned |
+| A5.3 | Safe Command Policy + Process Supervision (`execution/command`) | merged (ADR 0038) |
+| A5.4 | Owner/Reviewer enforcement (`execution/role`) | **this PR** (ADR 0039) |
 | A5.5 | Diff Capture + Mutation Ledger | planned |
 | A5.6 | Quality Gate Runner | planned |
 | A5.7 | Repair Loop | planned |
@@ -241,3 +241,50 @@ and an audit record per run.
 - A5.4 binds command execution to the single writable OWNER; the reviewer is
   read-only and may run only `read_only` validations.
 - A5.5 records each command + its mutations in the ledger.
+
+---
+
+## A5.4 Owner/Reviewer enforcement
+
+### Objective
+
+Enforce exactly one writable OWNER per unit of work and a strictly read-only
+REVIEWER, composing the A5.2 path policy and A5.3 command policy behind a role gate.
+
+### Ownership (`execution/role/ownership.ts`)
+
+A per-unit (run+task) lease is the single source of truth for "who may write".
+`acquire` grants it only if unowned (or re-acquired by the same actor); a different
+actor is refused (two-owner race blocked). Ownership changes ONLY through an
+explicit, audited `reassign` by the current owner — never implicitly — so a reviewer
+can never silently become the owner. `release` is owner-only and idempotent. Typed
+results; every transition audited.
+
+### Role gate (`execution/role/roleEnforcer.ts`)
+
+- **Owner** (must hold the lease): READ, WRITE within `writePaths` (A5.2), run any
+  command the command policy (A5.3) permits.
+- **Reviewer** (no lease): READ, run ONLY `read_only` commands. A reviewer WRITE →
+  `reviewer_cannot_write`; a reviewer non-read-only command →
+  `reviewer_command_not_read_only`. It cannot modify files, run `write_local`, or
+  mutate via a side tool.
+- An owner-role actor that does not hold the lease → `not_owner`.
+- Every decision carries `{actorId, role, unit}` (role binding for events/artifacts)
+  and is audited; underlying path/command decisions are attached.
+
+### Capability binding (threat-model §11.2)
+
+| Field | Content |
+|---|---|
+| **Capability** | Exactly one owner writes/executes within a unit; the reviewer is read-only. |
+| **Threat(s)** | T-INT-14 (reviewer writes), T-INT-15 (two simultaneous owners / write race), implicit-owner escalation. |
+| **Control(s)** | Single owner lease (two-owner race blocked); explicit-only audited reassignment; role gate denying reviewer write / non-read-only command and lease-less owner actions; role binding on every decision. **Implemented** in `execution/role/`. |
+| **Milestone** | A5.4 (this PR). |
+| **Verification** | `roleEnforcer.test.ts` (10): single-owner + two-owner block, explicit/audited reassignment, owner write in/out of writePaths, reviewer-write denied, not_owner, both-roles read, owner command allowed/destructive denied, reviewer read_only allowed / write_local+build denied, role binding present. (SAT-A5-8.) |
+| **Recovery** | A denied action never reaches the path/command effect; ownership is explicit and auditable; the lease can be reassigned or released. |
+| **Residual risk** | The lease is role-agnostic (a reviewer could hold a lease, but the role gate still denies its writes — harmless; the run wiring acquires the lease for the owner). Accepted, owner. |
+
+### Open follow-ups
+
+- A5.5 ledger attributes each mutation to the owner + the authorizing decision.
+- A5.9 wires acquire(owner) at run start and binds the reviewer for the review phase.

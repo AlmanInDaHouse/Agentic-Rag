@@ -4,20 +4,20 @@
 and GitHub at the start of every loop; this file records the conclusion, not the
 history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.1).
 
-**Last updated:** 2026-06-29 (Loop 11 — A5.3, on branch `feat/a5-3-command-policy`)
+**Last updated:** 2026-06-29 (Loop 12 — A5.4, on branch `feat/a5-4-owner-reviewer`)
 
 ## Snapshot
 
 | Field | Value |
 |---|---|
-| Last closed milestone | A5.2 — Allowed-Path Policy (`67d5956`, PR #43; ADR 0037) |
-| Active milestone | **A5.3 — Safe Command Policy + Process Supervision** (this PR; `execution/command`; ADR 0038) |
-| `main` SHA | `67d5956` |
-| Last `main` CI | `Validate` ✅ success (`67d5956`) |
-| Open PRs | A5.3 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
+| Last closed milestone | A5.3 — Safe Command Policy + Process Supervision (`cafca30`, PR #44; ADR 0038) |
+| Active milestone | **A5.4 — Owner/Reviewer enforcement** (this PR; `execution/role`; ADR 0039) |
+| `main` SHA | `cafca30` |
+| Last `main` CI | `Validate` ✅ success (`cafca30`) |
+| Open PRs | A5.4 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
 | Blockers | none |
 | Pending decisions | none |
-| Next loop | **A5.4 — Owner/Reviewer enforcement** (single writable owner: writes only authorized paths, runs authorized commands, produces the diff; reviewer is read-only, runs only read_only validations, produces findings, modifies nothing; lease/lock; reviewer-write + two-owner-race blocked + audited; role binding in events/artifacts). Then A5.5…A5.10. |
+| Next loop | **A5.5 — Diff Capture + Mutation Ledger** (append-only ledger: run/task/owner/worktree/branch/command/timestamp/file/operation/hash-before/hash-after/diff-ref/reason/tool/tests/policy-decision/sequence; detect unattributed changes + post-review modification; bind diff to GovernanceDecision; redact secrets; safe truncation; crash recovery). Then A5.6…A5.10. |
 
 ## Follow-ups / tech debt
 
@@ -61,8 +61,8 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 - A5 Controlled writable execution (MVP) — **active**, split A5.1–A5.10 (spec `WRITABLE_EXECUTION_SPEC.md`):
   - A5.1 Worktree Manager — **merged** (`909d54c`; PR #42; ADR 0036)
   - A5.2 Allowed-Path Policy — **merged** (`67d5956`; PR #43; ADR 0037)
-  - A5.3 Safe Command Policy + Process Supervision — **active** (this PR; ADR 0038)
-  - A5.4 Owner/Reviewer enforcement — pending
+  - A5.3 Safe Command Policy + Process Supervision — **merged** (`cafca30`; PR #44; ADR 0038)
+  - A5.4 Owner/Reviewer enforcement — **active** (this PR; ADR 0039)
   - A5.5 Diff Capture + Mutation Ledger — pending
   - A5.6 Quality Gate Runner — pending
   - A5.7 Repair Loop — pending
@@ -97,19 +97,19 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 
 | Metric | Value |
 |---|---|
-| Loops executed | A0.4–A4 closed (0–6); TD-1 (7), TD-2 (8), A5.1 (9), A5.2 (10) merged; A5.3 (11) active |
-| PRs created | +5 this session (TD-1 #40, TD-2 #41, A5.1 #42, A5.2 #43, A5.3 this); 13 total since A0.4 |
-| PRs merged | 12 (#31 A0.4, #32 Gov, #33 A0.5, #34 A1, #35–#37 A2, #38 A3, #39 A4, #40 TD-1, #41 TD-2, #42 A5.1, #43 A5.2) |
-| CI failures | 0 |
-| Repair rounds | 9 (…A4; A5.1: 1 fixed; A5.2: clean; A5.3: 1 self-found force-with-lease gap fixed) |
+| Loops executed | A0.4–A4 closed (0–6); TD-1 (7), TD-2 (8), A5.1 (9), A5.2 (10), A5.3 (11) merged; A5.4 (12) active |
+| PRs created | +6 this session (TD-1 #40, TD-2 #41, A5.1 #42, A5.2 #43, A5.3 #44, A5.4 this); 14 total since A0.4 |
+| PRs merged | 13 (…#42 A5.1, #43 A5.2, #44 A5.3) |
+| CI failures | 1 (A5.3 first run: cross-platform binName bug — caught + fixed; re-run green) |
+| Repair rounds | 10 (…A5.3: 1; A5.4: clean) |
 | Regressions | 0 |
 | Reverts | 0 |
 | Blockers hit | 0 |
 | Human interventions | 1 (auth-method decision) |
-| Findings by severity (reviews) | …A4; A5.1: 1 major (fixed); A5.2: 0; A5.3: 0 (1 minor self-found, fixed) |
+| Findings by severity (reviews) | …A5.1: 1 major (fixed); A5.2: 0; A5.3: 0 (1 minor + 1 CI-caught, fixed); A5.4: 0 |
 | Time-to-merge | same session per loop |
-| Diff size | A5.3: 3 new src files (commandPolicy+commandSupervisor+index ~480 LoC) + 2 tests (~370) + ADR 0038 + spec §A5.3 |
-| Coverage | 414 pure + 14 A5.3 command + 2 cross-platform real-proc = 430 pure (+3 POSIX-only run in CI) = 433; full api suite ~567 |
+| Diff size | A5.4: 3 new src files (ownership+roleEnforcer+index ~430 LoC) + test (~220) + ADR 0039 + spec §A5.4 |
+| Coverage | +10 A5.4 role tests → 440 pure (+3 POSIX-only in CI) = 443; full api suite ~577 |
 | Quota usage | not yet instrumented (no provider runs) |
 | Reverted decisions | 0 |
 | Security incidents | 1 (PAT pasted into chat — R-SEC-2; external, owner must rotate; non-blocking) |
@@ -118,22 +118,21 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 ## Exact next loop
 
 ```text
-Loop 12 — A5.4 Owner/Reviewer enforcement (mandate §A5.4; threat-model SAT-A5-8,
-T-INT-14/15). Branch off main AFTER A5.3 merges. Implement:
-  - a single writable OWNER per unit of work (lease/lock); the owner may write within
-    writePaths (A5.2), run authorized commands (A5.3), create tests, produce the diff,
-    repair findings;
-  - the REVIEWER is read-only: may read, inspect, run ONLY read_only validations,
-    produce findings — may NOT modify files, run write_local, change permissions,
-    become owner implicitly, or write via a side tool;
-  - explicit + audited owner reassignment; reviewer-write attempt BLOCKED; two
-    simultaneous owners BLOCKED; role binding included in events + artifacts.
-  Tests: reviewer write attempt denied (path+role); second-writer race denied;
-  reassignment audited; role binding present. Compose A5.2 (paths) + A5.3 (commands)
-  behind the owner/reviewer gate.
-Loop shape unchanged: spec/impl → gates (typecheck + vitest + lint:deps) → adversarial
-review → repair → PR → CI → squash-merge → verify main → persist this file.
-Then A5.5 mutation ledger, A5.6 gate runner, A5.7 repair loop, A5.8 GovernanceDecision
-builder, A5.9 mock-first writable E2E, A5.10 real pilot (only after A5.1–A5.9 green).
-Closure of A5 = the functional MVP.
+Loop 13 — A5.5 Diff Capture + Mutation Ledger (mandate §A5.5; threat-model SAT-A5-6,
+T-INJ-11, T-INT-04). Branch off main AFTER A5.4 merges. Implement an append-only
+ledger recording per mutation: runId, taskId, owner, worktree, branch, command,
+timestamp, file, operation (create/modify/delete/rename), hash-before, hash-after,
+diff-ref, reason, tool, related tests, policy decision, sequence.
+  - detect UNATTRIBUTED changes (a file changed without a ledger entry) and
+    modification AFTER review (the diff hash changed since the reviewed hash);
+  - bind the diff to the GovernanceDecision (diff hash); redact secrets before
+    persisting; safe truncation of large diffs; hash artifacts; crash recovery.
+  Compute the real worktree state (git status/hash) and compare to the ledger to
+  catch a forged structured result (SAT-A5-6). Use the A5.4 role binding for owner
+  attribution + the A5.1 worktree + A5.3 audit.
+Loop shape unchanged: spec/impl → gates → adversarial review → repair → PR → CI →
+squash-merge → verify main → persist this file.
+Then A5.6 Quality Gate Runner, A5.7 repair loop, A5.8 GovernanceDecision builder, A5.9
+mock-first writable E2E, A5.10 real pilot (only after A5.1–A5.9 green). Closure of A5
+= the functional MVP.
 ```
