@@ -85,9 +85,14 @@ const TEST = new Set(["vitest", "jest", "mocha", "pytest", "phpunit", "rspec", "
 const BUILD = new Set(["tsc", "tsx", "esbuild", "rollup", "webpack", "vite", "make", "cmake", "gradle", "mvn", "cargo", "go", "rustc", "gcc", "g++", "clang", "javac"]);
 const WRITE_LOCAL = new Set(["mkdir", "touch", "cp", "mv", "tee", "ln", "sed", "awk", "patch", "gofmt", "prettier", "eslint", "black", "ruff"]);
 
-/** Strip a directory and a `.exe`/`.cmd` suffix; lowercase. */
+/**
+ * Strip a directory and a `.exe`/`.cmd` suffix; lowercase. Splits on BOTH `/` and
+ * `\` regardless of platform so a Windows-style path is normalized on POSIX too
+ * (`path.basename` on POSIX does not treat `\` as a separator).
+ */
 function binName(bin: string): string {
-  const base = path.basename(bin).toLowerCase();
+  const segments = bin.split(/[/\\]/);
+  const base = (segments[segments.length - 1] ?? "").toLowerCase();
   return base.replace(/\.(exe|cmd|bat|ps1)$/i, "");
 }
 
