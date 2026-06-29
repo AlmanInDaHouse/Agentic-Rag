@@ -26,8 +26,8 @@ separate from `providers/`). Sub-pieces:
 | A5.3 | Safe Command Policy + Process Supervision (`execution/command`) | merged (ADR 0038) |
 | A5.4 | Owner/Reviewer enforcement (`execution/role`) | merged (ADR 0039) |
 | A5.5 | Diff Capture + Mutation Ledger (`execution/ledger`) | merged (ADR 0040) |
-| A5.6 | Quality Gate Runner (`execution/gates`) | **this PR** (ADR 0041) |
-| A5.7 | Repair Loop | planned |
+| A5.6 | Quality Gate Runner (`execution/gates`) | merged (ADR 0041) |
+| A5.7 | Repair Loop (`execution/repair`) | **this PR** (ADR 0042) |
 | A5.8 | Autonomous Governance Decision | planned |
 | A5.9 | Writable E2E fixture (mock-first) | planned |
 | A5.10 | Low-risk real provider pilot | planned (gated on A5.1–A5.9 green) |
@@ -393,3 +393,49 @@ A5.5 real-worktree change set, so it is provider-narrative-independent.
 - A5.7 repair loop reruns the gates after each owner repair.
 - A5.8 governance consumes the `QualityGateRunResult` + tampering report as merge
   preconditions, bound to the tested diff hash.
+
+---
+
+## A5.7 Repair Loop
+
+### Objective
+
+Drive a writable run to a terminal decision through the bounded loop
+`owner implementation → quality gates → reviewer findings → owner repair → gates …`,
+guaranteeing termination — never an infinite loop.
+
+### Loop (`execution/repair/repairLoop.ts`)
+
+The three steps are INJECTED (owner `implement` / `runGates` (A5.6) / reviewer
+`review`), so the mock-first E2E (A5.9) wires the mock providers + the gate runner and
+unit tests inject deterministic steps; the loop owns only the control flow, limits and
+terminal-state decision. Per round it accumulates usage and decides:
+
+- **accepted** — gates passed and no blocker/critical/major findings;
+- **blocked** — a blocker finding;
+- **rejected** — no progress (the same diff or the same finding set recurs for
+  `noProgressLimit` consecutive rounds — repeated-finding/no-progress detection);
+- **exhausted** — the round limit or a resource limit (commands / files / output /
+  quota / wall-time) is hit;
+- **cancelled** — cancellation requested before a round;
+- **failed** — a step threw.
+
+The loop is bounded on every axis, so it ALWAYS terminates in one of those six states.
+
+### Capability binding (threat-model §11.2)
+
+| Field | Content |
+|---|---|
+| **Capability** | The runtime iterates implement→gate→review→repair under hard bounds and terminates deterministically. |
+| **Threat(s)** | T-EXE runaway loop / resource exhaustion; an unfixable run never converging; a repeated-finding stalemate consuming quota. |
+| **Control(s)** | Hard caps (rounds/wall-time/commands/files/output/quota); no-progress + repeated-finding detection; cancellation + hard stop; a single terminal state per run. **Implemented** in `execution/repair/`. |
+| **Milestone** | A5.7 (this PR). |
+| **Verification** | `repairLoop.test.ts` (8): accepted (first pass + after repair), blocked, exhausted (max rounds + resource limit), rejected (no progress), cancelled, failed. |
+| **Recovery** | Every path terminates; usage totals are reported; a cancelled/failed run leaves a recorded terminal state for the gate (A5.8) to act on. |
+| **Residual risk** | Wall-time uses the injected clock; in production a real clock must be injected. Accepted, owner. |
+
+### Open follow-ups
+
+- A5.8 turns the loop's terminal state + the gate/ledger evidence into a
+  `GovernanceDecision`.
+- A5.9 wires the loop over the mock owner/reviewer for the writable E2E.
