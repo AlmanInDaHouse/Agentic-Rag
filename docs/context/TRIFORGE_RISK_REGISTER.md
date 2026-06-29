@@ -4,7 +4,7 @@
 impact, qualitative probability, mitigation, status, owner, responsible milestone,
 evidence. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.2).
 
-**Last updated:** 2026-06-29 (Loop 13 — A5.5)
+**Last updated:** 2026-06-29 (Loop 14 — A5.6)
 
 Owner is `AlmanInDaHouse` for accept/override decisions; Claude Code owns
 mitigation execution unless noted. Probability/impact are qualitative
@@ -16,7 +16,7 @@ mitigation execution unless noted. Probability/impact are qualitative
 |---|---|---|---|---|---|---|---|
 | R-GOV-1 | Autonomous merge of a defective change reaches `main` | High | Med | Required CI, severity-gated adversarial review, squash+revert, post-merge verify, regression tests | Open (controlled) | Governance | ADR 0031 |
 | R-GOV-2 | Scope creep across unrelated milestones in one PR | Med | Med | One branch per unit; PR-size discipline | Open (controlled) | Governance | Charter §7 |
-| R-GOV-3 | Silent weakening of gates to get green | High | Low | Prohibited; CI changes reviewed; "no weakening" invariant | Open (controlled) | Governance | Charter §3.3 |
+| R-GOV-3 | Silent weakening of gates to get green | High | Low | Prohibited; CI changes reviewed; "no weakening" invariant | **Open (controlled; reinforced — A5.6)**: the quality-gate verdict is computed from real exit codes (not provider claims) and detectGateTampering flags deleted tests / CI-config changes in the worktree → governance blocker; ADR 0041 | Governance | Charter §3.3; TM T-INT-04/07/08, T-GIT-07 |
 | R-GOV-4 | Loss of canonical state across sessions/context windows | High | Med | Four canonical context files reconstructed from Git/GitHub each loop | Open (controlled) | Governance | Charter §6 |
 | R-GOV-5 | Approval/output spoofing or context poisoning drives a bad merge | High | Med | Deferred to A0.5 threat model; gates writable execution | Open | A0.5 | Mandate §12 |
 
@@ -107,6 +107,13 @@ threat IDs in that catalog. These do not restate the already-booked R-GOV-5
   and detect post-review modification. Partially mitigates R-SEC-6. Still open: gate
   consumption (A5.6/A5.8). Residual: focused (not full-corpus) redactor — harness
   secretScan remains the detection backstop.
+- **A5.6 Quality Gate Runner (this PR; ADR 0041).** Gate verdict computed from REAL
+  exit codes (gate commands from trusted config, run via the A5.3 supervised boundary;
+  never the provider's claim), result bound to the A5.5 tested diff hash;
+  detectGateTampering flags deleted/renamed-away tests + CI/gate-config changes as
+  governance blockers. Reinforces R-GOV-3; partially mitigates R-SEC-7 (in-tree change
+  detection; branch-protection probe is A9). Demonstrated by 7 tests. Residual:
+  heuristic path patterns (trusted gate set + CODEOWNERS are the backstop).
 
 ## Closed / superseded
 
