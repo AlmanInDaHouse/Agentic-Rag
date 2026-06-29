@@ -24,8 +24,8 @@ separate from `providers/`). Sub-pieces:
 | A5.1 | Worktree Manager (`execution/worktree`) | merged (ADR 0036) |
 | A5.2 | Allowed-Path Policy (`execution/path`) | merged (ADR 0037) |
 | A5.3 | Safe Command Policy + Process Supervision (`execution/command`) | merged (ADR 0038) |
-| A5.4 | Owner/Reviewer enforcement (`execution/role`) | **this PR** (ADR 0039) |
-| A5.5 | Diff Capture + Mutation Ledger | planned |
+| A5.4 | Owner/Reviewer enforcement (`execution/role`) | merged (ADR 0039) |
+| A5.5 | Diff Capture + Mutation Ledger (`execution/ledger`) | **this PR** (ADR 0040) |
 | A5.6 | Quality Gate Runner | planned |
 | A5.7 | Repair Loop | planned |
 | A5.8 | Autonomous Governance Decision | planned |
@@ -288,3 +288,59 @@ results; every transition audited.
 
 - A5.5 ledger attributes each mutation to the owner + the authorizing decision.
 - A5.9 wires acquire(owner) at run start and binds the reviewer for the review phase.
+
+---
+
+## A5.5 Diff Capture + Mutation Ledger
+
+### Objective
+
+Record every file mutation in an append-only, tamper-evident ledger, and re-ground it
+against the REAL worktree so an unrecorded change (a forged structured result or an
+out-of-band mutation) is detected and blocks the merge.
+
+### Ledger (`execution/ledger/mutationLedger.ts`)
+
+Append-only, **hash-chained** entries: each records run/task/owner/worktree/branch,
+file, operation (create/modify/delete/rename), hash-before/after, command, tool,
+reason, tests, the authorizing policy/role decision ref, timestamp and sequence;
+`entryHash = H(canonical(entry) || prevHash)` chains the history so any alteration or
+reorder is detected by `verifyChain`. `headHash` binds the recorded diff to the
+`GovernanceDecision` (A5.8). Secrets are **redacted** before persistence (key
+prefixes, `key/token/secret/password` assignments, PEM blocks), with a
+`reasonFullHash` over the original; oversized reasons are safely truncated. Entries
+persist to JSONL; `MutationLedger.load` reconstructs the ledger after a crash and
+**rejects a broken chain**.
+
+### Real worktree state (`execution/ledger/worktreeState.ts`)
+
+`computeWorktreeChanges` reads the real changes (working tree vs HEAD) via the
+hardened `GitRunner` (A5.1) using NUL-delimited porcelain (`-z`, so hostile filenames
+are literal), with a sha256 content hash per non-deleted file. `diffHash` is an
+order-independent hash of the change set — the "reviewed diff hash"; a later
+recomputation that differs proves the worktree changed after review.
+
+### Reconciliation (`execution/ledger/reconcile.ts`)
+
+`reconcile(ledgerEntries, worktreeChanges)` compares the ledger's last-recorded
+post-hash per file against the real worktree: a changed file with NO ledger entry, or
+a post-hash mismatch, is **unattributed** → `tampered = true` (the gate refuses the
+merge); reverted recorded files are `stale`, not tampering. This is the integrity
+re-grounding the governance gate consults (SAT-A5-6).
+
+### Capability binding (threat-model §11.2)
+
+| Field | Content |
+|---|---|
+| **Capability** | Every mutation is recorded and reconciled against the real worktree; an unrecorded change blocks the merge. |
+| **Threat(s)** | T-INJ-11 (injected/forged result claims a different change set), T-INT-04 (self-certified integrity artifact). |
+| **Control(s)** | Append-only hash-chained ledger (tamper-evident); secret redaction before persistence; real-worktree reconciliation from git (not narrative); diff-hash binding + modification-after-review detection; crash recovery rejecting a broken chain. **Implemented** in `execution/ledger/`. |
+| **Milestone** | A5.5 (this PR). |
+| **Verification** | `mutationLedger.test.ts` (13): hash-chain + tamper detection, redaction, persist/load crash recovery + broken-chain rejection, reconcile clean/unattributed/hash-mismatch/stale, diff-hash order-independence + change detection, and **real-git** computeWorktreeChanges + reconcile-vs-empty-ledger = tampered (SAT-A5-6). |
+| **Recovery** | Tampered runs are flagged for the gate to block; the ledger reloads from JSONL after a crash; a broken persisted chain is rejected, not silently trusted. |
+| **Residual risk** | The ledger redactor is focused (high-value shapes), not the full harness secretScan corpus — a novel secret shape could slip; the harness NO_SECRET_LEAKAGE gate remains the detection backstop. Accepted, owner. |
+
+### Open follow-ups
+
+- A5.6 quality gates + A5.8 governance consume `reconcile`/`headHash`/`diffHash`.
+- Consider sharing secret patterns with `providers/harness/secretScan` (small TD).
