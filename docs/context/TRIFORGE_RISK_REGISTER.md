@@ -4,7 +4,7 @@
 impact, qualitative probability, mitigation, status, owner, responsible milestone,
 evidence. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.2).
 
-**Last updated:** 2026-06-29 (Loop 15 — A5.7)
+**Last updated:** 2026-06-29 (Loop 16 — A5.8)
 
 Owner is `AlmanInDaHouse` for accept/override decisions; Claude Code owns
 mitigation execution unless noted. Probability/impact are qualitative
@@ -14,7 +14,7 @@ mitigation execution unless noted. Probability/impact are qualitative
 
 | ID | Description | Impact | Prob | Mitigation | Status | Milestone | Evidence |
 |---|---|---|---|---|---|---|---|
-| R-GOV-1 | Autonomous merge of a defective change reaches `main` | High | Med | Required CI, severity-gated adversarial review, squash+revert, post-merge verify, regression tests | Open (controlled) | Governance | ADR 0031 |
+| R-GOV-1 | Autonomous merge of a defective change reaches `main` | High | Med | Required CI, severity-gated adversarial review, squash+revert, post-merge verify, regression tests | **Open (controlled; reinforced — A5.8)**: the autonomous governance gate computes merge from re-derived evidence with hard preconditions (accepted loop + passed gates + reconciled ledger + no blocker/critical + diff-bound) failing closed, and verifyDecisionBinding refuses replay / post-decision diff change / expired gates; ADR 0043 | Governance | ADR 0031/0043; TM T-INT-01/02/04/10/11 |
 | R-GOV-2 | Scope creep across unrelated milestones in one PR | Med | Med | One branch per unit; PR-size discipline | Open (controlled) | Governance | Charter §7 |
 | R-GOV-3 | Silent weakening of gates to get green | High | Low | Prohibited; CI changes reviewed; "no weakening" invariant | **Open (controlled; reinforced — A5.6)**: the quality-gate verdict is computed from real exit codes (not provider claims) and detectGateTampering flags deleted tests / CI-config changes in the worktree → governance blocker; ADR 0041 | Governance | Charter §3.3; TM T-INT-04/07/08, T-GIT-07 |
 | R-GOV-4 | Loss of canonical state across sessions/context windows | High | Med | Four canonical context files reconstructed from Git/GitHub each loop | Open (controlled) | Governance | Charter §6 |
@@ -120,6 +120,14 @@ threat IDs in that catalog. These do not restate the already-booked R-GOV-5
   accepted/rejected/blocked/exhausted/cancelled/failed (never an infinite loop).
   Mitigates R-PRV-2 (runaway quota/cost). Demonstrated by 8 tests. Residual: wall-time
   needs a real clock in prod; no-progress heuristic is tunable.
+- **A5.8 Autonomous Governance Decision (this PR; ADR 0043).** The merge verdict
+  (merge/reject/repair/block/cancel) is computed from RE-DERIVED evidence (A5.5 reconcile
+  + A5.6 real gates + A5.7 terminal state) with hard merge preconditions failing closed;
+  the decision is bound to diff/ledger/gate hashes and verifyDecisionBinding refuses
+  approval replay / decision-over-changed-diff / post-decision modification / expired
+  gates; emits a schema-valid A1 GovernanceDecision; human override remains available,
+  not required. Reinforces R-GOV-1; mitigates T-INT-01/02/04/10/11. Demonstrated by 13
+  tests. Residual: logical (not yet authenticated) actor identity (R-SEC-9).
 
 ## Closed / superseded
 

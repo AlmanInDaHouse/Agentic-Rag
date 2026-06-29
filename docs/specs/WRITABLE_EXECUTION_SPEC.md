@@ -27,8 +27,8 @@ separate from `providers/`). Sub-pieces:
 | A5.4 | Owner/Reviewer enforcement (`execution/role`) | merged (ADR 0039) |
 | A5.5 | Diff Capture + Mutation Ledger (`execution/ledger`) | merged (ADR 0040) |
 | A5.6 | Quality Gate Runner (`execution/gates`) | merged (ADR 0041) |
-| A5.7 | Repair Loop (`execution/repair`) | **this PR** (ADR 0042) |
-| A5.8 | Autonomous Governance Decision | planned |
+| A5.7 | Repair Loop (`execution/repair`) | merged (ADR 0042) |
+| A5.8 | Autonomous Governance Decision (`execution/governance`) | **this PR** (ADR 0043) |
 | A5.9 | Writable E2E fixture (mock-first) | planned |
 | A5.10 | Low-risk real provider pilot | planned (gated on A5.1–A5.9 green) |
 
@@ -439,3 +439,50 @@ The loop is bounded on every axis, so it ALWAYS terminates in one of those six s
 - A5.8 turns the loop's terminal state + the gate/ledger evidence into a
   `GovernanceDecision`.
 - A5.9 wires the loop over the mock owner/reviewer for the writable E2E.
+
+---
+
+## A5.8 Autonomous Governance Decision
+
+### Objective
+
+Replace the old human commit gate (ADR 0031) with an autonomous decision computed from
+RE-DERIVED evidence, bound to the exact diff/ledger/gate state so it cannot be replayed
+or applied to a changed diff.
+
+### Gate (`execution/governance/governanceGate.ts`)
+
+`decideVerdict` computes a verdict ∈ `merge | reject | repair | block | cancel` using
+HARD, non-overridable rules. **`merge` requires ALL of:** the repair loop terminated
+`accepted` (A5.7); gates `passed` (A5.6, real exit codes); the mutation ledger
+reconciles with the real worktree (A5.5, not tampered); no gate-tampering; no open
+blocker/critical finding; the gates ran against THIS diff
+(`gateTestedDiffHash === diffHash`). Any failure downgrades to `block`/`reject`; a
+`merge` is never self-asserted. `buildGovernanceDecision` emits a schema-valid A1
+`GovernanceDecision` artifact (+ a richer record binding spec/context/owner/reviewer/
+worktree/branch/diff-hash/ledger-head-hash/gate-result-hash/findings/repair-rounds/
+quota/risks/policy-version/capability-binding).
+
+`verifyDecisionBinding(record, current)` re-checks the decision against the CURRENT
+diff/ledger/gate hashes before acting, refusing **approval replay**, a decision over a
+**different diff**, a **diff modified after the decision**, and **expired gates**.
+Human override remains available (the owner may stop/reject) but is not required for an
+ordinary merge.
+
+### Capability binding (threat-model §11.2)
+
+| Field | Content |
+|---|---|
+| **Capability** | The runtime autonomously decides merge/block/… from re-derived evidence and binds the decision to the diff/ledger/gate state. |
+| **Threat(s)** | T-INT-01/02 (self-certified governance / compromised reviewer), T-INT-04 (forged result), T-INT-10/11 (approval not bound to the executed diff / replay). |
+| **Control(s)** | Verdict from re-derived evidence only (A5.5 reconcile + A5.6 real gates + A5.7 terminal state); hard merge preconditions failing closed; decision bound to diff/ledger/gate hashes; `verifyDecisionBinding` blocks replay / post-decision change / expired gates. **Implemented** in `execution/governance/`. |
+| **Milestone** | A5.8 (this PR). |
+| **Verification** | `governanceGate.test.ts` (13): merge only when all preconditions pass; block on blocker/critical, tampered ledger, gate tampering, failed gates, stale gates; repair-state mapping; A1 artifact schema-valid; binding refuses changed diff / ledger / expired gates. |
+| **Recovery** | A non-merge verdict is the safe default; a stale/replayed decision is refused before any action; the owner can override (stop/reject). |
+| **Residual risk** | Actor identities are logical, not yet authenticated (R-SEC-9, auth milestone); the human-override channel is the owner's external authority. Accepted, owner. |
+
+### Open follow-ups
+
+- A5.9 wires the full pipeline (worktree→owner→gates→reviewer→repair→governance→merge)
+  over the mock providers — the MVP demonstration.
+- An authenticated approver channel (R-SEC-9) binds the actor identity cryptographically.
