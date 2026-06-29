@@ -4,7 +4,7 @@
 impact, qualitative probability, mitigation, status, owner, responsible milestone,
 evidence. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.2).
 
-**Last updated:** 2026-06-29 (Loop 30 — A8.5 Diff & Review; never hides a changed file, marks binary/deleted/renamed, flags changed-after-review (diff-hash vs reviewed-hash); no new writable risk)
+**Last updated:** 2026-06-30 (Loop 31 — A8.6 Governance Dashboard; observe-only (never invents a decision), human override shown AUDITED, sanitized; no new writable risk)
 
 Owner is `AlmanInDaHouse` for accept/override decisions; Claude Code owns
 mitigation execution unless noted. Probability/impact are qualitative
