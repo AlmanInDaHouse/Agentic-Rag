@@ -29,8 +29,8 @@ separate from `providers/`). Sub-pieces:
 | A5.6 | Quality Gate Runner (`execution/gates`) | merged (ADR 0041) |
 | A5.7 | Repair Loop (`execution/repair`) | merged (ADR 0042) |
 | A5.8 | Autonomous Governance Decision (`execution/governance`) | merged (ADR 0043) |
-| A5.9 | Writable E2E fixture (mock-first) (`execution/e2e`) | **this PR** (ADR 0044) — **MVP** |
-| A5.10 | Low-risk real provider pilot | next (gated on A5.1–A5.9 green) |
+| A5.9 | Writable E2E fixture (mock-first) (`execution/e2e`) | merged (ADR 0044) — **MVP** |
+| A5.10 | Low-risk real provider pilot | **BLOCKED** (this PR) — writable capability not safely verifiable |
 
 Real provider writes remain **unauthorized** until A5.1–A5.9 are merged & green and
 the per-capability binding is satisfied. The MVP E2E (A5.9) is demonstrated with the
@@ -549,3 +549,59 @@ test for a brand-new directory.
 - A5.10 substitutes a real provider for the mock owner on a controlled fixture, only
   after re-verifying CLI versions/auth — and stays BLOCKED if writable capability
   cannot be safely verified.
+
+---
+
+## A5.10 Low-risk real provider pilot — BLOCKED (verification incomplete)
+
+### Decision
+
+The real-provider writable pilot is **left BLOCKED**, not executed. Per the binding
+closure rule (threat-model §11), a writable capability is authorized only when its
+six-field binding can be filled with *implemented* controls and *passing* verification;
+the pilot's **verification field cannot be filled safely** in the current environment,
+so it is **not authorized**. The mandate (§A5.10) explicitly directs: do not invent a
+result, leave the pilot blocked, demonstrate the MVP with the mock adapter (done —
+A5.9), record the missing external verification, and proceed to A6.
+
+### Safe capability probe (presence only — NO credentials read, NO login automated)
+
+| Check | Observed | Verdict |
+|---|---|---|
+| Codex CLI version | `codex-cli 0.101.0` present (Windows host) | known, but host ≠ substrate |
+| Claude Code CLI | present (Windows host) | known, but host ≠ substrate |
+| WSL2 substrate (ADR 0030) | Ubuntu distro exists but **Stopped** | substrate not running |
+| Provider authentication | **not probed** — verifying would risk credential interaction (mandate §15 / §3.3 prohibit reading creds / automating login) | **UNKNOWN** |
+| Writable provider adapter | A3 adapters are **read-only by design** (ADR 0034) and REFUSE `readOnly:false` (`request_rejected`) | **not implemented** |
+| Writable capability actually observed | never observed | **UNKNOWN** |
+
+### Why blocked (capability binding cannot be completed)
+
+| Field | Status |
+|---|---|
+| Capability | A real provider (Codex) acts as the writable owner on a controlled fixture. |
+| Threat(s) | T-CMP-01 (compromised CLI runs with host trust), T-CMP-05 (no OS sandbox), T-FS/T-EXE/T-GIT (untrusted provider writes/commands). |
+| Control(s) | A5.1–A5.8 controls exist, BUT no writable provider adapter exists (A3 is read-only) and the OS-isolation residual RR-4 stands. |
+| Milestone | A5.10. |
+| **Verification** | **CANNOT be filled**: the WSL2 substrate is stopped, provider auth is UNKNOWN (no safe probe), and writable provider capability has never been observed. |
+| Recovery | n/a — not enabled. |
+| Residual risk | Running it now would be a high-risk untrusted-execution surface without a verified substrate/auth/sandbox — refused. |
+
+### Missing external verification (for a future session/owner)
+
+1. Start the WSL2 Ubuntu distro and install Node/pnpm/git/Codex CLI/Claude Code there
+   (A0.4 §5); run the repo on the Linux filesystem.
+2. Authenticate the provider CLIs manually (owner action — never automated, never
+   credential-read by the loop).
+3. Observe and snapshot the provider's *writable* capability (keep `UNKNOWN` until
+   actually observed).
+4. Build a writable provider adapter (A3 is read-only; this is a new, separately-bound
+   capability) and wire it as the owner in `runWritableTask` on a controlled fixture
+   with minimal allowed-paths/command policy, a small budget and network blocked.
+
+### A5 closure
+
+A5 is **functionally complete**: the MVP is demonstrated end-to-end (A5.9,
+`runWritableTask`) with the mock owner. The real-provider pilot (A5.10) is the only
+open piece and is **blocked pending the external verification above**, which does not
+block A6–A9.
