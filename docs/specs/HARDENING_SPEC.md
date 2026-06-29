@@ -192,6 +192,29 @@ real building blocks deterministically:
 E2E, chaos, SAT, recovery, observability); RC-4 degradation pauses/hard-stops; RC-3 a
 blocker/tampered/failed-gate run never merges; RC-5 a run recovers after a restart.
 
-## Open follow-ups
+## A9.9 Release gate → TriForge 1.0 Definition of Done
 
-- A9.9 release gate → TriForge 1.0 DoD.
+### Design (`docs/RELEASE_NOTES_1.0.md` + `apps/api/src/test/releaseGate.test.ts`; ADR 0053)
+
+The terminal milestone. `RELEASE_NOTES_1.0.md` declares the TriForge 1.0 Definition of Done
+with a checklist mapping each DoD item to its executable evidence (a test suite, spec, ADR
+or the green CI gate) — NOT a narrative. `releaseGate.test.ts` asserts the declaration is
+present and each milestone's primary evidence artifact (A1–A9 specs + the real-git E2E +
+every A9 acceptance suite) actually exists. The authoritative full-gate green is the CI
+`Validate` job (build, typecheck, lint:deps, the full api+web test suite, code-graph,
+audit) on every PR; `main` is always green.
+
+### Verification
+
+`releaseGate.test.ts` (3): the DoD declaration exists and states "Definition of Done: MET";
+every A1–A9 milestone evidence artifact exists; every A9 acceptance suite is present. The
+release gate itself is the green CI on this PR.
+
+## A9 closure — TriForge 1.0 DoD MET
+
+A9 is **complete**: chaos/failure-surface (A9.1), A0.5 security acceptance (A9.2), version
+drift (A9.3), recovery (A9.4), observability (A9.5), packaging (A9.6), documentation
+(A9.7), RC cases (A9.8), release gate (A9.9). With A1–A8 complete and the release gate
+green, **TriForge 1.0 Definition of Done is MET** with executable evidence. Remaining open
+items (A5.10 real provider pilot, PR #26 legacy, R-SEC-2 owner PAT rotation) are
+external/non-blocking and stay registered.

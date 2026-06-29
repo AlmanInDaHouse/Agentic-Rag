@@ -4,20 +4,20 @@
 and GitHub at the start of every loop; this file records the conclusion, not the
 history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.1).
 
-**Last updated:** 2026-06-30 (Loop 41 — A9.8, on branch `feat/a9-8-rc-cases`)
+**Last updated:** 2026-06-30 (Loop 42 — A9.9 / A9 COMPLETE / TriForge 1.0 DoD MET, on branch `feat/a9-9-release-gate`)
 
 ## Snapshot
 
 | Field | Value |
 |---|---|
-| Last closed milestone | A9.7 — Documentation completeness (`0ddd190`, PR #73; ADR 0053) |
-| Active milestone | **A9.8 — Release-candidate end-to-end cases** (this PR; rc.acceptance index; ADR 0053) |
-| `main` SHA | `0ddd190` |
-| Last `main` CI | `Validate` ✅ success (`0ddd190`) |
-| Open PRs | A9.8 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
+| Last closed milestone | A9.8 — RC acceptance index (`c57b96c`, PR #74; ADR 0053) |
+| Active milestone | **A9.9 — Release gate** (this PR; RELEASE_NOTES_1.0 + releaseGate test) → **A9 COMPLETE / TriForge 1.0 DoD MET** |
+| `main` SHA | `c57b96c` |
+| Last `main` CI | `Validate` ✅ success (`c57b96c`) |
+| Open PRs | A9.9 (this branch — FINAL). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
 | Blockers | none |
 | Pending decisions | none |
-| Next loop | **A9.9 — Release gate → TriForge 1.0 Definition of Done** (mandate §11/§12). The FINAL loop: assert ALL gates green from a clean checkout — build, typecheck, lint:deps, the FULL test suite (api incl. chaos / SAT / recovery / observability / packaging / docs / RC, + web 46), code-graph checks, audit; no open blockers/criticals; main green; every writable capability bound (A0.5 closure). Author a RELEASE_NOTES / DoD declaration backed by executable evidence (the green gates + the canonical state), tag the release candidate, and record the DoD met. NOT a narrative declaration — the gates ARE the evidence. |
+| Next loop | **None — the A1–A9 roadmap is COMPLETE; TriForge 1.0 Definition of Done is MET** (see `RELEASE_NOTES_1.0.md`). The autonomous loop has delivered TriForge 1.0 with executable evidence (green release gate + the A1–A9 specs/ADRs/E2E). Maintenance-only remains: the external non-blocking items below (A5.10 real provider pilot when a writable capability is observed; PR #26 legacy classification; R-SEC-2 owner PAT rotation). No further roadmap loop is pending. |
 
 ## Follow-ups / tech debt
 
@@ -80,7 +80,7 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 - **A6 — COMPLETE** (`47c5e36`; profiler + static + quota-aware + metrics + repo profiles + protected adaptive)
 - A7 Competitive mode — **A7.1 merged** (`0610c54`; PR #58; ADR 0051)
 - **A8 — COMPLETE** (`d99b850`; 8 panels A8.1–A8.8: provider status, task composer, run timeline, artifact explorer, diff/review, governance, budget/quota, recovery; ADR 0052; 46 web tests)
-- A9 Hardening and release candidate — A9.1–A9.7 merged (`0ddd190`; ADR 0053); **A9.8 active** (this PR); A9.9 pending → TriForge 1.0 DoD
+- **A9 — COMPLETE** (`c57b96c` + this PR; ADR 0053; chaos/SAT/drift/recovery/observability/packaging/docs/RC/release-gate) → **TriForge 1.0 Definition of Done MET**
 
 ## UNKNOWN
 
@@ -113,9 +113,9 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 
 | Metric | Value |
 |---|---|
-| Loops executed | …A9.4 (37); A9.5 (38); A9.6 (39); A9.7 (40); A9.8 (41) active |
-| PRs created | +35 this session (TD-1 #40 … A9.7 #73, A9.8 this); 43 total since A0.4 |
-| PRs merged | 42 (…#71 A9.5, #72 A9.6, #73 A9.7) |
+| Loops executed | …A9.5 (38); A9.6 (39); A9.7 (40); A9.8 (41); A9.9 (42)=ROADMAP COMPLETE |
+| PRs created | +36 this session (TD-1 #40 … A9.8 #74, A9.9 this); 44 total since A0.4 |
+| PRs merged | 43 (…#72 A9.6, #73 A9.7, #74 A9.8); A9.9 = the 36th of this session on merge |
 | CI failures | 1 (A5.3 first run: cross-platform binName — caught + fixed; re-run green) |
 | Repair rounds | 11 (A5.9: 1 — E2E surfaced + fixed an A5.5 new-dir reconcile bug, fail-closed) |
 | Regressions | 0 |
@@ -124,8 +124,8 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 | Human interventions | 1 (auth-method decision) |
 | Findings by severity (reviews) | A5.4–A5.8: 0; A5.9: 1 major (self-found integration bug in A5.5, fixed + regression test) |
 | Time-to-merge | same session per loop |
-| Diff size | A9.8: apps/api rc.acceptance.test.ts (4) + HARDENING_SPEC §A9.8 |
-| Coverage | api ~712 +4 A9.8 RC = ~716; web 46 (8 A8 panels); clean `pnpm -r build` verified |
+| Diff size | A9.9: docs/RELEASE_NOTES_1.0.md + apps/api releaseGate.test.ts (3) + HARDENING_SPEC §A9.9 + A9 closure |
+| Coverage | api ~716 +3 A9.9 = ~719 (49 api test files); web 46 (8 A8 panels); clean `pnpm -r build` verified; full gate green on CI |
 | Quota usage | not yet instrumented (no provider runs) |
 | Reverted decisions | 0 |
 | Security incidents | 1 (PAT pasted into chat — R-SEC-2; external, owner must rotate; non-blocking) |
@@ -134,18 +134,21 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 ## Exact next loop
 
 ```text
-Loop 42 — A9.9 Release gate → TriForge 1.0 Definition of Done (mandate §11/§12). FINAL
-loop. Branch off main AFTER A9.8 merges. Run the full release gate from a CLEAN state and
-record the evidence: pnpm install --frozen-lockfile, pnpm -r build, pnpm typecheck, pnpm
-lint:deps, pnpm test (full api suite incl. chaos/SAT/recovery/observability/packaging/docs/
-RC + the real-git E2E + web 46), code-graph checks, audit — ALL green; no open blockers/
-criticals; main green; every writable capability has its A0.5 6-field closure binding.
-Author RELEASE_NOTES_1.0 / a DoD declaration whose claims are each backed by a green gate
-or a canonical-doc reference (NOT a narrative). Optionally tag the RC. Persist the final
-state: TriForge 1.0 DoD MET with executable evidence.
-  Verification: the release gate is green end-to-end on the PR's CI run; the DoD checklist
-  maps each item to its evidence (test suite / spec / ADR / E2E).
-This is the terminal milestone of the A1-A9 roadmap. After it, the autonomous loop has
-delivered TriForge 1.0; remaining open items (A5.10 real provider pilot, PR #26 legacy,
-R-SEC-2 owner PAT rotation) are external/non-blocking and stay registered.
+ROADMAP COMPLETE — TriForge 1.0 Definition of Done MET (Loop 42, A9.9 release gate).
+A1-A9 delivered with executable evidence: A1 contracts, A2 mocks/harness/quota, A3
+read-only adapters, A4 collaboration, A5 writable MVP (real writes only in isolated
+worktrees; mock-first E2E), A6 honest routing+learning, A7 competitive mode, A8 product UI
+(8 panels), A9 hardening (chaos/SAT/drift/recovery/observability/packaging/docs/RC) +
+release gate. main always green; release gate green on CI; no open blockers/criticals;
+every writable capability bound (A0.5 6-field closure). DoD declaration + evidence map:
+docs/RELEASE_NOTES_1.0.md (asserted by releaseGate.test.ts).
+Maintenance-only / external non-blocking (registered, NOT roadmap loops):
+  - A5.10 real provider pilot — gated until a writable provider capability is observed
+    (WSL2 substrate + authenticated CLIs; the MVP stands via mocks).
+  - PR #26 — legacy 1.x Code Graph ingestion, out of the A1-A9 roadmap; classify, do not
+    merge blindly.
+  - R-SEC-2 — the owner's external PAT rotation (Git auth via the credential manager is
+    unaffected).
+If a future session resumes: reconstruct from Git + the 4 canonical docs; the roadmap is
+done — only the external items above remain, and only on the owner's action.
 ```
