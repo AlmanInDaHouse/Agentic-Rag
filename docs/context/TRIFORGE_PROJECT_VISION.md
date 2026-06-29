@@ -42,6 +42,11 @@ specified elsewhere, it is referenced conceptually rather than copied. The
 load-bearing references are:
 
 - `docs/context/PROJECT_CONTEXT.md` — living description of the current build.
+- `docs/context/TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md`,
+  `docs/context/TRIFORGE_EXECUTION_STATE.md`,
+  `docs/context/TRIFORGE_RISK_REGISTER.md` and ADR 0031 — the autonomous loop
+  governance model, current operational state, and active risk register
+  (`docs/instrucciones.md` is the verbatim owner mandate).
 - `docs/specs/QUOTA_AWARE_PROVIDER_ORCHESTRATION_SPEC.md` and
   `docs/adr/0027-quota-aware-provider-orchestration.md` — the quota-aware
   orchestration design (Milestone A0.1).
@@ -60,8 +65,9 @@ load-bearing references are:
 
 A note on milestone numbering: the historical build used a `1.x` scheme
 (`1.3.1`, `1.4`, `1.5C-A` … `1.5I`, `1.6A` … `1.6G`). The reorientation described
-here introduces a new `A0.x` / `A1` … `A7` scheme. Both appear in this document;
-they are distinct lines, not a renumbering of the same work.
+here introduces a new `A0.x` / `A1` … `A9` scheme (matching the owner mandate
+`docs/instrucciones.md` §13–§21 and `TRIFORGE_EXECUTION_STATE.md`). Both appear in
+this document; they are distinct lines, not a renumbering of the same work.
 
 ---
 
@@ -80,7 +86,9 @@ TriForge
 
 TriForge prepares context, coordinates planning, assigns an **implementation
 owner**, captures execution events, validates results against an executable
-harness, and keeps the human as the final gate before any commit or merge.
+harness, and makes an **autonomous, evidence-bound governance decision** before
+commit or merge, with the human retaining **override** (ADR 0031,
+`TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md`).
 
 The innovation is not "making two AIs talk." The innovation is a **governed
 process** in which:
@@ -90,7 +98,8 @@ process** in which:
 - the other performs **cross-vendor adversarial review** from different biases
   and blind spots;
 - tests, quality gates and the harness act as the arbiter of truth;
-- the human ratifies every consequential decision.
+- an autonomous, evidence-bound governance decision authorizes each merge, with
+  the human retaining override (ADR 0031).
 
 **[Requires verification]** Because both providers are reached through their
 official CLIs under personal subscriptions, provider behavior, quotas and event
@@ -177,7 +186,8 @@ TriForge is explicitly **not**:
 - an unbounded autonomous agent;
 - a replacement for Git;
 - a replacement for tests;
-- a replacement for human review;
+- a replacement for human review (under ADR 0031 the human's review authority is
+  preserved as an **override**, not a mandatory per-change gate);
 - GraphRAG in the MVP;
 - a centralized SaaS in its first stage.
 
@@ -211,8 +221,14 @@ The second provider reviews from different biases and blind spots than the owner
 Output is validated against executable contracts before it is trusted (ADR 0004,
 ADR 0006).
 
-### Human final authority
-The user controls risk decisions, commits and merges.
+### Human override authority
+**[Amended by ADR 0031]** Ordinary in-repository merges are decided autonomously
+against evidence (CI, relevant tests, adversarial review with severity gating).
+The human is an **override** and **stop** authority, a source of objectives, and
+the authority to accept exceptional external risks — not a mandatory per-change
+gate. The prior "human final authority" rule is superseded for ordinary changes,
+**not deleted**; see ADR 0031 and `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md`. Writable
+provider execution remains unauthorized until A0.5 (Section 18).
 
 ### Economy of invocations
 Provider invocations consume scarce quota and must be budgeted (Section 17).
@@ -327,7 +343,7 @@ Cross-vendor adversarial review
     ↓
 Repair loop
     ↓
-Human approval
+Autonomous governance decision (human override)
     ↓
 Commit / merge
     ↓
@@ -339,20 +355,20 @@ For each phase, the target contract is:
 | Phase | Input | Output / Artifact | Stop conditions | Human role |
 |---|---|---|---|---|
 | Task intake | Free-form request | `task.md` | Empty/ambiguous task | Frames the task |
-| Specification | `task.md` | `acceptance-criteria.json` | No testable criteria | Approves criteria |
+| Specification | `task.md` | `acceptance-criteria.json` | No testable criteria | Frames / override |
 | Context preparation | Spec + repo | `context-pack.json` | No relevant context | May curate sources |
 | Mode selection | Risk + budget | mode + `routing` inputs | Budget cannot fund mode | Can force a mode |
 | Planning / debate | Context pack | `codex-plan.json`, `claude-plan.json`, `cross-review.json` | Reserve violation | Observes |
-| Strategy resolution | Plans + critique | `strategy-decision.json` | Unresolved conflict | Ratifies strategy |
+| Strategy resolution | Plans + critique | `strategy-decision.json` | Unresolved conflict | Override |
 | Task decomposition | Strategy | unit list | Scope too large | — |
-| Owner/reviewer assignment | Task profile + quota | `routing-decision.json` | Critical task cannot route | Approves degraded routing |
-| Controlled implementation | Unit + scope | `implementation-diff.patch` | Out-of-scope write, blocked action | Approves high-risk actions |
+| Owner/reviewer assignment | Task profile + quota | `routing-decision.json` | Critical task cannot route | Override (degraded/critical) |
+| Controlled implementation | Unit + scope | `implementation-diff.patch` | Out-of-scope write, blocked action | Override (high-risk) |
 | Self-review | Diff | annotations | — | — |
 | Quality gates | Diff | `quality-gates.json` | Gate failure | — |
 | Cross-vendor review | Diff + tests | `review-findings.json` | Unverifiable finding | — |
-| Repair loop | Findings | new diff | `maxRepairRounds` reached | Decides to stop |
-| Human approval | Evidence bundle | `human-approval.json` | Rejected | **Final authority** |
-| Commit / merge | Approved diff | commit / PR | — | Performs/authorizes |
+| Repair loop | Findings | new diff | `maxRepairRounds` reached | Override |
+| Governance decision | Evidence bundle | `governance-decision.json` | Blocker/critical open | **Override** |
+| Commit / merge | Decided diff | commit / PR | Gate weakened | Override |
 | Metrics | Final report | `final-report.md` + metrics | — | — |
 
 The reserves, hard stops and degraded-routing rules that govern several of these
@@ -392,7 +408,8 @@ Artifact Store
           ↓
 Harness and Quality Gates   (implemented as a black-box harness)
           ↓
-Human Commit Gate
+Autonomous Integration Gate (human override)   [Amended by ADR 0031;
+                                                was: Human Commit Gate]
 ```
 
 The design intent is that the Orchestration Runtime **extends** the existing
@@ -538,9 +555,14 @@ routing-decision.json
 implementation-diff.patch
 review-findings.json
 quality-gates.json
-human-approval.json
+governance-decision.json
 final-report.md
 ```
+
+**[Amended by ADR 0031]** The canonical decision artifact is
+`governance-decision.json` (an autonomous, evidence-bound merge decision with human
+override), replacing the former `human-approval.json`. It maps to the
+`GovernanceDecision` contract (mandate §A1.4).
 
 The providers **emit events and results**; they do **not** own the canonical
 record. TriForge is the authority that validates each artifact against its
@@ -574,9 +596,11 @@ Four review layers are distinguished:
   action (low/medium auto, high → approval gate, critical → blocked); this layer
   is **[Implemented]** today for the mock runtime.
 - **Cross-vendor review** — the other provider reviews adversarially. [Planned]
-- **Human review** — the final authority approves or rejects. [Planned] for
-  provider-backed work; the **approval-gate mechanism** it will reuse is
-  **[Implemented]**.
+- **Governance decision** — **[Amended by ADR 0031]** an autonomous,
+  evidence-bound decision authorizes or blocks the merge (no merge with open
+  blocker/critical findings); the human retains **override**. [Planned] for
+  provider-backed work; the **approval-gate mechanism** it can reuse for an
+  override/hold is **[Implemented]**. (Was: "human review — the final authority.")
 
 There is no contradiction between owner and reviewer: exactly one owner holds the
 write capability for a unit, and the reviewer is read-only until TriForge
@@ -704,7 +728,7 @@ WSL2 is the operational and compatibility substrate; it is **not** a security
 sandbox for untrusted repository content. The full provider/repository threat model
 is Milestone A0.5. Allowed-path enforcement, command policy, the worktree manager,
 real cancellation and **writable provider execution remain unbuilt and unauthorized**
-until A0.4 and A0.5 are closed.
+until A0.5 is closed (A0.4 is merged; ADR 0030).
 
 ---
 
@@ -840,42 +864,63 @@ developer/analysis facility — it is not invoked by the agent runtime.
 
 ## 22. Updated Roadmap
 
-**[Planned]** Direction, not commitment. Milestone scheme `A0.x` / `A1`–`A7`.
+**[Planned]** Direction, not commitment. Milestone scheme `A0.x` / `A1`–`A9`,
+aligned with the owner mandate (`docs/instrucciones.md` §13–§21) and
+`TRIFORGE_EXECUTION_STATE.md`.
 
 ### A0 Foundations
 - **A0.1** Quota-aware orchestration — **completed** (spec + ADR 0027).
 - **A0.2** Canonical project vision — **completed** (this document).
 - **A0.3** Official CLI integration and local authentication — **completed**
   (`OFFICIAL_CLI_PROVIDER_INTEGRATION_SPEC.md`, ADR 0028, ADR 0029).
-- **A0.4** Windows/WSL2 execution substrate — **current**
+- **A0.4** Windows/WSL2 execution substrate — **completed**
   (`WINDOWS_WSL2_EXECUTION_SUBSTRATE_SPEC.md`, ADR 0030).
+- **Governance Transition** Autonomous Loop Governance — **current** (ADR 0031,
+  `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md`; replaces the human-mandatory-approval gate
+  with autonomous, evidence-bound merges plus human override).
 - **A0.5** Provider and repository threat model — **next** (security sandbox and
   the prerequisite for any writable provider execution).
 
 ### A1 Provider Contracts
-- `ProviderAdapter` spec; provider event contract; capability detection; mock
-  adapters; adapter harness.
+- `ProviderAdapter` interface; provider event contract; capability snapshots;
+  Zod-validated artifact contracts; schema tests. No provider-specific logic.
+  (Mandate §13.)
 
-### A2 Real Providers
-- Codex adapter; Claude adapter; auth checks; cancellation; timeout; event
-  normalization.
+### A2 Mocks, Harness and Quota Manager
+- Mock Codex/Claude adapters and failure scenarios; black-box adapter harness;
+  quota manager (budgets, reserves, hard stops, unknown state). All orchestration
+  testable without real providers. (Mandate §14.)
 
-### A3 Collaboration
-- Specialist Mode; Pair Mode; cross-vendor review; strategy artifacts; human gate.
+### A3 Real Read-Only Adapters
+- Real Codex and Claude adapters (read-only): availability/version/auth probes,
+  headless execution, event normalization, cancellation, timeout, structured
+  results, evidence retention. (Mandate §15.)
 
-### A4 Controlled Implementation
-- Owner/reviewer permissions; allowed paths; safe command policy; diff capture;
-  repair loops.
+### A4 Collaboration Runtime
+- Specialist / Pair / Full Debate modes; cross-review protocol; strategy
+  resolution; autonomous governance gate (human override). No real writes.
+  (Mandate §16.)
 
-### A5 Isolation
-- Worktrees; Competitive Mode; candidate comparison.
+### A5 Controlled Writable Execution (MVP)
+- Worktree manager; owner/reviewer enforcement; allowed paths; safe command
+  policy; process supervision; mutation ledger; quality-gate runner; repair loop;
+  autonomous integration gate; writable E2E. Gated on A0.5 + A1–A4. (Mandate §17.)
 
-### A6 Adaptive Routing
-- Metrics; repository-specific profiles; quota-aware routing; routing learning.
+### A6 Routing and Learning
+- Task profiler; static router; quota-aware routing; metrics; repository profiles;
+  adaptive router with confidence. (Mandate §18.)
 
-### A7 Product UI
-- Provider status; event timeline; quota status; artifact explorer; diff/review
-  interface; approval dashboard.
+### A7 Competitive Mode
+- Two isolated solutions (Codex vs Claude worktrees), common harness, comparative
+  evidence, governance selection. Opt-in; not required for the MVP. (Mandate §19.)
+
+### A8 Product Interface
+- Provider status; task composer; run timeline; artifact explorer; diff/review;
+  governance dashboard; budget panel. (Mandate §20.)
+
+### A9 Hardening and Release
+- Failure / security / chaos testing; version-drift handling; recovery;
+  observability; packaging; documentation; release candidate. (Mandate §21.)
 
 ---
 
@@ -892,7 +937,7 @@ developer/analysis facility — it is not invoked by the agent runtime.
 7. run quality gates;
 8. perform cross-vendor review;
 9. present evidence;
-10. wait for human approval.
+10. produce an autonomous, evidence-bound governance decision (human override).
 
 The MVP path goes through **mock adapters before any real adapter**, consistent
 with the long-standing project rule that mock agents precede real adapters
@@ -940,18 +985,24 @@ Lines of code generated is explicitly **not** a success metric.
 - **Excessive consumption** — debate and competition can burn scarce quota.
 - **Provider dependency** — availability of either vendor affects throughput.
 - **Windows/WSL2 differences** — path, process and filesystem behavior differs
-  across the substrate (unresolved until A0.4).
+  across the substrate (substrate decided in A0.4, ADR 0030; enforcement still
+  unbuilt).
 
 ---
 
 ## 26. Final Identity
 
-> TriForge is a local, quota-aware, artifact-driven, human-governed software
-> engineering environment that coordinates Codex CLI and Claude Code through
-> official local sessions, assigns one implementation owner per task, uses the
-> second provider for adversarial review, and treats specifications, evidence,
-> tests, and human approval as the final authority.
+> TriForge is a local, quota-aware, artifact-driven, **autonomously-governed**
+> software engineering environment that coordinates Codex CLI and Claude Code
+> through official local sessions, assigns one implementation owner per task, uses
+> the second provider for adversarial review, and treats specifications, evidence,
+> tests, and an **autonomous, evidence-bound governance decision (with human
+> override)** as the authority for merges.
 
-This identity is the invariant the project must preserve across every future
-milestone. When a proposed change conflicts with it, the change is wrong until
-this document is deliberately and explicitly amended.
+**[Amended by ADR 0031, 2026-06-29]** The original identity read "human-governed"
+and "human approval as the final authority." The owner mandate
+(`docs/instrucciones.md`) deliberately and explicitly amended this document to
+autonomous loop governance with the human as an override authority. This identity
+is the invariant the project must preserve across every future milestone. When a
+proposed change conflicts with it, the change is wrong until this document is
+deliberately and explicitly amended.

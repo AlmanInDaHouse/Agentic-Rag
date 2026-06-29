@@ -4,6 +4,15 @@
 
 2026-06-01
 
+## Status
+
+Accepted; **amended by ADR 0031 (Autonomous Loop Governance, 2026-06-29)**. The
+PR-only flow, the required `Validate` check and branch protection in this ADR
+**remain in force**. What ADR 0031 supersedes is the *human-mandatory-approval*
+expectation: for ordinary in-repository changes the merge decision is now made
+autonomously against evidence, with the human as an override authority. This ADR
+is not deleted; its record is preserved.
+
 ## Context
 
 TriForge Agentic Lab now has a GitHub repository, a main branch, CI validation and an external harness. The repository needs clear entry rules before more complex runtime work begins.

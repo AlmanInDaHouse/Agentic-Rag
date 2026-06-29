@@ -99,8 +99,18 @@ GitHub Actions runs `pnpm lint:deps`, `pnpm typecheck`, `pnpm test`, `pnpm test:
 
 ## Repository Governance
 
-- All changes should enter through pull requests.
-- Direct commits to `main` are not part of the normal workflow.
+- **Autonomous Loop Governance (ADR 0031, 2026-06-29).** For ordinary
+  in-repository changes, Claude Code authors, verifies, reviews adversarially and
+  **merges autonomously** against evidence (green `Validate`, relevant tests, no
+  open blocker/critical findings). The human is an override/stop authority, not a
+  mandatory per-change gate. Canonical model:
+  `docs/context/TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md`; operating state:
+  `docs/context/TRIFORGE_EXECUTION_STATE.md`; risks:
+  `docs/context/TRIFORGE_RISK_REGISTER.md`; owner mandate: `docs/instrucciones.md`.
+  Writable provider execution stays unauthorized until A0.5.
+- All changes still enter through pull requests targeting `main`.
+- Direct commits to `main` are not part of the workflow; branch protection stays
+  enabled and required checks are never bypassed or weakened.
 - The required status check is `Validate`.
 - Prefer squash merge.
 - Update specs for behavior changes.
