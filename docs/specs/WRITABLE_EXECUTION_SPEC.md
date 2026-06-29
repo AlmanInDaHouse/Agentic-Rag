@@ -22,8 +22,8 @@ separate from `providers/`). Sub-pieces:
 | Piece | Component | Status |
 |---|---|---|
 | A5.1 | Worktree Manager (`execution/worktree`) | merged (ADR 0036) |
-| A5.2 | Allowed-Path Policy (`execution/path`) | **this PR** (ADR 0037) |
-| A5.3 | Safe Command Policy + Process Supervision | planned |
+| A5.2 | Allowed-Path Policy (`execution/path`) | merged (ADR 0037) |
+| A5.3 | Safe Command Policy + Process Supervision (`execution/command`) | **this PR** (ADR 0038) |
 | A5.4 | Owner/Reviewer enforcement | planned |
 | A5.5 | Diff Capture + Mutation Ledger | planned |
 | A5.6 | Quality Gate Runner | planned |
@@ -182,3 +182,62 @@ input (limits the check→open TOCTOU window). Every decision is audited.
 - Wire the engine onto the A5.1 worktree at the call sites that perform owner writes
   (A5.3/A5.4 process + owner enforcement).
 - A9: stronger TOCTOU (open-time `O_NOFOLLOW`/`openat`), hardlink read-leak handling.
+
+---
+
+## A5.3 Safe Command Policy + Process Supervision
+
+### Objective
+
+Classify a concrete command (binary + argv) into a risk category and decide,
+DENY-BY-DEFAULT, whether the runtime may run it inside a worktree; then run an
+approved command under process supervision and reduce it to a single terminal result.
+
+### Command policy (`execution/command/commandPolicy.ts`)
+
+- **Categories:** `read_only`, `test`, `build`, `write_local`, `network`,
+  `destructive`, `privileged`, `blocked`. Default-allowed:
+  `read_only`/`test`/`build`/`write_local` (a run may widen, e.g. opt-in `network`).
+- **No shell, ever.** Commands are spawned directly with a separated argv
+  (`shell:false`), so shell metacharacters in an argument are inert literal DATA —
+  they cannot inject a second command, and the structural classifier is never fooled
+  by them (T-EXE-01/02, T-CMP-06; SAT-A5-4).
+- **Deny by default.** An unknown binary → `blocked`. Bare `node` → `blocked`.
+- **Dual binaries refined by argv:** `git` (`status`→read_only, `add/commit`→
+  write_local, `push`→network, `push --force[-with-lease]` / `reset --hard` /
+  `clean -f` / `branch -D`→destructive) and `npm`/`pnpm`/`yarn` (`install`→network,
+  `test`→test, `run build`→build, arbitrary `run <script>`→blocked). Unusual flag
+  forms (e.g. `git -C x …`) fail **closed** (→blocked).
+- **cwd containment:** the working directory must be the workspace root or inside it
+  (canonicalized), else `cwd_outside_workspace`.
+- Typed `CommandDecision` with `denyReason ∈ {category_not_allowed, blocked_command,
+  cwd_outside_workspace, invalid_command}`.
+
+### Process supervision (`execution/command/commandSupervisor.ts`)
+
+Composes the policy with the A3 `ProcessRunner` boundary (reused, not re-built): a
+denied command NEVER spawns; an allowed command runs with the substrate process model
+— direct binary, shell off, curated env allowlist (credential names dropped), explicit
+cwd, output cap, timeout, and a process GROUP so cancellation/timeout signal the whole
+tree (`detached`+negative-PID kill / `taskkill /T`), reaping orphans (substrate §8.5).
+The supervisor adds: stdout/stderr kept SEPARATE and capped (truncation flag), a single
+terminal `SupervisedCommandResult`, idempotent cancellation yielding partial evidence,
+and an audit record per run.
+
+### Capability binding (threat-model §11.2)
+
+| Field | Content |
+|---|---|
+| **Capability** | The runtime executes only policy-approved commands inside the worktree, under process supervision. |
+| **Threat(s)** | T-EXE-01/02 (command/argument injection), T-CMP-06 (`shell:true` metachar), T-EXE process-tree orphan / output flood / timeout, T-EXE-09 (env leakage). |
+| **Control(s)** | Deny-by-default category classifier (no shell; structural; dual-binary refinement; cwd containment); supervision via the A3 `NodeProcessRunner` (process group, SIGTERM→grace→SIGKILL, output cap, timeout, env allowlist). **Implemented** in `execution/command/`. |
+| **Milestone** | A5.3 (this PR). |
+| **Verification** | `commandPolicy.test.ts` (14: classification incl. shell-metachar-as-literal SAT-A5-4, git/npm refinement, deny-by-default, cwd containment, supervisor composition/cancel/output/single-terminal via the fake runner); `commandSupervision.real.test.ts` (real `NodeProcessRunner` cancel+timeout cross-platform; POSIX supervisor `tail` cancel/timeout + process-group **orphan reaping** — sentinel never written). |
+| **Recovery** | A denied command never reaches a spawn; a running command is cancellable (group kill) with partial evidence preserved; timeout/output-limit terminate deterministically; every run audited. |
+| **Residual risk** | Unusual git flag forms fail closed (may over-block, never over-allow); `--force-with-lease` now detected. Network is opt-in only. Real provider command execution is gated on A5.4 (owner enforcement) + A5.9/A5.10. Accepted, owner. |
+
+### Open follow-ups
+
+- A5.4 binds command execution to the single writable OWNER; the reviewer is
+  read-only and may run only `read_only` validations.
+- A5.5 records each command + its mutations in the ledger.
