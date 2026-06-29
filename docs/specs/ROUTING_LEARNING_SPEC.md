@@ -14,8 +14,8 @@ capability, so it carries no A0.5 capability binding (unlike A5).
 | Piece | Component | Status |
 |---|---|---|
 | A6.1 | Task Profiler (`orchestration/taskProfiler.ts`) | merged (ADR 0045) |
-| A6.2 | Static capability router (`orchestration/staticRouter.ts`) | **this PR** (ADR 0046) |
-| A6.3 | Quota-aware router (extends A4 `orchestration/routing.ts`) | planned |
+| A6.2 | Static capability router (`orchestration/staticRouter.ts`) | merged (ADR 0046) |
+| A6.3 | Quota-aware router (`orchestration/quotaAwareRouter.ts`) | **this PR** (ADR 0047) |
 | A6.4 | Execution metrics | planned |
 | A6.5 | Repository-specific profiles | planned |
 | A6.6 | Protected adaptive router | planned |
@@ -110,3 +110,46 @@ required caps, overridable custom rule (versioned + recorded), reproducible.
 - A6.3 combines these scores with quota/auth/reservations/risk/history/confidence and
   the degradation rules (extends `orchestration/routing.ts`).
 - A6.4/A6.5 add learned, evidence-bearing rules from repository metrics.
+
+---
+
+## A6.3 Quota-aware router
+
+### Objective
+
+Combine the A6.2 capability scores with provider availability + quota + reservations +
+authentication + task risk + historical performance into the end-to-end routing
+decision, with explicit terminal classification.
+
+### Design (`orchestration/quotaAwareRouter.ts`; ADR 0047)
+
+`routeQuotaAware(input)`:
+1. runs the A6.2 static router → capability scores (honest, no stereotype);
+2. applies the **authentication gate** — an unauthenticated provider is ineligible
+   (capability zeroed + passed to A4 as `ineligibleProviders`, so it is never
+   preferred nor a degradation target);
+3. calls the A4 owner-selection (`routing.ts`), which already does the risk-gated quota
+   degradation (low=fallback allowed, medium=visible degraded, high=recorded-or-pause,
+   critical=never-silent), reads usability from the A2.3 quota manager (quota UNKNOWN
+   scored ≤0.5, never a fabricated 1.0), and produces a validated `RoutingDecision`;
+4. classifies the terminal status: `routed`, `paused` (no usable provider — auth/quota,
+   recoverable by owner action), or `hard_stop` (ALL providers hard-stopped/quota-
+   exhausted — await quota reset; **NO paid fallback**).
+
+A small additive change to A4 `routing.ts` adds `ineligibleProviders` (default none,
+backward-compatible) so the auth gate plugs into the existing degradation logic without
+duplicating it. Pure + deterministic.
+
+### Verification
+
+`quotaAwareRouter.test.ts` (5): routes when both authenticated+budgeted; auth-gates an
+unauthenticated provider and routes to the other; pauses (not hard-stop) when none
+authenticated; hard-stops when all quota-exhausted (no paid fallback); never presents an
+unknown-capacity quota as guaranteed availability.
+
+### Open follow-ups
+
+- A6.4 records execution metrics (protected against duplication / cross-run
+  contamination / unverified self-reporting / missing samples / cherry-picking).
+- A6.5 repository profiles; A6.6 protected adaptive router (min sample + confidence +
+  fallback + human override + explainable; security/correctness over speed).

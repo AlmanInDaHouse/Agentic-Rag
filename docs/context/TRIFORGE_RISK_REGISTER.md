@@ -4,7 +4,7 @@
 impact, qualitative probability, mitigation, status, owner, responsible milestone,
 evidence. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.2).
 
-**Last updated:** 2026-06-29 (Loop 20 — A6.2; A6 read-only routing/profiling — no new writable risk; router is honest/no-stereotype per ADR 0046)
+**Last updated:** 2026-06-29 (Loop 21 — A6.3; A6 read-only routing — no new writable risk)
 
 Owner is `AlmanInDaHouse` for accept/override decisions; Claude Code owns
 mitigation execution unless noted. Probability/impact are qualitative
@@ -45,7 +45,7 @@ a security incident (Execution State); **PAT rotation by the owner is required**
 | R-SUB-2 | Kill of lead PID only orphans the process tree on POSIX | High | High (current harness) | Future process-group ownership (setsid + negative PGID) | Open | A2 | A0.4 spec §8.5 |
 | R-SUB-3 | EOL drift (no `.gitattributes`, `core.autocrlf`) between Windows/WSL checkouts | Low | Med | Normalization policy candidate follow-up | Open | A0.4 follow-up | A0.4 spec §15 |
 | R-PRV-1 | Provider CLI command/flag/output drift breaks adapters | High | Med | Capability snapshots invalidated by version; `unknown` when unverified | Open | A1–A3 | Vision §12/§25 |
-| R-PRV-2 | Opaque/partial quota signals; expired auth mid-run | Med | Med | `unknown` state, hard stop on exhaustion, manual resume, no paid fallback | Open | A2 | Quota spec, ADR 0027 |
+| R-PRV-2 | Opaque/partial quota signals; expired auth mid-run | Med | Med | `unknown` state, hard stop on exhaustion, manual resume, no paid fallback | **Open (reinforced — A6.3)**: the quota-aware router never presents unknown quota as available (≤0.5), hard-stops when all providers are exhausted, and auth-gates an unauthenticated provider (ineligible, never a degradation target); ADR 0047 | A2/A6 | Quota spec, ADR 0027/0047 |
 | R-PRV-3 | Provider event schemas not contractually guaranteed | Med | Med | Normalize + preserve raw evidence; reverify per version | Open | A1/A3 | Vision §12 |
 
 ## Provider/repository threat model (A0.5)

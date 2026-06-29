@@ -37,6 +37,12 @@ export interface OwnerSelectionInput {
   quota: QuotaManager;
   /** Units the owner will need for implementation (reserve-feasibility probe). */
   implementationUnits?: number;
+  /**
+   * Providers that are unusable for reasons ORTHOGONAL to quota (e.g. unauthenticated;
+   * A6.3 auth gate). Treated as not usable in addition to the quota checks; degradation
+   * never routes to one. Default: none.
+   */
+  ineligibleProviders?: readonly ProviderId[];
 }
 
 const DEFAULT_IMPLEMENTATION_UNITS = 1;
@@ -57,8 +63,11 @@ export function selectOwner(input: OwnerSelectionInput): RoutingDecision {
     `preferredOwner=${preferredOwner} by capability (${fmt(cap[preferredOwner])} vs ${fmt(cap[alternate])})`
   ];
 
-  const preferredUsable = providerUsable(input.quota, preferredOwner, implUnits);
-  const alternateUsable = providerUsable(input.quota, alternate, implUnits);
+  const ineligible = new Set<ProviderId>(input.ineligibleProviders ?? []);
+  const usable = (provider: ProviderId): boolean =>
+    !ineligible.has(provider) && providerUsable(input.quota, provider, implUnits);
+  const preferredUsable = usable(preferredOwner);
+  const alternateUsable = usable(alternate);
   const risk = input.profile.risk;
 
   let assignedOwner: ProviderId = preferredOwner;
