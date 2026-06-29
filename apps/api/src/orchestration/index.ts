@@ -88,3 +88,11 @@ export {
   type AppliedRule,
   type StaticRoutingResult
 } from "./staticRouter.js";
+
+export {
+  routeQuotaAware,
+  QUOTA_AWARE_ROUTER_VERSION,
+  type RoutingStatus,
+  type QuotaAwareRoutingInput,
+  type QuotaAwareRoutingResult
+} from "./quotaAwareRouter.js";
