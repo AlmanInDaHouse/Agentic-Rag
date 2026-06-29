@@ -4,20 +4,20 @@
 and GitHub at the start of every loop; this file records the conclusion, not the
 history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.1).
 
-**Last updated:** 2026-06-29 (Loop 12 — A5.4, on branch `feat/a5-4-owner-reviewer`)
+**Last updated:** 2026-06-29 (Loop 13 — A5.5, on branch `feat/a5-5-mutation-ledger`)
 
 ## Snapshot
 
 | Field | Value |
 |---|---|
-| Last closed milestone | A5.3 — Safe Command Policy + Process Supervision (`cafca30`, PR #44; ADR 0038) |
-| Active milestone | **A5.4 — Owner/Reviewer enforcement** (this PR; `execution/role`; ADR 0039) |
-| `main` SHA | `cafca30` |
-| Last `main` CI | `Validate` ✅ success (`cafca30`) |
-| Open PRs | A5.4 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
+| Last closed milestone | A5.4 — Owner/Reviewer enforcement (`f2784b4`, PR #45; ADR 0039) |
+| Active milestone | **A5.5 — Diff Capture + Mutation Ledger** (this PR; `execution/ledger`; ADR 0040) |
+| `main` SHA | `f2784b4` |
+| Last `main` CI | `Validate` ✅ success (`f2784b4`) |
+| Open PRs | A5.5 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
 | Blockers | none |
 | Pending decisions | none |
-| Next loop | **A5.5 — Diff Capture + Mutation Ledger** (append-only ledger: run/task/owner/worktree/branch/command/timestamp/file/operation/hash-before/hash-after/diff-ref/reason/tool/tests/policy-decision/sequence; detect unattributed changes + post-review modification; bind diff to GovernanceDecision; redact secrets; safe truncation; crash recovery). Then A5.6…A5.10. |
+| Next loop | **A5.6 — Quality Gate Runner** (configurable gates: unit/integration/contract/typecheck/lint/build/deps/security/code-graph/custom; commands from TRUSTED config — never the provider's claim; capture exit code + bounded output; timeout; artifact; hash of the tested diff; cache policy; test-deletion + CI-config-change detection; structured QualityGateResult). Then A5.7…A5.10. |
 
 ## Follow-ups / tech debt
 
@@ -62,8 +62,8 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
   - A5.1 Worktree Manager — **merged** (`909d54c`; PR #42; ADR 0036)
   - A5.2 Allowed-Path Policy — **merged** (`67d5956`; PR #43; ADR 0037)
   - A5.3 Safe Command Policy + Process Supervision — **merged** (`cafca30`; PR #44; ADR 0038)
-  - A5.4 Owner/Reviewer enforcement — **active** (this PR; ADR 0039)
-  - A5.5 Diff Capture + Mutation Ledger — pending
+  - A5.4 Owner/Reviewer enforcement — **merged** (`f2784b4`; PR #45; ADR 0039)
+  - A5.5 Diff Capture + Mutation Ledger — **active** (this PR; ADR 0040)
   - A5.6 Quality Gate Runner — pending
   - A5.7 Repair Loop — pending
   - A5.8 Autonomous Governance Decision — pending
@@ -97,19 +97,19 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 
 | Metric | Value |
 |---|---|
-| Loops executed | A0.4–A4 closed (0–6); TD-1 (7), TD-2 (8), A5.1 (9), A5.2 (10), A5.3 (11) merged; A5.4 (12) active |
-| PRs created | +6 this session (TD-1 #40, TD-2 #41, A5.1 #42, A5.2 #43, A5.3 #44, A5.4 this); 14 total since A0.4 |
-| PRs merged | 13 (…#42 A5.1, #43 A5.2, #44 A5.3) |
-| CI failures | 1 (A5.3 first run: cross-platform binName bug — caught + fixed; re-run green) |
-| Repair rounds | 10 (…A5.3: 1; A5.4: clean) |
+| Loops executed | A0.4–A4 (0–6); TD-1 (7), TD-2 (8), A5.1 (9), A5.2 (10), A5.3 (11), A5.4 (12) merged; A5.5 (13) active |
+| PRs created | +7 this session (TD-1 #40 … A5.4 #45, A5.5 this); 15 total since A0.4 |
+| PRs merged | 14 (…#43 A5.2, #44 A5.3, #45 A5.4) |
+| CI failures | 1 (A5.3 first run: cross-platform binName — caught + fixed; re-run green) |
+| Repair rounds | 10 (…A5.4: clean; A5.5: clean — 1 self-found NUL byte in ownership.ts pre-PR) |
 | Regressions | 0 |
 | Reverts | 0 |
 | Blockers hit | 0 |
 | Human interventions | 1 (auth-method decision) |
-| Findings by severity (reviews) | …A5.1: 1 major (fixed); A5.2: 0; A5.3: 0 (1 minor + 1 CI-caught, fixed); A5.4: 0 |
+| Findings by severity (reviews) | …A5.4: 0; A5.5: 0 (1 pre-PR NUL-byte fix) |
 | Time-to-merge | same session per loop |
-| Diff size | A5.4: 3 new src files (ownership+roleEnforcer+index ~430 LoC) + test (~220) + ADR 0039 + spec §A5.4 |
-| Coverage | +10 A5.4 role tests → 440 pure (+3 POSIX-only in CI) = 443; full api suite ~577 |
+| Diff size | A5.5: 4 new src files (mutationLedger+worktreeState+reconcile+index ~520 LoC) + test (~250) + ADR 0040 + spec §A5.5 |
+| Coverage | +13 A5.5 ledger tests → 453 pure (+3 POSIX-only in CI) = 456; full api suite ~590 |
 | Quota usage | not yet instrumented (no provider runs) |
 | Reverted decisions | 0 |
 | Security incidents | 1 (PAT pasted into chat — R-SEC-2; external, owner must rotate; non-blocking) |
@@ -118,21 +118,20 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 ## Exact next loop
 
 ```text
-Loop 13 — A5.5 Diff Capture + Mutation Ledger (mandate §A5.5; threat-model SAT-A5-6,
-T-INJ-11, T-INT-04). Branch off main AFTER A5.4 merges. Implement an append-only
-ledger recording per mutation: runId, taskId, owner, worktree, branch, command,
-timestamp, file, operation (create/modify/delete/rename), hash-before, hash-after,
-diff-ref, reason, tool, related tests, policy decision, sequence.
-  - detect UNATTRIBUTED changes (a file changed without a ledger entry) and
-    modification AFTER review (the diff hash changed since the reviewed hash);
-  - bind the diff to the GovernanceDecision (diff hash); redact secrets before
-    persisting; safe truncation of large diffs; hash artifacts; crash recovery.
-  Compute the real worktree state (git status/hash) and compare to the ledger to
-  catch a forged structured result (SAT-A5-6). Use the A5.4 role binding for owner
-  attribution + the A5.1 worktree + A5.3 audit.
+Loop 14 — A5.6 Quality Gate Runner (mandate §A5.6; threat-model SAT-A5 gate-spoofing,
+T-INT-04). Branch off main AFTER A5.5 merges. Implement configurable gates (unit,
+integration, adapter-contract, typecheck, lint, build, dependency, security,
+code-graph, custom):
+  - gate commands derived from TRUSTED configuration, NEVER accepted as the provider's
+    claim; run each via the A5.3 CommandSupervisor; capture exit code + bounded output;
+    timeout; artifact; hash of the tested diff (A5.5 diffHash); explicit cache policy;
+    controlled network; test-deletion + CI-config-change detection; structured result
+    mapped to the A1 QualityGateResult contract.
+  Tests: a gate result reflects the real exit code (a "passed" claim with a failing
+  command is caught); a deleted test / weakened CI is detected; the tested diff hash
+  binds the result. Compose A5.3 (supervisor) + A5.5 (diffHash).
 Loop shape unchanged: spec/impl → gates → adversarial review → repair → PR → CI →
 squash-merge → verify main → persist this file.
-Then A5.6 Quality Gate Runner, A5.7 repair loop, A5.8 GovernanceDecision builder, A5.9
-mock-first writable E2E, A5.10 real pilot (only after A5.1–A5.9 green). Closure of A5
-= the functional MVP.
+Then A5.7 repair loop, A5.8 GovernanceDecision builder, A5.9 mock-first writable E2E,
+A5.10 real pilot (only after A5.1–A5.9 green). Closure of A5 = the functional MVP.
 ```

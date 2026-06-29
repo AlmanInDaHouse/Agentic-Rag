@@ -4,7 +4,7 @@
 impact, qualitative probability, mitigation, status, owner, responsible milestone,
 evidence. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.2).
 
-**Last updated:** 2026-06-29 (Loop 12 — A5.4)
+**Last updated:** 2026-06-29 (Loop 13 — A5.5)
 
 Owner is `AlmanInDaHouse` for accept/override decisions; Claude Code owns
 mitigation execution unless noted. Probability/impact are qualitative
@@ -59,7 +59,7 @@ threat IDs in that catalog. These do not restate the already-booked R-GOV-5
 |---|---|---|---|---|---|---|---|
 | R-SEC-4 | No OS-level sandbox; any path escape on WSL2 reaches `/mnt/c` + `$HOME` → host/credential compromise | High | Med | A5.3 realpath containment + out-of-bounds roots; A0.5/A4 OS-isolation decision; A9 path tests | **Open (partially mitigated — A5.2)**: owner read/write paths are now contained by canonicalize→realpath→containment with symlink/hardlink/traversal refusal (SAT-A5-1/2/3 demonstrated); residual RR-2 (TOCTOU) + RR-4 (no OS sandbox) accepted; ADR 0037 | A4/A5 | TM T-FS-07, T-CMP-01/05/08 |
 | R-SEC-5 | Secret leakage via full-env forwarding + unredacted output capture (the `runner.ts` seed pattern) | High | High | A5.4 env allowlist; redact all captured streams; A2 "no secret leakage" gate | **Open (partially mitigated — A5.3)**: the command supervisor forwards only an env allowlist (credential-shaped names dropped by NodeProcessRunner); output is captured separately + capped. Stream redaction still pending (A5.5/A9); ADR 0038 | A2/A5 | TM T-EXE-09/10, T-CMP-07/09 |
-| R-SEC-6 | Forgeable self-certified governance/integrity artifacts under autonomy | High | Med | A5.9 gate re-derives evidence; A5.6 independent ledger; reviewer-owned findings | Open | A5 | TM T-INT-01/02/04 |
+| R-SEC-6 | Forgeable self-certified governance/integrity artifacts under autonomy | High | Med | A5.9 gate re-derives evidence; A5.6 independent ledger; reviewer-owned findings | **Open (partially mitigated — A5.5)**: an append-only hash-chained mutation ledger is reconciled against the REAL worktree (git-derived), so a forged result / unrecorded change is detected → run marked tampered (SAT-A5-6). Gate consumption is A5.6/A5.8; ADR 0040 | A5 | TM T-INT-01/02/04 |
 | R-SEC-7 | Self-modifiable CI / branch-protection gates; protection state unverified in-repo | High | Med | Workflow-integrity meta-gate; required-step allowlist; branch-protection probe | Open | A9 | TM T-INT-07/08/09, T-GIT-07 |
 | R-SEC-8 | Git-mechanism code execution on untrusted trees (hooks/config/attributes/submodules) during routine git ops | Critical | Med | Hardened git invocation (hooks/config/attributes off); A5.4 enforcement | **Open (partially mitigated — A5.1)**: managed worktree ops now run hooks-off + system/global config stripped (T-GIT-01/02/03), demonstrated by a hook-non-execution SAT. `.gitattributes` smudge filters (T-FS-05) remain A5.4 | A5 | TM T-GIT-01/02/04, T-FS-05; ADR 0036 |
 | R-SEC-9 | Approval unauthenticated/self-asserted and not bound to the executed diff | High | High | Authenticated approver channel; approval↔diff-hash binding | Open | A5/auth | TM T-INT-10/11 |
@@ -99,6 +99,14 @@ threat IDs in that catalog. These do not restate the already-booked R-GOV-5
   Still open: mutation ledger (A5.5), authenticated approver channel (R-SEC-9, auth
   milestone). Residual: role-agnostic lease (writes still role-gated); logical (not yet
   authenticated) actor id.
+- **A5.5 Diff Capture + Mutation Ledger (this PR; ADR 0040).** Append-only hash-chained
+  ledger (tamper-evident; secret-redacted; crash-recoverable, rejects a broken chain)
+  reconciled against the REAL worktree computed from git (`-z` porcelain + content
+  hashes) — an unrecorded change or post-hash mismatch is unattributed → tampered →
+  blocks merge (SAT-A5-6). `headHash`/`diffHash` bind the diff to the GovernanceDecision
+  and detect post-review modification. Partially mitigates R-SEC-6. Still open: gate
+  consumption (A5.6/A5.8). Residual: focused (not full-corpus) redactor — harness
+  secretScan remains the detection backstop.
 
 ## Closed / superseded
 
