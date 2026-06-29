@@ -37,7 +37,7 @@ import {
   type ProviderEventType,
   type ProviderId
 } from "@triforge/shared";
-import type { Clock } from "../mock/clock.js";
+import type { Clock } from "../clock.js";
 import type { ProcessOutputLine, ProcessExit, RunningProcess } from "./processRunner.js";
 
 /** Default per-event clock advance, mirroring the mock engine for readable timestamps. */

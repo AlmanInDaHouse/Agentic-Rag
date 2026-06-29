@@ -16,7 +16,7 @@ import {
   type ProviderEvent,
   type ProviderId
 } from "@triforge/shared";
-import { ManualClock } from "../providers/mock/clock.js";
+import { ManualClock } from "../providers/clock.js";
 import {
   FakeProcessRunner,
   claudeLineMapper,

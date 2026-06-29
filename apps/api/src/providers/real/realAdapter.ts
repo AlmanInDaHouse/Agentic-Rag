@@ -37,7 +37,7 @@ import {
   type ProviderEventType,
   type ProviderId
 } from "@triforge/shared";
-import { ManualClock, type Clock } from "../mock/clock.js";
+import { ManualClock, type Clock } from "../clock.js";
 import { DEFAULT_TICK_MS, makeRealEvidenceRef, normalizeProcess } from "./normalizerCore.js";
 import type { ProviderLineMapper } from "./normalizerCore.js";
 import {

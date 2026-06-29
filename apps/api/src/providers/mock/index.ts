@@ -7,7 +7,7 @@
  * docs/specs/PROVIDER_MOCKS_HARNESS_QUOTA_SPEC.md.
  */
 
-export { ManualClock, DEFAULT_CLOCK_EPOCH_MS, type Clock } from "./clock.js";
+export { ManualClock, DEFAULT_CLOCK_EPOCH_MS, type Clock } from "../clock.js";
 export {
   runScenario,
   deriveProviderResult,
