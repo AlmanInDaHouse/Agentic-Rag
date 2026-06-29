@@ -85,11 +85,25 @@ deterministic.
 timestamp); duplicate sequence deduped + recorded; gap flagged; contiguous → no gaps;
 type/detail sanitized (ANSI/secret stripped).
 
+## A8.4 Artifact Explorer
+
+### Design (`src/lib/artifactExplorer.ts` + `src/components/ArtifactExplorer.tsx`; ADR 0052 arch)
+
+`buildArtifactExplorer(artifacts)` normalizes the 12 A1 artifacts + the mutation ledger +
+raw evidence references into a UNIFORM display list — without inventing data and WITHOUT
+HIDING any kind: every kind is listed as present (with a sanitized summary + its
+hashes/refs) or explicitly absent. Free text uses `safeText`. Pure + deterministic.
+
+### Verification
+
+`src/lib/artifactExplorer.test.ts` (3): all 14 kinds listed even when none present (none
+hidden); present artifacts get a summary + their hashes/refs (diffHash, evidence refs),
+absent reported in `absent`; free text sanitized.
+
 ## Open follow-ups
 
-- A8.4 artifact explorer (12 A1 artifacts + ledger + raw evidence refs); A8.5 diff/review
-  (never hide changed files; diff-hash vs reviewed-hash); A8.6 governance dashboard; A8.7
-  budget/quota; A8.8 recovery UI.
+- A8.5 diff/review (never hide changed files; diff-hash vs reviewed-hash); A8.6 governance
+  dashboard; A8.7 budget/quota; A8.8 recovery UI.
 - A later A8 step mounts `TriforgeDashboard` as the TriForge view (a backend wiring of the
   A5–A7 runtime into HTTP/Socket.IO is a prerequisite for live data; the panels are built
   against the contracts now).
