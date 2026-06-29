@@ -4,20 +4,20 @@
 and GitHub at the start of every loop; this file records the conclusion, not the
 history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.1).
 
-**Last updated:** 2026-06-29 (Loop 22 — A6.4, on branch `feat/a6-4-execution-metrics`)
+**Last updated:** 2026-06-29 (Loop 23 — A6.5, on branch `feat/a6-5-repo-profiles`)
 
 ## Snapshot
 
 | Field | Value |
 |---|---|
-| Last closed milestone | A6.3 — Quota-aware router (`8813d87`, PR #54; ADR 0047) |
-| Active milestone | **A6.4 — Execution metrics** (this PR; `orchestration/executionMetrics.ts`; ADR 0048) |
-| `main` SHA | `8813d87` |
-| Last `main` CI | `Validate` ✅ success (`8813d87`) |
-| Open PRs | A6.4 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
+| Last closed milestone | A6.4 — Execution metrics (`e1b9f90`, PR #55; ADR 0048) |
+| Active milestone | **A6.5 — Repository-specific profiles** (this PR; `orchestration/repositoryProfiles.ts`; ADR 0049) |
+| `main` SHA | `e1b9f90` |
+| Last `main` CI | `Validate` ✅ success (`e1b9f90`) |
+| Open PRs | A6.5 (this branch). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
 | Blockers | none |
 | Pending decisions | none |
-| Next loop | **A6.5 — Repository-specific profiles** (learn "in THIS repo, provider X performs better for task family Y" from the A6.4 metrics; do NOT auto-generalize to all repositories; gate on a minimum sample + report n/confidence; produce evidence-bearing rules consumable by the A6.2 static router / A6.6 adaptive). Then A6.6 protected adaptive router. |
+| Next loop | **A6.6 — Protected adaptive router** (CLOSES A6). Activate learned (A6.5) rules into routing ONLY when: a minimum predefined sample exists, confidence is sufficient, a fallback exists, human override exists, decisions are explainable, sparse data does NOT dominate, and speed is NOT optimized at the expense of security/correctness. Compose A6.2 (static) + A6.5 (repo rules) behind these guards; produce an explainable routing decision. Then A7 competitive, A8 UI, A9 hardening + release. |
 
 ## Follow-ups / tech debt
 
@@ -74,8 +74,9 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
   - A6.1 Task Profiler — **merged** (`dd2894e`; PR #52; ADR 0045)
   - A6.2 Static capability router — **merged** (`73a8ce2`; PR #53; ADR 0046)
   - A6.3 Quota-aware router — **merged** (`8813d87`; PR #54; ADR 0047)
-  - A6.4 Execution metrics — **active** (this PR; ADR 0048)
-  - A6.5 repo profiles / A6.6 adaptive — pending
+  - A6.4 Execution metrics — **merged** (`e1b9f90`; PR #55; ADR 0048)
+  - A6.5 Repository-specific profiles — **active** (this PR; ADR 0049)
+  - A6.6 Protected adaptive router — pending (closes A6)
 - A7 Competitive mode — pending (not required for MVP)
 - A8 Product interface — pending
 - A9 Hardening and release — pending
@@ -111,9 +112,9 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 
 | Metric | Value |
 |---|---|
-| Loops executed | A0.4–A4 (0–6); TD-1..A5.9 (7–17)=MVP; A5.10 (18); A6.1–A6.3 (19–21) merged; A6.4 (22) active |
-| PRs created | +16 this session (TD-1 #40 … A6.3 #54, A6.4 this); 24 total since A0.4 |
-| PRs merged | 23 (…#52 A6.1, #53 A6.2, #54 A6.3) |
+| Loops executed | A0.4–A4 (0–6); TD-1..A5.9 (7–17)=MVP; A5.10 (18); A6.1–A6.4 (19–22) merged; A6.5 (23) active |
+| PRs created | +17 this session (TD-1 #40 … A6.4 #55, A6.5 this); 25 total since A0.4 |
+| PRs merged | 24 (…#53 A6.2, #54 A6.3, #55 A6.4) |
 | CI failures | 1 (A5.3 first run: cross-platform binName — caught + fixed; re-run green) |
 | Repair rounds | 11 (A5.9: 1 — E2E surfaced + fixed an A5.5 new-dir reconcile bug, fail-closed) |
 | Regressions | 0 |
@@ -122,8 +123,8 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 | Human interventions | 1 (auth-method decision) |
 | Findings by severity (reviews) | A5.4–A5.8: 0; A5.9: 1 major (self-found integration bug in A5.5, fixed + regression test) |
 | Time-to-merge | same session per loop |
-| Diff size | A6.4: 1 new src file (executionMetrics ~150 LoC) + test (~110) + ADR 0048 + ROUTING_LEARNING_SPEC §A6.4 |
-| Coverage | +6 A6.4 metrics tests → 511 pure (+3 POSIX-only in CI) = 514; full api suite ~648 |
+| Diff size | A6.5: 1 new src file (repositoryProfiles ~120 LoC) + additive RouterContext.repoId + test (~110) + ADR 0049 + ROUTING_LEARNING_SPEC §A6.5 |
+| Coverage | +3 A6.5 repo-profile tests → 514 pure (+3 POSIX-only in CI) = 517; full api suite ~651 |
 | Quota usage | not yet instrumented (no provider runs) |
 | Reverted decisions | 0 |
 | Security incidents | 1 (PAT pasted into chat — R-SEC-2; external, owner must rotate; non-blocking) |
@@ -132,18 +133,18 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 ## Exact next loop
 
 ```text
-Loop 23 — A6.5 Repository-specific profiles (mandate §A6.5). Branch off main AFTER A6.4
-merges. From the A6.4 MetricsStore aggregates, derive per-(repo, task-family, provider)
-performance profiles: "in THIS repository, provider X performs better for task family Y"
-— gated on a MINIMUM sample and reporting n + confidence. Do NOT auto-generalize to all
-repositories (a profile is scoped to a repo id). Emit evidence-bearing CapabilityRules
-(A6.2 shape: evidenceBasis/confidence/fallback/version) that the static/adaptive router
-can consume, only when n ≥ min and confidence ≥ threshold; else UNKNOWN (no rule).
-  Tests: a profile forms only above min sample; below min → no rule (UNKNOWN); the rule
-  carries n + confidence + repo scope; not generalized to another repo id.
-Loop shape unchanged. Then A6.6 protected adaptive router (activates only with min
-sample + confidence + fallback + human override + explainable decisions; sparse data
-must not dominate; security/correctness over speed). Then A7 competitive, A8 UI, A9
-hardening + release. Closure of A6 = profiler + static + quota-aware + metrics + repo
-profiles + protected adaptive + observability + explainable decisions.
+Loop 24 — A6.6 Protected adaptive router (mandate §A6.6) — CLOSES A6. Branch off main
+AFTER A6.5 merges. Compose A6.2 (static, neutral baseline) + A6.5 (repo-scoped learned
+rules) into an adaptive capability score, but ACTIVATE the learned rules ONLY when ALL
+guards hold: a minimum predefined sample, sufficient confidence, an available fallback,
+human override available, decisions explainable, sparse data does not dominate, and
+speed is NOT optimized over security/correctness. When the guards fail, fall back to the
+static neutral routing. Produce an explainable routing result (which rules fired, their
+evidence/confidence, the guard outcomes).
+  Tests: learned rule activates only above sample+confidence; sparse data falls back to
+  static; human override forces a provider (audited); decision is explainable (rule
+  trace); a high-risk/security task never trades correctness for speed.
+CLOSURE OF A6: profiler + static + quota-aware + metrics + repo profiles + protected
+adaptive + observability + explainable decisions. Then A7 Competitive Mode, A8 Product
+Interface (UI), A9 Hardening + release candidate + TriForge 1.0 DoD.
 ```

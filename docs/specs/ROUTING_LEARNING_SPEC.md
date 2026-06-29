@@ -16,8 +16,8 @@ capability, so it carries no A0.5 capability binding (unlike A5).
 | A6.1 | Task Profiler (`orchestration/taskProfiler.ts`) | merged (ADR 0045) |
 | A6.2 | Static capability router (`orchestration/staticRouter.ts`) | merged (ADR 0046) |
 | A6.3 | Quota-aware router (`orchestration/quotaAwareRouter.ts`) | merged (ADR 0047) |
-| A6.4 | Execution metrics (`orchestration/executionMetrics.ts`) | **this PR** (ADR 0048) |
-| A6.5 | Repository-specific profiles | planned |
+| A6.4 | Execution metrics (`orchestration/executionMetrics.ts`) | merged (ADR 0048) |
+| A6.5 | Repository-specific profiles (`orchestration/repositoryProfiles.ts`) | **this PR** (ADR 0049) |
 | A6.6 | Protected adaptive router | planned |
 
 The A4 `orchestration/routing.ts` already produces a `RoutingDecision` (owner selection
@@ -194,3 +194,41 @@ samples, append-only + `n` reported (no delete API), filter by task type + owner
 
 - A6.5 builds repository-specific profiles from these samples (no auto-generalization).
 - A6.6 adaptive router consumes them only above a minimum sample + confidence.
+
+---
+
+## A6.5 Repository-specific profiles
+
+### Objective
+
+Learn, FROM THIS REPOSITORY'S metrics only, "in repo R, provider X performs better for
+task family Y", and emit evidence-bearing `CapabilityRule`s the routers can consume —
+without ever generalizing to other repositories.
+
+### Design (`orchestration/repositoryProfiles.ts`; ADR 0049)
+
+`buildRepositoryProfile(store, repoId, providers, taskFamilies, opts?)` reads the A6.4
+`MetricsStore` aggregates per (task family, provider) and derives a rule only when BOTH
+providers have at least `minSample` re-derived samples AND their first-pass success
+rates differ by at least `minDifference`. The derived `CapabilityRule`:
+
+- is **repo-scoped** — it fires only when `RouterContext.repoId` matches the repo it was
+  learned from (added to `RouterContext`), so it is inert in any other repository (no
+  auto-generalization);
+- records `n` per provider and a `confidence` from the observed difference, with the
+  evidence basis citing the repo + counts;
+- favors the better provider for that task family by a delta proportional to confidence.
+
+A task family with data but below the gates is reported in `unknownFamilies` (UNKNOWN,
+never a fabricated preference). Pure + deterministic.
+
+### Verification
+
+`repositoryProfiles.test.ts` (3): a rule forms only above the sample + difference gates
+(equal rates / too-few samples → UNKNOWN); the derived rule fires ONLY in its repo +
+task family (different repo / family → inert); insufficient data → no rule + UNKNOWN.
+
+### Open follow-ups
+
+- A6.6 adaptive router applies these rules above a minimum-sample + confidence gate,
+  with human override and explainable decisions; sparse data must not dominate.

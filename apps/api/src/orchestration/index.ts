@@ -106,3 +106,11 @@ export {
   type AggregateFilter,
   type Aggregate
 } from "./executionMetrics.js";
+
+export {
+  buildRepositoryProfile,
+  REPO_PROFILE_VERSION,
+  type RepoProfileOptions,
+  type ProviderTaskStat,
+  type RepositoryProfile
+} from "./repositoryProfiles.js";
