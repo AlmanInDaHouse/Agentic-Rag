@@ -42,11 +42,15 @@ import { TrustedCommandRunner } from "./execution/command/trustedCommandRunner.j
 import { IntegratedRunService } from "./execution/integrated/index.js";
 import { PgIntegratedRunStore } from "./execution/integrated/pgStore.js";
 import { registerIntegratedRoutes } from "./http/integratedRoutes.js";
+import { registerTolerantJsonParser } from "./http/jsonBodyParser.js";
 
 export async function buildApp() {
   const app = Fastify({
     logger: true
   });
+
+  // A10-W.8b: tolerate an empty body on bodyless application/json POSTs (start/cancel/recover).
+  registerTolerantJsonParser(app);
 
   await app.register(cors, {
     origin: true

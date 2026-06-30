@@ -9,6 +9,7 @@ import { NodeGitRunner } from "../execution/worktree/index.js";
 import { FakeProcessRunner, type ProcessRunSpec } from "../providers/real/processRunner.js";
 import { IntegratedRunService, InMemoryIntegratedRunStore } from "../execution/integrated/index.js";
 import { registerIntegratedRoutes } from "../http/integratedRoutes.js";
+import { registerTolerantJsonParser } from "../http/jsonBodyParser.js";
 
 const tempDirs: string[] = [];
 function makeTempDir(prefix: string): string {
@@ -55,6 +56,7 @@ function buildApp(): FastifyInstance {
     commandConfig: { allowedCategories: ["read_only", "test", "build", "write_local"] }
   });
   const app = Fastify();
+  registerTolerantJsonParser(app);
   registerIntegratedRoutes(app, service, { repoRoot: TRIFORGE_ROOT, defaultProviderMode: "mock" });
   return app;
 }
@@ -141,4 +143,25 @@ describe("integrated runtime HTTP API", () => {
     expect(missing.statusCode).toBe(404);
     await app.close();
   });
+
+  it("accepts a bodyless POST that carries a JSON content-type (browser fetch) on start/cancel", async () => {
+    const app = buildApp();
+    const fixture = makeFixtureRepo();
+    const created = await app.inject({ method: "POST", url: "/api/integrated-runs", payload: validBody(fixture) });
+    const { id } = created.json();
+    // Reproduce the browser: content-type application/json header, EMPTY body.
+    const started = await app.inject({
+      method: "POST",
+      url: `/api/integrated-runs/${id}/start`,
+      headers: { "content-type": "application/json" }
+    });
+    expect(started.statusCode).toBe(202);
+    const cancelled = await app.inject({
+      method: "POST",
+      url: `/api/integrated-runs/${id}/cancel`,
+      headers: { "content-type": "application/json" }
+    });
+    expect([200, 202]).toContain(cancelled.statusCode);
+    await app.close();
+  }, 30_000);
 });
