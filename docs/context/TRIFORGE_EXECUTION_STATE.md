@@ -4,20 +4,20 @@
 and GitHub at the start of every loop; this file records the conclusion, not the
 history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.1).
 
-**Last updated:** 2026-06-30 (Loop 42 — A9.9 / A9 COMPLETE / TriForge 1.0 DoD MET, on branch `feat/a9-9-release-gate`)
+**Last updated:** 2026-06-30 (Loop 43 — A10 kickoff: A10-1 evidence model + honest release gate, on branch `feat/a10-1-evidence-model-honest-gate`)
 
 ## Snapshot
 
 | Field | Value |
 |---|---|
-| Last closed milestone | A9.8 — RC acceptance index (`c57b96c`, PR #74; ADR 0053) |
-| Active milestone | **A9.9 — Release gate** (this PR; RELEASE_NOTES_1.0 + releaseGate test) → **A9 COMPLETE / TriForge 1.0 DoD MET** |
-| `main` SHA | `c57b96c` |
-| Last `main` CI | `Validate` ✅ success (`c57b96c`) |
-| Open PRs | A9.9 (this branch — FINAL). NOTE: pre-existing PR #26 "ingest Code Graph context pack" is legacy 1.x, out of the A1–A9 roadmap, not blocking — still to be classified in a low-priority loop. |
-| Blockers | none |
+| Last closed milestone | A9.9 — Release gate (`13ae669`, PR #75; ADR 0053) → **A1–A9 roadmap DoD MET (RC)** |
+| Active milestone | **A10 — Real Provider Operational Closure** (A10-1: evidence model + evidence-based release gate; spec `REAL_PROVIDER_OPERATIONAL_CLOSURE_SPEC.md`; ADR 0054) |
+| `main` SHA | `13ae669` |
+| Last `main` CI | `Validate` ✅ success (`13ae669`) |
+| Open PRs | A10-1 (this branch). Legacy PR #26 "ingest Code Graph context pack" — resolved by A10.10. |
+| Blockers | none internal. Real-provider verification (A10.5–A10.8) is `blocked_external` on the owner's manual WSL2 install + auth (`docs/runbooks/REAL_PROVIDER_SETUP_WSL2.md`). |
 | Pending decisions | none |
-| Next loop | **None — the A1–A9 roadmap is COMPLETE; TriForge 1.0 Definition of Done is MET** (see `RELEASE_NOTES_1.0.md`). The autonomous loop has delivered TriForge 1.0 with executable evidence (green release gate + the A1–A9 specs/ADRs/E2E). Maintenance-only remains: the external non-blocking items below (A5.10 real provider pilot when a writable capability is observed; PR #26 legacy classification; R-SEC-2 owner PAT rotation). No further roadmap loop is pending. |
+| Next loop | **A10 is the active roadmap.** A1–A9 is a release candidate; the FINAL operational 1.0 is gated on real-provider verification (`docs/evidence/TRIFORGE_CAPABILITY_EVIDENCE.json`, `finalReleaseGate.test.ts`). Auth-independent substrate (A10-1…A10-4, A10-10, A10-11) ships autonomously and CI-green; auth-dependent verification resumes after the owner runbook. No `v1.0.0` tag until the final gate reports ready. |
 
 ## Follow-ups / tech debt
 
@@ -80,14 +80,29 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 - **A6 — COMPLETE** (`47c5e36`; profiler + static + quota-aware + metrics + repo profiles + protected adaptive)
 - A7 Competitive mode — **A7.1 merged** (`0610c54`; PR #58; ADR 0051)
 - **A8 — COMPLETE** (`d99b850`; 8 panels A8.1–A8.8: provider status, task composer, run timeline, artifact explorer, diff/review, governance, budget/quota, recovery; ADR 0052; 46 web tests)
-- **A9 — COMPLETE** (`c57b96c` + this PR; ADR 0053; chaos/SAT/drift/recovery/observability/packaging/docs/RC/release-gate) → **TriForge 1.0 Definition of Done MET**
+- **A9 — COMPLETE** (`13ae669`; PR #75; ADR 0053; chaos/SAT/drift/recovery/observability/packaging/docs/RC/release-gate) → **A1–A9 roadmap Definition of Done MET (release candidate)**
+- **A10 — Real Provider Operational Closure — ACTIVE** (spec `REAL_PROVIDER_OPERATIONAL_CLOSURE_SPEC.md`; ADR 0054):
+  - A10-1 Evidence model + honest evidence-based release gate — **this PR** (`TRIFORGE_CAPABILITY_EVIDENCE.json`, `evidence.ts`, `releaseGate.test.ts`, `finalReleaseGate.test.ts`, REQUIRES_VERIFICATION register, owner runbook)
+  - A10-2 Real isolation boundary + invariant matrix — pending
+  - A10-3 Writable provider adapters (capability-gated) — pending
+  - A10-4 Writable adapter conformance harness — pending
+  - A10.5–A10.8 Real pilots / modes / quota / integrated E2E — **`blocked_external`** on owner WSL2 install + auth
+  - A10-10 Resolve PR #26 — pending
+  - A10-11 Honest release gate — delivered in A10-1
+  - **Final operational 1.0 / `v1.0.0`: PENDING real-provider verification**
 
 ## UNKNOWN
 
-- Whether Node/pnpm/Git/Codex CLI/Claude Code are installed and authenticated
-  inside the Ubuntu WSL2 distro (distro not started; A0.4 spec §5).
-- The concrete OS-isolation mechanism for untrusted provider/repo code on WSL2
-  (requirement recorded; design deferred to A4/A5; threat-model §14, RR-4).
+- Whether Codex CLI / Claude Code are **authenticated** inside WSL2 (a hard stop; owner
+  action — `docs/runbooks/REAL_PROVIDER_SETUP_WSL2.md`). Node/pnpm absent in WSL2; git
+  2.43.0 present; repo currently on `/mnt/c`.
+- The concrete OS-isolation mechanism for untrusted provider/repo code on WSL2 — selected
+  and verified by A10-2 (was deferred; threat-model §14, RR-4).
+
+> **A10.9 register:** the structured closure of every REQUIRES_VERIFICATION item
+> (verified / blocked_external / unsupported / unknown) is
+> `docs/evidence/REQUIRES_VERIFICATION_REGISTER.md`; live capability statuses are in
+> `docs/evidence/TRIFORGE_CAPABILITY_EVIDENCE.json`.
 
 ## REQUIRES_VERIFICATION
 

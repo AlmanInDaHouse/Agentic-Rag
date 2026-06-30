@@ -4,7 +4,7 @@
 impact, qualitative probability, mitigation, status, owner, responsible milestone,
 evidence. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.2).
 
-**Last updated:** 2026-06-30 (Loop 42 — A9.9 / A9 COMPLETE / **TriForge 1.0 DoD MET**; release gate green; no open blockers/criticals; every writable capability bound; remaining items A5.10/PR#26/R-SEC-2 external + non-blocking)
+**Last updated:** 2026-06-30 (Loop 43 — A10 kickoff: A1–A9 roadmap DoD MET = **release candidate**; FINAL operational 1.0 PENDING real-provider verification — `blocked_external` on owner WSL2 install + auth. Release gate green; no open blockers/criticals; remaining items tracked in `docs/evidence/TRIFORGE_CAPABILITY_EVIDENCE.json`)
 
 Owner is `AlmanInDaHouse` for accept/override decisions; Claude Code owns
 mitigation execution unless noted. Probability/impact are qualitative
@@ -47,6 +47,8 @@ a security incident (Execution State); **PAT rotation by the owner is required**
 | R-PRV-1 | Provider CLI command/flag/output drift breaks adapters | High | Med | Capability snapshots invalidated by version; `unknown` when unverified | Open | A1–A3 | Vision §12/§25 |
 | R-PRV-2 | Opaque/partial quota signals; expired auth mid-run | Med | Med | `unknown` state, hard stop on exhaustion, manual resume, no paid fallback | **Open (reinforced — A6.3)**: the quota-aware router never presents unknown quota as available (≤0.5), hard-stops when all providers are exhausted, and auth-gates an unauthenticated provider (ineligible, never a degradation target); ADR 0047 | A2/A6 | Quota spec, ADR 0027/0047 |
 | R-PRV-3 | Provider event schemas not contractually guaranteed | Med | Med | Normalize + preserve raw evidence; reverify per version | Open | A1/A3 | Vision §12 |
+| R-PRV-4 | Mock evidence mistaken for real-provider evidence (false "operational" claim) | High | Med | Machine-readable evidence registry; final gate requires `verified_real_provider` for mandatory writable real caps; RC/final claims cross-checked vs registry; real entries require provider version + `wsl2-ubuntu` environment + evidence ref | **Open (controlled — A10-1)**: `evaluateFinalReleaseReadiness` blocks the final claim; `finalReleaseGate.test.ts` is a no-false-green | A10 | ADR 0054; `TRIFORGE_CAPABILITY_EVIDENCE.json` |
+| R-PRV-5 | Real-provider verification blocked on owner manual auth (hard stop) | Med | High (current) | `blocked_external` in the registry; exact owner runbook; auth-independent substrate ships first; no login automation / no credential read | **Open (external, non-blocking the substrate)** | A10 | `docs/runbooks/REAL_PROVIDER_SETUP_WSL2.md`; mandate §18–§19 |
 
 ## Provider/repository threat model (A0.5)
 
