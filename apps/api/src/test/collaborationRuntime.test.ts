@@ -41,6 +41,8 @@ import {
   type CollaborationContext,
   type StrategyCandidate
 } from "../orchestration/index.js";
+import { CodexAdapter } from "../providers/real/index.js";
+import { codexSuccessScript, codexVersionScript, makeFixtureRunner } from "./fixtures/realProviderFixtures.js";
 
 // --- builders ------------------------------------------------------------
 
@@ -115,6 +117,29 @@ function assertNoWrites(steps: { events: { type: string }[] }[]): void {
     }
   }
 }
+
+// --- A10-W.8: per-provider model threading -------------------------------
+
+describe("A10-W.8 collaboration model threading", () => {
+  it("threads a per-provider model into the adapter request (real adapter + fake runner)", async () => {
+    const runner = makeFixtureRunner({ version: codexVersionScript, exec: codexSuccessScript });
+    const step = await runProviderStep({
+      adapter: new CodexAdapter(runner),
+      quota: quotaWith([budget("codex", 10)]),
+      provider: "codex",
+      purpose: "planning",
+      amount: 1,
+      phase: "plan",
+      objective: "plan the change",
+      executionId: "model-thread-1",
+      model: "gpt-5.5"
+    });
+    expect(step.blocked).toBe(false);
+    const exec = runner.calls.find((s) => s.args.includes("exec"));
+    expect(exec?.args).toContain("-m");
+    expect(exec?.args).toContain("gpt-5.5");
+  });
+});
 
 // --- Specialist mode -----------------------------------------------------
 

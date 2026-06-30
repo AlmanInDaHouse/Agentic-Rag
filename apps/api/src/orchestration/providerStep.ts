@@ -67,6 +67,8 @@ export interface ProviderStepInput {
   executionId: string;
   /** Per-execution timeout for the adapter request (deterministic; not wall time). */
   timeoutMs?: number;
+  /** Optional model for this step (e.g. an economical model for real runs). */
+  model?: string;
 }
 
 export interface ProviderStepRecord {
@@ -126,7 +128,8 @@ export async function runProviderStep(input: ProviderStepInput): Promise<Provide
     provider,
     objective: input.objective,
     timeoutMs: input.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-    readOnly: true
+    readOnly: true,
+    ...(input.model ? { model: input.model } : {})
   });
 
   // 3. Reserve capacity BEFORE running the step.

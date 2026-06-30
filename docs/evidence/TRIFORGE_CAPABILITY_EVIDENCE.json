@@ -272,42 +272,48 @@
     },
     {
       "capability": "specialist_mode_real",
-      "status": "unknown",
+      "status": "verified_real_provider",
       "mandatoryForFinal": true,
       "requiresRealProvider": true,
       "provider": "both",
-      "providerVersion": "",
+      "providerVersion": "codex 0.142.4 / claude 2.1.195",
       "environment": "windows-native",
-      "evidence": ["mock-verified today (collaborationModes)"],
-      "verifiedAt": "",
-      "risks": [],
-      "notes": "A10-W.8 Specialist mode with real providers (Codex owner; Claude owner) on Windows. Mock-verified today; real pending."
+      "evidence": [
+        "apps/api/src/test/collaborationModes.host.test.ts — green on Windows 11 26200, 2026-06-30: runSpecialist with a real CODEX owner (status=completed, owner-only, 2 steps) AND with a real CLAUDE owner on sonnet (status=completed); read-only (no file.changed)"
+      ],
+      "verifiedAt": "2026-06-30",
+      "risks": ["read-only collaboration (no writes); the writable owner path is the W.7 pilots. Claude steps run on sonnet (per-provider model threading) to conserve quota."],
+      "notes": "A10-W.8 Specialist mode with real providers on Windows: a real Codex owner and a real Claude owner each plan+execute the read-only collaboration to completion."
     },
     {
       "capability": "pair_mode_real",
-      "status": "unknown",
+      "status": "verified_real_provider",
       "mandatoryForFinal": true,
       "requiresRealProvider": true,
       "provider": "both",
-      "providerVersion": "",
+      "providerVersion": "codex 0.142.4 / claude 2.1.195",
       "environment": "windows-native",
-      "evidence": ["mock-verified today"],
-      "verifiedAt": "",
-      "risks": [],
-      "notes": "A10-W.8 Pair mode with a real owner + real second-provider critique on Windows. Real pending."
+      "evidence": [
+        "apps/api/src/test/collaborationModes.host.test.ts — green on Windows 11 26200, 2026-06-30: runPair with a real codex owner + a real claude (sonnet) critique → status=completed, secondProviderInvoked=true, severity gate passed; read-only (no file.changed)"
+      ],
+      "verifiedAt": "2026-06-30",
+      "risks": ["read-only collaboration; the second provider critiques the owner's plan and the severity gate must pass before the simulated execute step."],
+      "notes": "A10-W.8 Pair mode with a real owner + real second-provider critique on Windows; the run completes to a clean terminal with the cross-vendor critique recorded."
     },
     {
       "capability": "full_debate_mode_real",
-      "status": "unknown",
+      "status": "verified_real_provider",
       "mandatoryForFinal": true,
       "requiresRealProvider": true,
       "provider": "both",
-      "providerVersion": "",
+      "providerVersion": "codex 0.142.4 / claude 2.1.195",
       "environment": "windows-native",
-      "evidence": ["mock-verified today"],
-      "verifiedAt": "",
-      "risks": [],
-      "notes": "A10-W.8 Full Debate (two independent plans, cross-review, evidence-based resolution, no simultaneous writes) on Windows. Real pending."
+      "evidence": [
+        "apps/api/src/test/collaborationModes.host.test.ts — green on Windows 11 26200, 2026-06-30: runFullDebate with both real providers → status=completed, 2 independent plans (codex + claude/sonnet), 2 cross-reviews, evidence-based resolution, secondProviderInvoked=true; read-only (no file.changed)"
+      ],
+      "verifiedAt": "2026-06-30",
+      "risks": ["read-only collaboration with no simultaneous writes; one writable owner is resolved by the authority-ordered StrategyDecision (the writable execution is the W.7 pilot)."],
+      "notes": "A10-W.8 Full Debate (two independent real plans, cross-review, evidence-based resolution) on Windows; the run completes with both providers participating."
     },
     {
       "capability": "competitive_mode_real",
@@ -340,16 +346,20 @@
     },
     {
       "capability": "real_quota_usage_signals",
-      "status": "unknown",
+      "status": "verified_real_provider",
       "mandatoryForFinal": true,
       "requiresRealProvider": true,
       "provider": "both",
-      "providerVersion": "",
+      "providerVersion": "codex 0.142.4 / claude 2.1.195",
       "environment": "windows-native",
-      "evidence": [],
-      "verifiedAt": "",
-      "risks": ["do not infer official balance; unknown stays unknown"],
-      "notes": "A10-W.8 real usage/quota/rate-limit/reset signals from the installed Windows CLIs. Real pending."
+      "evidence": [
+        "apps/api/src/test/collaborationModes.host.test.ts (Pair) — green on Windows 11 26200, 2026-06-30: a real claude step surfaced BOTH usage.updated (real token usage from result.usage) AND quota.updated (from the real rate_limit_event: rateLimitType=seven_day, utilization, resetsAt) flowing through the quota manager",
+        "apps/api/src/providers/real/claudeNormalizer.ts (rate_limit_event → quota.updated) + apps/api/src/test/realAdapters.test.ts (CI: schema-valid quota.updated)",
+        "codex turn.completed.usage and claude result.usage observed in apps/api/src/test/realProvider.host.test.ts"
+      ],
+      "verifiedAt": "2026-06-30",
+      "risks": ["never infers an official balance: utilization/resetsAt are the provider's own reported signal; isBillingAuthoritative is always false; absent signals stay unknown."],
+      "notes": "A10-W.8 real usage/quota/rate-limit/reset signals from the installed Windows CLIs: the real claude rate_limit_event (seven_day window + utilization + resetsAt) normalizes to quota.updated and real token usage to usage.updated, both observed flowing through the runtime."
     },
     {
       "capability": "codex_writable_adapter",
