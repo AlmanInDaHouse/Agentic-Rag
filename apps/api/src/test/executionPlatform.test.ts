@@ -80,17 +80,19 @@ describe("inspectFilesystemEntry (host platform)", () => {
   });
 });
 
-describe("deferred methods reject with the typed, PR-naming error (phased rollout)", () => {
+describe("validateContainedPath is implemented (A10-W.2)", () => {
   const platform = new WindowsExecutionPlatform();
 
-  it("validateContainedPath → A10-W.2", async () => {
-    const p = platform.validateContainedPath({ target: "x", containmentRoot: repoRoot });
-    await expect(p).rejects.toBeInstanceOf(PlatformMethodNotImplementedError);
-    await p.catch((err: PlatformMethodNotImplementedError) => {
-      expect(err.method).toBe("validateContainedPath");
-      expect(err.plannedPr).toContain("A10-W.2");
-    });
+  it("resolves a PathValidationResult instead of rejecting (no longer a deferred stub)", async () => {
+    const r = await platform.validateContainedPath({ target: "x", containmentRoot: repoRoot });
+    expect(typeof r.allowed).toBe("boolean");
+    expect(r).toHaveProperty("denyReason");
+    expect(r).toHaveProperty("canonical");
   });
+});
+
+describe("deferred methods reject with the typed, PR-naming error (phased rollout)", () => {
+  const platform = new WindowsExecutionPlatform();
 
   it("createManagedProcess and terminateProcessTree → A10-W.4", async () => {
     await expect(platform.createManagedProcess({ executable: "node", args: [], cwd: repoRoot, env: {} }))

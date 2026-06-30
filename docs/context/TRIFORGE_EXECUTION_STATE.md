@@ -4,17 +4,17 @@
 and GitHub at the start of every loop; this file records the conclusion, not the
 history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.1).
 
-**Last updated:** 2026-06-30 (Loop 44 — **A10-W native Windows pivot** (ADR 0056): A10-W.1 governance + `ExecutionPlatform` boundary + evidence-model extension + 14 native-Windows-final capabilities (12 `windows_*` + 2 re-homed e2e) + `pnpm triforge:doctor`, on branch `feat/a10w-1-native-windows-foundation`)
+**Last updated:** 2026-06-30 (Loop 45 — **A10-W.2 Windows path security policy**: `windowsPathPolicy.ts` + `WindowsExecutionPlatform.validateContainedPath` + `PathPolicyEngine` Windows hardening; cross-platform negative matrix + real-NTFS host tests (junction escape via `mklink /J`, ADS, reserved names); `windows_path_policy`=`verified_real_environment`; on branch `feat/a10w-2-windows-path-policy`)
 
 ## Snapshot
 
 | Field | Value |
 |---|---|
-| Last closed milestone | A10 substrate (`619f02c`, PR #80) → autonomous substrate complete |
-| Active milestone | **A10-W — Native Windows Operational Closure** (ADR 0056 supersedes the WSL2-first mandate; spec `NATIVE_WINDOWS_OPERATIONAL_CLOSURE_SPEC.md`). A10-W.1 in flight; A10-W.2–W.9 queued. |
-| `main` SHA | `619f02c` |
-| Last `main` CI | `Validate` ✅ success (`619f02c`) |
-| Open PRs | A10-W.1 (this branch). |
+| Last closed milestone | A10-W.1 (`fcfb1e7`, PR #81) → native Windows foundation merged |
+| Active milestone | **A10-W — Native Windows Operational Closure** (ADR 0056). A10-W.1 merged; A10-W.2 in flight; A10-W.3–W.9 queued. |
+| `main` SHA | `fcfb1e7` |
+| Last `main` CI | `Validate` ✅ success (`fcfb1e7`) |
+| Open PRs | A10-W.2 (this branch). |
 | Blockers | none internal; **no external blocker** — both providers are installed AND authenticated natively on Windows (the prior WSL2 manual-login hard stop is satisfied). Native-Windows verification is engineering (A10-W.2–W.9). |
 | Pending decisions | none |
 | Next loop | **A10-W is the active roadmap.** A1–A9 is a release candidate; the FINAL operational 1.0 is gated on native-Windows verification (`docs/evidence/TRIFORGE_CAPABILITY_EVIDENCE.json`, `finalReleaseGate.test.ts`). Mandatory `windows_*` capabilities must reach `verified_real_environment` / `verified_real_provider`. No `v1.0.0` tag until the final gate reports ready. Substrate verified on the real host via `pnpm triforge:doctor` (18 checks, 0 blockers). |
@@ -91,8 +91,9 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
   - A10-11 Honest release gate — delivered in A10-1
   - **A10 AUTONOMOUS SUBSTRATE COMPLETE** (A10-1…A10-4, A10-10, A10-11; `619f02c`, PRs #76–#80).
 - **A10-W — Native Windows Operational Closure — ACTIVE** (ADR 0056 supersedes the WSL2-first mandate; spec `NATIVE_WINDOWS_OPERATIONAL_CLOSURE_SPEC.md`):
-  - A10-W.1 Governance + `ExecutionPlatform` boundary + evidence-model extension (`verified_real_environment`/`requiresRealEnvironment`) + 14 native-Windows-final capabilities + `pnpm triforge:doctor` — **this PR**
-  - A10-W.2–W.9 Windows path policy / NTFS worktree / Job Object supervisor / isolation + safe command policy / real adapters / real pilots / integrated E2E / packaging + security review + release — **queued**
+  - A10-W.1 Governance + `ExecutionPlatform` boundary + evidence-model extension (`verified_real_environment`/`requiresRealEnvironment`) + 14 native-Windows-final capabilities + `pnpm triforge:doctor` — **merged** (`fcfb1e7`, PR #81)
+  - A10-W.2 Windows path security policy (`validateContainedPath` + `PathPolicyEngine` Windows hardening; canonical-identity containment, namespaces/ADS/reserved-names/trailing/junction-escape; real-NTFS host tests) → `windows_path_policy`=`verified_real_environment` — **this PR**
+  - A10-W.3–W.9 NTFS worktree / Job Object supervisor / isolation + safe command policy / real adapters / real pilots / integrated E2E / packaging + security review + release — **queued**
   - **No external blocker:** Codex 0.101.0 and Claude 2.1.195 are installed AND authenticated **natively on Windows** (`pnpm triforge:doctor`, 2026-06-30); the prior WSL2 manual-login hard stop is satisfied. Remaining work is engineering.
   - **Final operational 1.0 / `v1.0.0`: PENDING native-Windows verification** (`verified_real_environment` / `verified_real_provider` for the mandatory `windows_*` set)
 
