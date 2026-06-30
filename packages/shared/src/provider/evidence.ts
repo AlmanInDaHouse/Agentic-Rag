@@ -15,7 +15,10 @@ import { z } from "zod";
  * gate evaluates it via {@link evaluateFinalReleaseReadiness}.
  */
 
-export const CAPABILITY_EVIDENCE_SCHEMA_VERSION = "1.0.0";
+// 1.1.0 (A10-W): additive — new status `verified_real_environment` and the
+// optional, defaulted `requiresRealEnvironment` flag. Backward compatible with
+// pre-A10-W entries (the new field defaults to false).
+export const CAPABILITY_EVIDENCE_SCHEMA_VERSION = "1.1.0";
 
 /**
  * The evidence status ladder. Ordered loosely from weakest to strongest, plus the
@@ -29,6 +32,7 @@ export const evidenceStatusSchema = z.enum([
   "verified_unit", // a unit test exercises it
   "verified_mock", // verified against a deterministic mock provider
   "verified_fixture", // verified against a real-OS fixture (e.g. a throwaway git repo)
+  "verified_real_environment", // verified on a REAL target host/OS (e.g. native Windows), provider-independent (A10-W §19)
   "verified_real_provider", // verified end-to-end against the REAL authenticated CLI
   "blocked", // cannot proceed (internal reason)
   "blocked_external", // cannot proceed without a manual, owner-only external action
@@ -49,6 +53,15 @@ export const capabilityEvidenceEntrySchema = z
      * observation. When true, only `verified_real_provider` satisfies the gate.
      */
     requiresRealProvider: z.boolean(),
+    /**
+     * Whether honest closure *requires* verification on a REAL target host/OS
+     * (A10-W §19) — e.g. native Windows path/worktree/Job-Object behavior that a
+     * CI fixture cannot prove. When true (and `requiresRealProvider` is false),
+     * only `verified_real_environment` (or the stronger `verified_real_provider`)
+     * satisfies the gate. Optional + defaulted for backward compatibility with
+     * pre-A10-W registry entries.
+     */
+    requiresRealEnvironment: z.boolean().optional().default(false),
     /** "codex" | "claude" | "both" | "" | "n/a" — informational. */
     provider: z.string(),
     /** Detected/observed provider version, or "" / "unknown". */
@@ -90,28 +103,49 @@ export const capabilityEvidenceRegistrySchema = z
 export type CapabilityEvidenceRegistry = z.infer<typeof capabilityEvidenceRegistrySchema>;
 
 /**
- * Statuses that, for a capability requiring a real provider, do NOT satisfy the
- * final-operational gate. Mirrors mandate §4: `implemented`, `verified_mock`,
- * `blocked`, `unknown` (and friends) are never sufficient for real integration.
+ * Documentation constant (not consumed by the gate, which uses the direct
+ * equality `status === "verified_real_provider"`). The exact complement of
+ * {`verified_real_provider`}: every status that does NOT satisfy a capability
+ * requiring a real provider. Mirrors mandate §4 — `implemented`, `verified_mock`,
+ * `verified_real_environment`, `blocked`, `not_applicable` (and friends) are never
+ * sufficient for real-provider integration.
  */
 export const NON_SATISFYING_REAL_STATUSES: readonly EvidenceStatus[] = [
   "implemented",
   "verified_unit",
   "verified_mock",
   "verified_fixture",
+  "verified_real_environment",
   "blocked",
   "blocked_external",
-  "unknown"
+  "unknown",
+  "not_applicable"
 ];
 
 /**
  * Statuses that satisfy a mandatory capability that does NOT require a real
  * provider (e.g. an in-process isolation boundary verified against OS fixtures).
+ * `verified_real_environment` is included because real-host verification is at
+ * least as strong as a fixture.
  */
 export const SATISFYING_NON_REAL_STATUSES: readonly EvidenceStatus[] = [
   "verified_unit",
   "verified_mock",
   "verified_fixture",
+  "verified_real_environment",
+  "verified_real_provider",
+  "not_applicable"
+];
+
+/**
+ * Statuses that satisfy a mandatory capability that requires REAL-host
+ * verification (A10-W §19) but not a real provider. A CI fixture is NOT enough;
+ * the evidence must come from a real target host (or, a fortiori, a real-provider
+ * run on that host). `not_applicable` also satisfies (explicitly out of scope per
+ * an ADR), mirroring the non-real ladder.
+ */
+export const SATISFYING_REAL_ENVIRONMENT_STATUSES: readonly EvidenceStatus[] = [
+  "verified_real_environment",
   "verified_real_provider",
   "not_applicable"
 ];
@@ -130,10 +164,14 @@ export interface FinalReleaseReadiness {
 /**
  * Evaluate whether the registry supports a FINAL operational 1.0 release.
  *
- * A mandatory capability is satisfied when:
+ * A mandatory capability is satisfied when (strongest applicable rule wins):
  *  - it requires a real provider and its status is exactly `verified_real_provider`; or
- *  - it does not require a real provider and its status is one of
- *    {@link SATISFYING_NON_REAL_STATUSES}.
+ *  - it requires a real environment (and not a real provider) and its status is one of
+ *    {@link SATISFYING_REAL_ENVIRONMENT_STATUSES}; or
+ *  - otherwise its status is one of {@link SATISFYING_NON_REAL_STATUSES}.
+ *
+ * `requiresRealProvider` dominates `requiresRealEnvironment` (a real-provider run
+ * on the target host is the strongest evidence and implies the environment).
  *
  * Non-mandatory capabilities never block. This function is pure and deterministic.
  */
@@ -148,17 +186,23 @@ export function evaluateFinalReleaseReadiness(
     if (!c.mandatoryForFinal) continue;
     evaluated += 1;
 
-    const ok = c.requiresRealProvider
-      ? c.status === "verified_real_provider"
-      : (SATISFYING_NON_REAL_STATUSES as readonly EvidenceStatus[]).includes(c.status);
+    let ok: boolean;
+    let requirement: string;
+    if (c.requiresRealProvider) {
+      ok = c.status === "verified_real_provider";
+      requirement = "requires verified_real_provider";
+    } else if (c.requiresRealEnvironment) {
+      ok = (SATISFYING_REAL_ENVIRONMENT_STATUSES as readonly EvidenceStatus[]).includes(c.status);
+      requirement = "requires verified_real_environment";
+    } else {
+      ok = (SATISFYING_NON_REAL_STATUSES as readonly EvidenceStatus[]).includes(c.status);
+      requirement = "no executable evidence";
+    }
 
     if (ok) {
       satisfied += 1;
     } else {
-      reasons.push(
-        `${c.capability}: status="${c.status}"` +
-          (c.requiresRealProvider ? " (requires verified_real_provider)" : " (no executable evidence)")
-      );
+      reasons.push(`${c.capability}: status="${c.status}" (${requirement})`);
     }
   }
 

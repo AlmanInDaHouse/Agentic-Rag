@@ -745,22 +745,27 @@ See `docs/adr/0027-quota-aware-provider-orchestration.md` and
 
 ## 18. Execution Environment
 
-**[Decided] (A0.4, ADR 0030) — substrate decided; writable execution still
-unauthorized**
+**[Re-decided] (A10-W, ADR 0056) — primary substrate is NATIVE WINDOWS; ADR 0030
+(WSL2-first) is superseded as the mandatory substrate and reframed optional/future.**
 
-The execution substrate is **WSL2-first**: the runtime, Git, Node, pnpm, both
-provider CLIs, the working repository, worktrees and quality gates run inside one
-WSL2 distribution on the Linux filesystem; Windows hosts only the editor (remote-WSL
-integration) and the browser (`localhost` to the WSL2 service). Native Windows
-execution is deferred. Worktrees live in an external TriForge-managed state root on
-the Linux filesystem, outside the active working tree. See
-`docs/specs/WINDOWS_WSL2_EXECUTION_SUBSTRATE_SPEC.md` and ADR 0030.
+The execution substrate is **native Windows 11**: the runtime, Git, Node, pnpm, both
+provider CLIs, the working repository, worktrees and quality gates run natively on
+Windows on NTFS, operated from a **PowerShell terminal in an integrated IDE** (VS Code
+/ Antigravity). There is no WSL2 / Ubuntu / Linux-path / Remote-WSL requirement.
+Worktrees live in an external TriForge-managed state root under `%LOCALAPPDATA%\TriForge`,
+outside the active working tree. All OS-specific behavior is funnelled through one
+`ExecutionPlatform` boundary (`WindowsExecutionPlatform` initial; `PosixExecutionPlatform`
+future). See `docs/specs/NATIVE_WINDOWS_OPERATIONAL_CLOSURE_SPEC.md` and ADR 0056. The
+prior WSL2 design (`docs/specs/WINDOWS_WSL2_EXECUTION_SUBSTRATE_SPEC.md`, ADR 0030) is
+retained as the historical record and the rollback path.
 
-WSL2 is the operational and compatibility substrate; it is **not** a security
-sandbox for untrusted repository content. The full provider/repository threat model
-is Milestone A0.5. Allowed-path enforcement, command policy, the worktree manager,
-real cancellation and **writable provider execution remain unbuilt and unauthorized**
-until A0.5 is closed (A0.4 is merged; ADR 0030).
+Native Windows is the operational and compatibility substrate; ACL / restricted-token /
+Job-Object controls are **not** a perfect security sandbox for untrusted repository
+content (honest residual risk; A0.5 still governs). The Windows path policy, command
+policy, worktree manager, Job Object supervisor, isolation boundary and **writable
+provider execution** are delivered across A10-W.2–W.9; verification on a real Windows
+host is required (`verified_real_environment` / `verified_real_provider`), not inferred
+from the Linux CI.
 
 ---
 
