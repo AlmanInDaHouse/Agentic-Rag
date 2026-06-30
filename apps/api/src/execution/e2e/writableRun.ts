@@ -33,6 +33,15 @@ function sha256(text: string): string {
   return createHash("sha256").update(text, "utf8").digest("hex");
 }
 
+/** A pipeline-stage event for the integrated runtime's live timeline (A10-W.8b). The
+ *  orchestrator assigns sequence numbers and persists; this hook only reports. */
+export interface WritableRunStageEvent {
+  type: string;
+  payload: Record<string, unknown>;
+  provider?: ProviderId | null;
+}
+export type WritableRunEventSink = (event: WritableRunStageEvent) => void | Promise<void>;
+
 export interface OwnerContext {
   worktreePath: string;
   /** Authorized write: role + path checked; writes the file and records the mutation. */
@@ -73,6 +82,19 @@ export interface WritableTaskConfig {
   /** Clean up the worktree at the end. Default true; A7 keeps both candidates alive
    *  to compare, then cleans up itself. */
   autoCleanup?: boolean;
+  /** Optional live-timeline sink (A10-W.8b). Emits pipeline milestones (worktree,
+   *  repair rounds, gates, review, governance, merge, cleanup) as they happen; the
+   *  owner/reviewer callbacks emit their own provider-level events. Never throws into
+   *  the pipeline (errors are swallowed) — observability must not break execution. */
+  onEvent?: WritableRunEventSink;
+  /** Capture the worktree diff (vs HEAD) into the report before cleanup (A10-W.8b) so
+   *  the UI diff/review panel has real content. Default false (the A5 E2E does not need it). */
+  captureDiff?: boolean;
+}
+
+export interface ChangedFile {
+  path: string;
+  status: string;
 }
 
 export interface WritableRunReport {
@@ -86,6 +108,9 @@ export interface WritableRunReport {
   reconciledTampered: boolean;
   gateTampered: boolean;
   cleanedUp: boolean;
+  /** Populated only when `captureDiff` is set (A10-W.8b). */
+  changedFiles: ChangedFile[];
+  diffText: string | null;
 }
 
 const EMPTY_FINDINGS: FindingsSummary = { blocker: 0, critical: 0, major: 0, minor: 0, observation: 0 };
@@ -106,9 +131,19 @@ export async function runWritableTask(config: WritableTaskConfig): Promise<Writa
     gitRunner: config.gitRunner,
     clock: config.clock
   });
+  const emit: WritableRunEventSink = async (event) => {
+    if (!config.onEvent) return;
+    try {
+      await config.onEvent(event);
+    } catch {
+      /* observability must never break execution */
+    }
+  };
+
   const handle = await wtm.create({ runId: config.runId, taskId: config.taskId });
   const worktreePath = handle.path;
   const branch = handle.metadata.branch;
+  await emit({ type: "worktree.created", payload: { worktreePath, branch } });
 
   const ownership = new OwnershipRegistry({ clock: config.clock });
   ownership.acquire({ runId: config.runId, taskId: config.taskId }, config.owner);
@@ -207,10 +242,21 @@ export async function runWritableTask(config: WritableTaskConfig): Promise<Writa
     limits: { maxRounds: config.maxRepairRounds ?? 3 },
     steps: {
       implement: async (round) => {
+        await emit({ type: "repair.round.started", payload: { round }, provider: config.owner });
         await config.ownerImplement(ownerCtx, round);
         const changes = await computeWorktreeChanges(config.gitRunner, worktreePath);
         lastReconTampered = reconcile(ledger.entries(), changes).tampered;
         lastTampered = detectGateTampering(changes).tampered;
+        await emit({
+          type: "mutations.recorded",
+          payload: {
+            round,
+            filesChanged: changes.map((c) => c.relPath),
+            reconciledTampered: lastReconTampered,
+            gateTampered: lastTampered
+          },
+          provider: config.owner
+        });
         return {
           diffHash: diffHash(changes),
           filesChanged: changes.map((c) => c.relPath),
@@ -220,6 +266,7 @@ export async function runWritableTask(config: WritableTaskConfig): Promise<Writa
       },
       runGates: async (): Promise<GateOutcomeLite> => {
         const result = await gateRunner.run();
+        await emit({ type: "gates.completed", payload: { status: result.overallStatus } });
         return { overallStatus: result.overallStatus };
       },
       review: async (gates) => {
@@ -246,6 +293,11 @@ export async function runWritableTask(config: WritableTaskConfig): Promise<Writa
               }
             : findings;
         lastFindings = withTamper;
+        await emit({
+          type: "review.completed",
+          payload: { summary: withTamper.summary, findings: summariseFindings(withTamper) },
+          provider: config.reviewer
+        });
         return withTamper;
       }
     }
@@ -286,6 +338,11 @@ export async function runWritableTask(config: WritableTaskConfig): Promise<Writa
     capabilityBinding: config.capabilityBinding
   });
 
+  await emit({
+    type: "governance.decided",
+    payload: { verdict: governance.verdict, diffHash: finalDiffHash, repairState: loopResult.state }
+  });
+
   const autoMerge = config.autoMerge ?? true;
   const autoCleanup = config.autoCleanup ?? true;
   let merged = false;
@@ -293,6 +350,20 @@ export async function runWritableTask(config: WritableTaskConfig): Promise<Writa
   if (autoMerge && governance.verdict === "merge") {
     merged = await commitAndMerge(config, worktreePath, branch);
     mergeReason = merged ? "governed merge completed" : "merge failed";
+  }
+  await emit({ type: merged ? "merge.completed" : "merge.skipped", payload: { merged, mergeReason, branch } });
+
+  // Capture the diff (vs HEAD) before cleanup so the UI has real content (A10-W.8b).
+  const changedFiles: ChangedFile[] = finalChanges.map((c) => ({ path: c.relPath, status: c.status }));
+  let diffText: string | null = null;
+  if (config.captureDiff) {
+    try {
+      const d = await config.gitRunner.run(["diff", "HEAD"], { cwd: worktreePath });
+      diffText = d.code === 0 ? d.stdout : null;
+    } catch {
+      diffText = null;
+    }
+    await emit({ type: "diff.captured", payload: { changedFiles, hasPatch: diffText !== null } });
   }
 
   // Cleanup the worktree + branch (the change, if merged, is already on the base branch).
@@ -306,6 +377,7 @@ export async function runWritableTask(config: WritableTaskConfig): Promise<Writa
       cleanedUp = false;
     }
   }
+  await emit({ type: "cleanup.completed", payload: { cleanedUp } });
 
   return {
     worktreePath,
@@ -317,7 +389,9 @@ export async function runWritableTask(config: WritableTaskConfig): Promise<Writa
     ledgerEntryCount: ledger.entries().length,
     reconciledTampered: reconciliation.tampered,
     gateTampered: tampering.tampered,
-    cleanedUp
+    cleanedUp,
+    changedFiles,
+    diffText
   };
 }
 

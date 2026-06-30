@@ -24,6 +24,12 @@ const envSchema = z.object({
     .string()
     .url()
     .default("postgres://triforge:triforge@localhost:5432/triforge"),
+  // Integrated runtime provider selection (A10-W.8b). `mock` (the default) keeps every
+  // integrated run deterministic for tests, demos, CI and offline development. `real`
+  // routes the integrated run through the capability-gated real Codex/Claude adapters
+  // on the native Windows substrate. There is NO silent real->mock fallback: when `real`
+  // is selected and a provider cannot run, the run terminates failed/blocked/unavailable.
+  TRIFORGE_PROVIDER_MODE: z.enum(["mock", "real"]).default("mock"),
   TRIFORGE_MOCK_AGENT_FAILURE_MODE: z
     .enum(["none", "one_invalid", "all_invalid"])
     .default("none"),
