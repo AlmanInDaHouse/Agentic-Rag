@@ -42,6 +42,20 @@ import {
   type Stats
 } from "node:fs";
 import path from "node:path";
+import {
+  findAlternateDataStream,
+  findReservedDeviceName,
+  findTrailingDotOrSpace,
+  rejectDangerousNamespace,
+  segmentsBelowRoot
+} from "../../platform/windowsPathPolicy.js";
+
+/**
+ * A10-W.2: the Windows-specific lexical hardening and case-insensitive containment
+ * are applied ONLY on a native Windows host. POSIX behavior is unchanged (a POSIX
+ * filename may legitimately contain `:` etc.), keeping the existing suite green.
+ */
+const IS_WINDOWS = process.platform === "win32";
 
 export interface AllowedPathPolicy {
   /** Workspace-relative path prefixes the owner may READ. `["."]`/`[""]` = all. */
@@ -65,7 +79,12 @@ export type PathDenyReason =
   | "blocked_path"
   | "not_readable"
   | "not_writable"
-  | "max_files";
+  | "max_files"
+  // A10-W.2 — Windows-specific (only emitted on a native Windows host)
+  | "dangerous_namespace"
+  | "alternate_data_stream"
+  | "reserved_device_name"
+  | "trailing_dot_or_space";
 
 export interface PathDecision {
   allowed: boolean;
@@ -157,6 +176,11 @@ export class PathPolicyEngine {
       return deny("invalid_input", "NUL byte in path");
     }
 
+    // 1b. Windows namespace hazards (UNC / \\?\ / \\.\) — native Windows only.
+    if (IS_WINDOWS && rejectDangerousNamespace(input) !== null) {
+      return deny("dangerous_namespace", "UNC / extended-length / device namespace is out of bounds");
+    }
+
     // 2. Lexical resolution + containment (rejects `..` and absolute escapes).
     //    Resolve against the CANONICAL workspace root so a symlinked temp/base
     //    (e.g. macOS `/var` -> `/private/var`) does not skew containment.
@@ -164,6 +188,21 @@ export class PathPolicyEngine {
     const lexRel = path.relative(this.realWorkspaceRoot, candidate);
     if (lexRel.startsWith("..") || path.isAbsolute(lexRel)) {
       return deny("traversal", `path escapes the workspace: ${candidate}`);
+    }
+
+    // 2b. Windows segment hazards on the resolved candidate — native Windows only
+    //     (a POSIX filename may legitimately contain `:`, trailing dots, etc.).
+    if (IS_WINDOWS) {
+      const segs = segmentsBelowRoot(candidate);
+      if (findAlternateDataStream(segs) !== null) {
+        return deny("alternate_data_stream", "alternate data stream in path");
+      }
+      if (findReservedDeviceName(segs) !== null) {
+        return deny("reserved_device_name", "reserved device name in path");
+      }
+      if (findTrailingDotOrSpace(segs) !== null) {
+        return deny("trailing_dot_or_space", "trailing dot/space in a path segment");
+      }
     }
 
     // 3. Realpath the nearest existing ancestor; require containment.
@@ -228,12 +267,20 @@ export class PathPolicyEngine {
     return { allowed: true, mode, input, realPath, relPath };
   }
 
-  /** True when `realTarget` is the workspace root or strictly inside it. */
+  /**
+   * True when `realTarget` is the workspace root or strictly inside it. Compares
+   * CANONICAL (realpath'd) paths at a segment boundary; on a native Windows host
+   * the comparison is case-folded (NTFS is case-insensitive), so `C:\Work` and
+   * `c:\work\x` are recognized as contained. POSIX comparison is unchanged.
+   */
   private isWithinRealRoot(realTarget: string): boolean {
-    if (realTarget === this.realWorkspaceRoot) {
+    const fold = (p: string): string => (IS_WINDOWS ? p.toLowerCase() : p);
+    const root = fold(this.realWorkspaceRoot);
+    const target = fold(realTarget);
+    if (target === root) {
       return true;
     }
-    return realTarget.startsWith(this.realWorkspaceRoot + path.sep);
+    return target.startsWith(root + path.sep);
   }
 
   /** Realpath of the nearest existing ancestor of `target` (or null on failure). */

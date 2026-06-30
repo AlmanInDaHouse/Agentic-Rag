@@ -32,6 +32,12 @@ import {
   type TerminationReason,
   type TerminationResult
 } from "@triforge/shared";
+import {
+  defaultForbiddenRoots,
+  makeNodeWindowsCanonicalizer,
+  validateWindowsContainedPath,
+  type WindowsPathCanonicalizer
+} from "./windowsPathPolicy.js";
 
 abstract class BaseExecutionPlatform implements ExecutionPlatform {
   abstract readonly platformId: PlatformId;
@@ -56,7 +62,12 @@ abstract class BaseExecutionPlatform implements ExecutionPlatform {
         await lstat(existing);
         found = true;
         break;
-      } catch {
+      } catch (err) {
+        // Only ENOENT/ENOTDIR mean "genuinely absent" → keep walking up. An
+        // inaccessible existing segment (EACCES/EPERM…) stops the walk rather than
+        // being misread as an absent tail component.
+        const code = err && typeof err === "object" && "code" in err ? String((err as { code: unknown }).code) : undefined;
+        if (code !== "ENOENT" && code !== "ENOTDIR") break;
         const parent = path.dirname(existing);
         if (parent === existing) break; // reached the volume root, still absent
         tail.unshift(path.basename(existing));
@@ -172,11 +183,26 @@ abstract class BaseExecutionPlatform implements ExecutionPlatform {
 export class WindowsExecutionPlatform extends BaseExecutionPlatform {
   readonly platformId = "windows" as const;
 
+  private readonly canonicalizer: WindowsPathCanonicalizer = makeNodeWindowsCanonicalizer();
+
   protected deriveVolumeId(absolutePath: string): string {
     // Drive letter ("C:\") or UNC root ("\\server\share\"); uppercased for
     // NTFS case-insensitive comparison. Empty root falls back to the input.
     const root = path.parse(absolutePath).root;
     return (root || absolutePath).toUpperCase();
+  }
+
+  /**
+   * A10-W.2 — deny-by-default Windows containment (volume identity + canonical
+   * resolution + case-folded segment-boundary containment; never a raw startsWith).
+   * Blocks UNC/extended/device namespaces, ADS, reserved device names, trailing
+   * dot/space, reparse/junction escapes, `.git`, and system/credential/state roots.
+   */
+  override validateContainedPath(request: PathValidationRequest): Promise<PathValidationResult> {
+    return validateWindowsContainedPath(request, {
+      canonicalize: this.canonicalizer,
+      forbiddenRoots: defaultForbiddenRoots(request.containmentRoot)
+    });
   }
 }
 

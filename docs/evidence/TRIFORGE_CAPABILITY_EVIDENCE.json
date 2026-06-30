@@ -23,17 +23,29 @@
     },
     {
       "capability": "windows_path_policy",
-      "status": "unknown",
+      "status": "verified_real_environment",
       "mandatoryForFinal": true,
       "requiresRealProvider": false,
       "requiresRealEnvironment": true,
       "provider": "",
       "providerVersion": "",
       "environment": "windows-native",
-      "evidence": [],
-      "verifiedAt": "",
-      "risks": ["junction/symlink/reparse escapes; ADS; UNC; device paths; reserved names; case-insensitivity; trailing dot/space"],
-      "notes": "A10-W.2: canonical-identity containment (volume + realpath, never startsWith) for Windows. ExecutionPlatform.validateContainedPath is declared and currently throws PlatformMethodNotImplementedError; implemented + real-host fixture matrix in A10-W.2."
+      "evidence": [
+        "apps/api/src/platform/windowsPathPolicy.ts",
+        "apps/api/src/platform/nodeExecutionPlatform.ts (WindowsExecutionPlatform.validateContainedPath)",
+        "apps/api/src/execution/path/pathPolicy.ts (the WIRED write gate: Windows lexical pre-gate + case-insensitive containment)",
+        "apps/api/src/test/windowsPathPolicy.test.ts (cross-platform negative matrix)",
+        "apps/api/src/test/windowsPathPolicy.host.test.ts (standalone validateContainedPath on real NTFS: mklink /J junction escape, ADS, reserved names, traversal, .git) — green on Windows 11 26200",
+        "apps/api/src/test/pathPolicy.windows.host.test.ts (the WIRED PathPolicyEngine.checkWrite/checkRead on real NTFS: junction escape, ADS, reserved names, UNC, traversal, .git, case-insensitive containment) — green on Windows 11 26200"
+      ],
+      "verifiedAt": "2026-06-30",
+      "risks": [
+        "post-validation tail-junction TOCTOU: a junction planted at a not-yet-existing tail segment AFTER the check is not caught (RR-2 residual; full TOCTOU hardening is future). Reparse points present AT check time are denied.",
+        "AppExecLink / cloud-placeholder reparse tags are not tag-inspected (symlink/junction/mount-point are covered via lstat); admin-only symbolic links are not exercised in the matrix (directory junctions are).",
+        "case folding is ASCII-correct (toLowerCase), an approximation of the NTFS $UpCase table — the containment guarantee assumes a system-controlled (ASCII) worktree root.",
+        "the forbiddenRoots layer is defense-in-depth only; under containment it is largely inert (a target outside the worktree is already denied)."
+      ],
+      "notes": "A10-W.2: deny-by-default Windows containment — volume identity + canonical (realpath) resolution of the nearest existing ancestor + case-folded segment-boundary containment (never a raw startsWith). Blocks UNC/extended-length/device namespaces, ADS, reserved device names, trailing dot/space, and junction/reparse escapes present at check time (incl. a nonexistent child below a hostile junction), plus .git. An inaccessible existing segment fails safe (denied_reparse_point). Verified on a REAL Windows host (NTFS, real mklink /J junctions) for BOTH the standalone WindowsExecutionPlatform.validateContainedPath AND the WIRED write gate PathPolicyEngine (which actually authorizes provider writes via roleEnforcer/writableRun); POSIX behavior unchanged. CI (Linux) runs the cross-platform lexical matrix; the real-NTFS reparse behavior is the local Windows-host run. Scope: lexical + existing-chain canonical containment — not yet end-to-end through a real provider write (that is the A10-W.7 pilots)."
     },
     {
       "capability": "windows_worktree_manager",
