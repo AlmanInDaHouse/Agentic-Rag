@@ -193,29 +193,41 @@
     },
     {
       "capability": "codex_owner_claude_reviewer_e2e",
-      "status": "unknown",
+      "status": "verified_real_provider",
       "mandatoryForFinal": true,
       "requiresRealProvider": true,
       "provider": "both",
-      "providerVersion": "",
+      "providerVersion": "codex 0.142.4 / claude 2.1.195",
       "environment": "windows-native",
-      "evidence": [],
-      "verifiedAt": "",
-      "risks": [],
-      "notes": "A10-W.7 Pilot A: Codex Implementation Owner + Claude Cross-Vendor Reviewer on a fixture repo, native Windows worktree. No longer blocked_external — provider auth is satisfied; pending the real pilot run."
+      "evidence": [
+        "apps/api/src/test/realPilot.host.test.ts Pilot A — green on Windows 11 26200, 2026-06-30: codex OWNER (workspace-write) implemented slugify in an isolated worktree; ledger attributed the real writes (reconciledTampered=false); npm-test gate passed; claude CROSS-VENDOR reviewer (read-only, sonnet) returned PASS; governance verdict=merge; governed merge into the fixture base (merged=true); cleanup done",
+        "apps/api/src/execution/e2e/realPilot.ts (real-provider owner+reviewer over runWritableTask) + trustedCommandRunner.ts (Windows gate command)"
+      ],
+      "verifiedAt": "2026-06-30",
+      "risks": [
+        "the owner provider writes directly under its sandbox; attribution is via a path-checked ledger replay (an out-of-policy write is refused at replay and would surface as tampering). Deletions are not replayed (fixture tasks add/modify only).",
+        "the cross-vendor reviewer verdict is a real LLM judgment parsed from a strict REVIEW_VERDICT line; a reviewer write attempt under read-only is a blocker."
+      ],
+      "notes": "A10-W.7 Pilot A: Codex Implementation Owner + Claude Cross-Vendor Reviewer on a disposable fixture repo, native Windows worktree. Full pipeline (worktree → real owner write → ledger → diff → quality gate → cross-vendor review → governance → governed merge → cleanup) verified end-to-end with REAL providers."
     },
     {
       "capability": "claude_owner_codex_reviewer_e2e",
-      "status": "unknown",
+      "status": "verified_real_provider",
       "mandatoryForFinal": true,
       "requiresRealProvider": true,
       "provider": "both",
-      "providerVersion": "",
+      "providerVersion": "claude 2.1.195 / codex 0.142.4",
       "environment": "windows-native",
-      "evidence": [],
-      "verifiedAt": "",
-      "risks": [],
-      "notes": "A10-W.7 Pilot B: Claude Implementation Owner + Codex Cross-Vendor Reviewer on a fixture repo, native Windows worktree. Pending the real pilot run."
+      "evidence": [
+        "apps/api/src/test/realPilot.host.test.ts Pilot B — green on Windows 11 26200, 2026-06-30: claude OWNER (acceptEdits, sonnet) implemented slugify via the Write tool in an isolated worktree; ledger attributed the real writes (reconciledTampered=false); npm-test gate passed; codex CROSS-VENDOR reviewer (read-only) returned PASS; governance verdict=merge; governed merge into the fixture base (merged=true); cleanup done",
+        "apps/api/src/execution/e2e/realPilot.ts + trustedCommandRunner.ts"
+      ],
+      "verifiedAt": "2026-06-30",
+      "risks": [
+        "claude writes via the Write tool (no file_change event); the worktree diff (mutation ledger) is the authority for the mutation, reconciled via the path-checked replay.",
+        "the reviewer verdict is a real LLM judgment; the reverse-direction pilot (Pilot A) covers codex-owner/claude-reviewer."
+      ],
+      "notes": "A10-W.7 Pilot B: Claude Implementation Owner + Codex Cross-Vendor Reviewer on a disposable fixture repo, native Windows worktree. Full pipeline verified end-to-end with REAL providers (reverse cross-vendor direction of Pilot A)."
     },
     {
       "capability": "windows_integrated_product_e2e",

@@ -43,6 +43,8 @@ export { claudeLineMapper } from "./claudeNormalizer.js";
 
 export {
   RealAdapter,
+  safeModel,
+  WINDOWS_BASE_ENV_ALLOWLIST,
   type RealAdapterConfig,
   type RealAdapterOptions,
   type CapabilityFields
