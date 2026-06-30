@@ -147,12 +147,34 @@ export interface WorktreeManagerOptions {
   gitTimeoutMs?: number;
 }
 
-/** Compute the default external state root per substrate §8.4. */
+/** True on a native Windows host (NTFS state root + case-insensitive containment). */
+const IS_WINDOWS = process.platform === "win32";
+
+/**
+ * Compute the default external managed state root.
+ *  - Windows (A10-W.3, ADR 0056): `%LOCALAPPDATA%\TriForge` on NTFS.
+ *  - POSIX (substrate §8.4): `${XDG_STATE_HOME:-$HOME/.local/state}/triforge`.
+ * In all cases the state root is OUTSIDE the base working tree.
+ */
 export function defaultStateRoot(): string {
+  if (IS_WINDOWS) {
+    const local = process.env.LOCALAPPDATA;
+    const base =
+      local && local.length > 0 ? local : path.join(homedir() || tmpdir(), "AppData", "Local");
+    return path.join(base, "TriForge");
+  }
   const xdg = process.env.XDG_STATE_HOME;
   const base =
     xdg && xdg.length > 0 ? xdg : path.join(homedir() || tmpdir(), ".local", "state");
   return path.join(base, "triforge");
+}
+
+/** Case-insensitive containment on Windows (NTFS), case-sensitive on POSIX. */
+function withinRoot(child: string, root: string): boolean {
+  const fold = (p: string): string => (IS_WINDOWS ? p.toLowerCase() : p);
+  const c = fold(child);
+  const r = fold(root);
+  return c === r || c.startsWith(r + path.sep);
 }
 
 export class WorktreeManager {
@@ -451,10 +473,12 @@ export class WorktreeManager {
     while (cursor.startsWith(root) && cursor !== root) {
       if (await pathExists(cursor)) {
         const real = await fs.realpath(cursor);
-        if (real !== realRoot && !real.startsWith(realRoot + path.sep)) {
+        // Case-insensitive containment on Windows (NTFS): a junction/symlink ancestor
+        // whose real path leaves the state root — even via a case-variant — is refused.
+        if (!withinRoot(real, realRoot)) {
           throw new WorktreeError(
             "symlink_escape",
-            `path component escapes the state root via symlink: ${cursor} -> ${real}`
+            `path component escapes the state root via symlink/junction: ${cursor} -> ${real}`
           );
         }
         return;
