@@ -29,11 +29,46 @@
  * is recorded as A5.1's residual risk in the capability binding.
  */
 
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import path from "node:path";
 import { isCredentialEnvName } from "../../providers/real/processRunner.js";
+
+/**
+ * Resolve a bare git binary name to an ABSOLUTE path on Windows (A10-W.9 security fix
+ * for executable shadowing). Every managed git op runs with `cwd = <worktree>`, which is
+ * attacker/repo-controlled; Windows `CreateProcess` searches the current directory ahead
+ * of PATH for a bare command name, so a repo that commits `git.exe` / `git.cmd` at its
+ * root would shadow the real git. Resolving via `where.exe` (pinned to its System32
+ * absolute path, run from System32 — never the worktree) and spawning the absolute result
+ * removes that search-order ambiguity. POSIX `execvp` never searches cwd, so a bare name
+ * is left untouched there. An already-absolute `gitBin` is honored as-is. If resolution
+ * fails the bare name is returned as a last resort (the doctor verifies git is installed).
+ */
+export function resolveGitExecutable(gitBin: string, platform: NodeJS.Platform = process.platform): string {
+  if (path.isAbsolute(gitBin)) {
+    return gitBin;
+  }
+  if (platform !== "win32") {
+    return gitBin;
+  }
+  const sysRoot = process.env.SystemRoot ?? process.env.windir ?? "C:\\Windows";
+  const whereExe = path.join(sysRoot, "System32", "where.exe");
+  try {
+    const res = spawnSync(whereExe, [gitBin], { cwd: path.join(sysRoot, "System32"), encoding: "utf8", shell: false });
+    if (res.status === 0 && typeof res.stdout === "string") {
+      const matches = res.stdout.split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+      const exe = matches.find((m) => /\.exe$/i.test(m)) ?? matches.find((m) => /\.(cmd|bat)$/i.test(m));
+      if (exe && path.isAbsolute(exe)) {
+        return exe;
+      }
+    }
+  } catch {
+    /* fall through to the bare name */
+  }
+  return gitBin;
+}
 
 /**
  * Default location for the manager-owned hardening assets (empty hooks dir + empty
@@ -118,6 +153,7 @@ const GIT_ENV_ALLOWLIST: readonly string[] = [
  * caller could forget.
  */
 export class NodeGitRunner implements GitRunner {
+  /** Absolute, shadow-proof git path (A10-W.9). Resolved once, never the worktree cwd. */
   private readonly gitBin: string;
   private readonly hardeningRoot: string;
   private readonly hooksDir: string;
@@ -125,7 +161,7 @@ export class NodeGitRunner implements GitRunner {
   private hardeningReady = false;
 
   constructor(options: { gitBin?: string; hardeningRoot?: string } = {}) {
-    this.gitBin = options.gitBin ?? "git";
+    this.gitBin = resolveGitExecutable(options.gitBin ?? "git");
     this.hardeningRoot = options.hardeningRoot ?? defaultHardeningRoot();
     this.hooksDir = path.join(this.hardeningRoot, "empty-hooks");
     this.emptyGitConfig = path.join(this.hardeningRoot, "empty-gitconfig");
