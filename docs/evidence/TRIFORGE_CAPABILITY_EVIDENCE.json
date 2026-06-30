@@ -264,17 +264,24 @@
     },
     {
       "capability": "windows_clean_install",
-      "status": "unknown",
+      "status": "verified_real_environment",
       "mandatoryForFinal": true,
       "requiresRealProvider": false,
       "requiresRealEnvironment": true,
       "provider": "",
       "providerVersion": "",
       "environment": "windows-native",
-      "evidence": [],
-      "verifiedAt": "",
-      "risks": [],
-      "notes": "A10-W.9: clean install/build/test from a fresh checkout on a real Windows host via the documented PowerShell quick start (corepack enable; pnpm install --frozen-lockfile; pnpm triforge:doctor/setup/start)."
+      "evidence": [
+        "docs/evidence/CLEAN_INSTALL_VERIFICATION.md — fresh `git clone` to a separate NTFS path (C:\\tmp\\triforge-ci2; HEAD 1f0dc7c), NO node_modules/.env/db/artifacts/creds copied from the dev checkout",
+        "the full documented PowerShell quick start ran green on Windows 11 26200, 2026-06-30: corepack pnpm install --frozen-lockfile (exit 0) → pnpm triforge:setup (doctor 0 blockers + dep policy + PostgreSQL reachability + config + state dirs + migrations, exit 0) → pnpm triforge:start (migrations + build of @triforge/api+web + backend node dist on :3001 + frontend vite preview on :5173, BOTH readiness-probed up, exit 0) → pnpm triforge:status --check (PostgreSQL + backend + frontend all up, managed pids alive, exit 0) → pnpm triforge:stop (both stopped) → pnpm triforge:clean (worktrees pruned, runtime cleared, persistent preserved)",
+        "tooling/triforge-cli/{setup,start,stop,status,clean}.mjs"
+      ],
+      "verifiedAt": "2026-06-30",
+      "risks": [
+        "the application database was a native Windows PostgreSQL 18 cluster provisioned for the verification (a dedicated throwaway cluster on an alternate port with trust auth — same engine/host as windows_native_substrate, isolated data; the owner's existing 5432 service was untouched). A future operator points DATABASE_URL at any reachable Postgres.",
+        "LongPathsEnabled=0 remains a doctor warning (mitigated by git core.longpaths=true on win32); not a blocker."
+      ],
+      "notes": "A10-W.9: a clean install from a fresh NTFS checkout completes the entire documented operate-from-PowerShell quick start (install/doctor/setup/start/status/stop/clean) with no dependence on the original checkout — backend + frontend + native PostgreSQL all come up and are readiness-verified. This was also the first full end-to-end exercise of triforge:start (build + detached servers + PID tracking + readiness)."
     },
     {
       "capability": "specialist_mode_real",
