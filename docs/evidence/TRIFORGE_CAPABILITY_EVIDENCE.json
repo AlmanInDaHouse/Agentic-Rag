@@ -423,29 +423,29 @@
     },
     {
       "capability": "pr_26_resolved",
-      "status": "unknown",
+      "status": "verified_fixture",
       "mandatoryForFinal": true,
       "requiresRealProvider": false,
       "provider": "",
       "providerVersion": "",
       "environment": "github",
-      "evidence": ["open draft PR #26 (legacy Code Graph ingestion, 2026-06-08)"],
-      "verifiedAt": "",
+      "evidence": ["docs/repo/PR_26_RESOLUTION.md", "PR #26 closed 2026-06-30 with an explanation comment; branch preserved"],
+      "verifiedAt": "2026-06-30",
       "risks": [],
-      "notes": "A10.10: classify and formally resolve PR #26 (close with explanation, preserving history, or extract). Delivered in A10-10 (pending)."
+      "notes": "A10.10: PR #26 classified superseded (pre-reorientation 1.x RAG ingestion, out of the 1.0 scope) and closed with an explanation; history preserved (branch not deleted); reversible. No open roadmap PR remains."
     },
     {
       "capability": "requires_verification_closed",
-      "status": "unknown",
+      "status": "verified_fixture",
       "mandatoryForFinal": true,
       "requiresRealProvider": false,
       "provider": "",
       "providerVersion": "",
       "environment": "ci",
-      "evidence": [],
-      "verifiedAt": "",
+      "evidence": ["docs/evidence/REQUIRES_VERIFICATION_REGISTER.md"],
+      "verifiedAt": "2026-06-30",
       "risks": [],
-      "notes": "A10.9: every open REQUIRES_VERIFICATION item closed as verified / blocked_external / unsupported / unknown, with no 1.0-mandatory item left unknown. Register delivered in A10-1; items closed across A10 PRs."
+      "notes": "A10.9: every REQUIRES_VERIFICATION item is closed as verified / blocked_external / unsupported. No 1.0-mandatory item remains unknown (item 8 localhost-interop is verified during the integrated E2E and is not mandatory in isolation). The real-provider items are blocked_external on the owner auth runbook."
     },
     {
       "capability": "evidence_based_release_gate",
