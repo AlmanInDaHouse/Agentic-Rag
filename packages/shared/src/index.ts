@@ -8,6 +8,11 @@ export * from "./provider/capability.js";
 export * from "./provider/adapter.js";
 export * from "./provider/artifacts.js";
 
+// Capability evidence model (A10) — machine-readable evidence registry + the
+// final-operational release readiness evaluation. See
+// docs/evidence/TRIFORGE_CAPABILITY_EVIDENCE.json and ADR 0054.
+export * from "./provider/evidence.js";
+
 export const agentIdSchema = z.enum([
   "codex_architect",
   "claude_critic",

@@ -1,7 +1,13 @@
 # TriForge 1.0 — Release Notes & Definition of Done
 
-**Status:** Release candidate. The A1–A9 roadmap is complete; the Definition of Done below
-is met with **executable evidence** (green gates + specs/ADRs), not a narrative.
+**Status:** Release candidate. The **A1–A9 roadmap Definition of Done: MET** with
+**executable evidence** (green gates + specs/ADRs), not a narrative. The **Final
+operational Definition of Done (A10): PENDING** — writable operation with the *real*
+Codex / Claude CLIs is not yet verified. The providers must be installed and
+**manually authenticated by the owner** inside WSL2 (see §A10 and
+`docs/runbooks/REAL_PROVIDER_SETUP_WSL2.md`). The single machine-readable source of
+truth for what is mock-verified vs real-verified is
+`docs/evidence/TRIFORGE_CAPABILITY_EVIDENCE.json`.
 
 TriForge is a local multi-agent CLI-orchestration runtime (Codex + Claude Code, no API
 keys) that takes a task, routes it honestly to a provider, executes it with real
@@ -68,11 +74,30 @@ RC + the real-git E2E, and the 46 web view-model tests), the code-graph checks, 
 dependency audit — **all green**. `main` is always green. There are no open
 blockers/criticals.
 
+## A10 — Real Provider Operational Closure (the path to the final operational release)
+
+A1–A9 proved the writable runtime with **mock** providers. The final operational 1.0
+requires verifying it with the **real** Codex CLI and Claude Code. A10 adds the
+evidence model, the capability-gated writable adapters, the real isolation boundary,
+the conformance harness, the pilots, and an **evidence-based release gate** that
+distinguishes "roadmap complete (RC)" from "real-provider operational (final)".
+
+The auth-independent substrate (A10.1–A10.4, A10.10, A10.11) ships autonomously and
+CI-green. The auth-dependent verification (A10.5–A10.8: real pilots, real collaboration
+modes, real quota, integrated real E2E) is **blocked on one owner-only manual action**:
+install + authenticate the provider CLIs in WSL2 per
+`docs/runbooks/REAL_PROVIDER_SETUP_WSL2.md`. Until then those capabilities are
+`blocked_external` in `TRIFORGE_CAPABILITY_EVIDENCE.json`, the final gate reports
+not-ready, and no `v1.0.0` final tag is created. See
+`docs/specs/REAL_PROVIDER_OPERATIONAL_CLOSURE_SPEC.md` and ADR 0054.
+
 ## Known non-blocking open items (registered)
 
-- **A5.10 real provider pilot** — gated until a writable provider capability is observed
-  (WSL2 substrate + authenticated CLIs; the MVP stands via mocks).
-- **PR #26** — legacy 1.x Code Graph ingestion, out of the A1–A9 roadmap, not merged.
+- **A5.10 / A10 real provider verification** — gated on the owner's manual WSL2
+  install + authentication; tracked in `TRIFORGE_CAPABILITY_EVIDENCE.json` and the
+  REQUIRES_VERIFICATION register (A10.9). The MVP stands via mocks.
+- **PR #26** — legacy 1.x Code Graph ingestion, out of the A1–A9 roadmap; resolved by
+  A10.10.
 - **R-SEC-2** — the owner's external PAT rotation (Git auth via the credential manager is
   unaffected).
 
@@ -83,5 +108,11 @@ force-push, no branch-protection disabling, no check bypass. Writable work is co
 isolated worktrees; every writable capability carries a
 {threat, control, milestone, verification, recovery, residual-risk} closure record.
 
-**TriForge 1.0 Definition of Done: MET** — backed by the green release gate and the
-evidence mapped above.
+**A1–A9 roadmap Definition of Done: MET** (release candidate) — backed by the green
+release gate and the evidence mapped above.
+
+**Final operational Definition of Done (A10): PENDING** — gated on real-provider
+verification, evaluated from `docs/evidence/TRIFORGE_CAPABILITY_EVIDENCE.json` by
+`apps/api/src/test/finalReleaseGate.test.ts`. The final-operational declaration and the
+`v1.0.0` tag are set only when that gate reports ready (every mandatory writable
+real-provider capability at `verified_real_provider`).

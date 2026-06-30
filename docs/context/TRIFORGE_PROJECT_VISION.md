@@ -959,6 +959,18 @@ aligned with the owner mandate (`docs/instrucciones.md` §13–§21) and
 ### A9 Hardening and Release
 - Failure / security / chaos testing; version-drift handling; recovery;
   observability; packaging; documentation; release candidate. (Mandate §21.)
+- **A1–A9 = release candidate.** The roadmap Definition of Done is MET with mock
+  providers; this is NOT yet a real-provider operational release.
+
+### A10 Real Provider Operational Closure
+- Evidence model + evidence-based release gate; capability-gated writable adapters;
+  real isolation boundary; conformance harness; real pilots / collaboration modes /
+  quota / integrated E2E with the **authenticated** Codex and Claude CLIs in WSL2.
+- The FINAL operational 1.0 and `v1.0.0` are declared only when every mandatory
+  writable real-provider capability is `verified_real_provider`
+  (`docs/evidence/TRIFORGE_CAPABILITY_EVIDENCE.json`; spec
+  `REAL_PROVIDER_OPERATIONAL_CLOSURE_SPEC.md`; ADR 0054). Authentication is a manual
+  owner action; the loop never automates login or reads credentials.
 
 ---
 

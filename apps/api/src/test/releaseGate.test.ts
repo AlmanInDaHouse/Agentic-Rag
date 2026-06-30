@@ -1,25 +1,41 @@
 /**
- * A9.9 Release gate → TriForge 1.0 Definition of Done (mandate §11/§12).
+ * Release gate (A9.9 RC index → A10.11 evidence-based).
  *
- * Asserts the DoD declaration is present and that each DoD claim is backed by an artifact
- * that actually exists in the repo (a test suite, spec or ADR) — so the release notes are
- * evidence-backed, not a narrative. The authoritative full-gate green is the CI `Validate`
- * job on this PR.
+ * Two tiers (ADR 0054):
+ *  - RC gate (here): the A1–A9 roadmap Definition of Done is declared MET and every
+ *    DoD claim is backed by an artifact that exists; PLUS the machine-readable
+ *    capability evidence registry is well-formed and the release notes' operational
+ *    status claim MATCHES the registry's computed readiness (no false final claim).
+ *  - Final-operational gate: `finalReleaseGate.test.ts`.
+ *
+ * This stays green by HONESTY: today the notes say "release candidate / final
+ * operational PENDING", which matches the registry (real-provider capabilities
+ * blocked_external). It would fail only if a dishonest "final operational MET" claim
+ * were introduced while the registry still shows real-provider not verified.
  */
 
 import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  capabilityEvidenceRegistrySchema,
+  evaluateFinalReleaseReadiness
+} from "@triforge/shared";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../..");
 const exists = (rel: string): boolean => existsSync(path.join(repoRoot, rel));
+const read = (rel: string): string => readFileSync(path.join(repoRoot, rel), "utf8");
 
-describe("A9.9 release gate — the DoD declaration is present and evidence-backed", () => {
-  it("the release notes / DoD declaration exists and declares the DoD met", () => {
+const FINAL_MET_CLAIM = /TriForge 1\.0 operational Definition of Done: MET/i;
+const FINAL_PENDING_MARKER = /Final operational Definition of Done \(A10\): PENDING/i;
+const RC_DOD_MARKER = /A1[–-]A9 roadmap Definition of Done: MET/i;
+
+describe("release gate — RC DoD declared + evidence-backed", () => {
+  it("the release notes declare the A1–A9 roadmap DoD met (release candidate)", () => {
     expect(exists("docs/RELEASE_NOTES_1.0.md")).toBe(true);
-    const notes = readFileSync(path.join(repoRoot, "docs/RELEASE_NOTES_1.0.md"), "utf8");
-    expect(notes).toMatch(/Definition of Done: MET/i);
+    const notes = read("docs/RELEASE_NOTES_1.0.md");
+    expect(notes).toMatch(RC_DOD_MARKER);
   });
 
   it("every milestone's primary evidence artifact exists (A1–A9)", () => {
@@ -34,7 +50,8 @@ describe("A9.9 release gate — the DoD declaration is present and evidence-back
       "docs/specs/COMPETITIVE_MODE_SPEC.md", // A7
       "apps/api/src/test/competitiveRun.e2e.test.ts", // A7 E2E
       "docs/specs/PRODUCT_INTERFACE_SPEC.md", // A8
-      "docs/specs/HARDENING_SPEC.md" // A9
+      "docs/specs/HARDENING_SPEC.md", // A9
+      "docs/specs/REAL_PROVIDER_OPERATIONAL_CLOSURE_SPEC.md" // A10
     ];
     for (const e of EVIDENCE) {
       expect(exists(e), e).toBe(true);
@@ -54,6 +71,30 @@ describe("A9.9 release gate — the DoD declaration is present and evidence-back
     ];
     for (const s of SUITES) {
       expect(exists(s), s).toBe(true);
+    }
+  });
+
+  it("the capability evidence registry exists and validates against the schema (A10)", () => {
+    expect(exists("docs/evidence/TRIFORGE_CAPABILITY_EVIDENCE.json")).toBe(true);
+    const raw = JSON.parse(read("docs/evidence/TRIFORGE_CAPABILITY_EVIDENCE.json"));
+    const parsed = capabilityEvidenceRegistrySchema.safeParse(raw);
+    expect(parsed.success, parsed.success ? "" : JSON.stringify(parsed.error?.issues)).toBe(true);
+  });
+
+  it("the release notes' operational-status claim matches the registry readiness (no false final claim)", () => {
+    const registry = capabilityEvidenceRegistrySchema.parse(
+      JSON.parse(read("docs/evidence/TRIFORGE_CAPABILITY_EVIDENCE.json"))
+    );
+    const readiness = evaluateFinalReleaseReadiness(registry);
+    const notes = read("docs/RELEASE_NOTES_1.0.md");
+
+    if (readiness.ready) {
+      // Only when the registry actually supports it may the notes claim final MET.
+      expect(notes).toMatch(FINAL_MET_CLAIM);
+    } else {
+      // Honest RC state: must declare PENDING and must NOT claim final operational MET.
+      expect(notes).toMatch(FINAL_PENDING_MARKER);
+      expect(notes).not.toMatch(FINAL_MET_CLAIM);
     }
   });
 });
