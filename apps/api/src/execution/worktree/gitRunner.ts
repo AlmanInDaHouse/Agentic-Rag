@@ -144,7 +144,7 @@ export class NodeGitRunner implements GitRunner {
 
   /** Command-line `-c` overrides applied to EVERY managed git op (highest precedence). */
   private hardeningFlags(): string[] {
-    return [
+    const flags = [
       "-c",
       `core.hooksPath=${this.hooksDir}`, // T-GIT-01: no hook runs
       "-c",
@@ -152,6 +152,12 @@ export class NodeGitRunner implements GitRunner {
       "-c",
       "advice.detachedHead=false"
     ];
+    // A10-W.3: on native Windows, mitigate MAX_PATH (260) truncation for deep
+    // worktree paths without requiring the admin-only LongPathsEnabled registry flag.
+    if (process.platform === "win32") {
+      flags.push("-c", "core.longpaths=true");
+    }
+    return flags;
   }
 
   private gitEnv(): NodeJS.ProcessEnv {

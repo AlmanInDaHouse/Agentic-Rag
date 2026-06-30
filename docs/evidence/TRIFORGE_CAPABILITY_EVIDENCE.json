@@ -49,17 +49,26 @@
     },
     {
       "capability": "windows_worktree_manager",
-      "status": "unknown",
+      "status": "verified_real_environment",
       "mandatoryForFinal": true,
       "requiresRealProvider": false,
       "requiresRealEnvironment": true,
       "provider": "",
       "providerVersion": "",
       "environment": "windows-native",
-      "evidence": [],
-      "verifiedAt": "",
-      "risks": ["MAX_PATH truncation; junction protection; locks/stale/crash recovery on NTFS"],
-      "notes": "A10-W.3: NTFS worktree manager rooted at %LOCALAPPDATA%\\TriForge; one branch per run, never on main; tested against real Git for Windows."
+      "evidence": [
+        "apps/api/src/execution/worktree/worktreeManager.ts (defaultStateRoot=%LOCALAPPDATA%\\TriForge; case-insensitive containment)",
+        "apps/api/src/execution/worktree/gitRunner.ts (core.longpaths=true on win32; hooks-off; isolated global config; GIT_TERMINAL_PROMPT=0)",
+        "apps/api/src/test/worktreeManager.test.ts (NodeGitRunner real-git lifecycle: create/branch/collision/dirty-base/disk-limit/stale/recover/cleanup) — green on Windows 11 26200",
+        "apps/api/src/test/worktreeManager.windows.host.test.ts (real Git for Windows + real mklink /J junction-escape refusal; %LOCALAPPDATA%\\TriForge state root; never-main) — green on Windows 11 26200"
+      ],
+      "verifiedAt": "2026-06-30",
+      "risks": [
+        "concurrency control is owner-pid liveness (stale detection + crash recovery), not advisory file locks; a per-run locks/ + sandbox/ subdir is a future enhancement (sandbox is A10-W.5).",
+        "long-path mitigation (git core.longpaths=true on win32) is applied but not stress-tested with an actual >260-char worktree path.",
+        "the junction-escape (reparse) refusal is verified with real mklink /J; Windows SYMLINK escapes require admin/Developer Mode and are not exercised in the matrix."
+      ],
+      "notes": "A10-W.3: WorktreeManager on native Windows / NTFS — state root %LOCALAPPDATA%\\TriForge, isolated git linked-worktrees OUTSIDE the working tree, one branch per run, NEVER main (protected-branch refusal), hardened git (hooks-off + isolated global config + no credential prompting), MAX_PATH mitigation (core.longpaths=true), junction/reparse-escape refusal (case-insensitive containment), collision prevention, disk-limit, stale detection + crash recovery, append-only audit. Verified on a real Windows host with real Git for Windows + real NTFS junctions; POSIX behavior unchanged."
     },
     {
       "capability": "windows_job_object_supervision",
