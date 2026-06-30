@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.1.0",
   "milestone": "A10-W — Native Windows Operational Closure",
-  "generatedNote": "Honest capability evidence registry. Statuses reflect VERIFIED reality, not aspiration. Under ADR 0056 the primary substrate is NATIVE WINDOWS (WSL2 reframed optional/future); the manual provider-login hard stop is already satisfied — Codex 0.101.0 and Claude 2.1.195 are installed AND authenticated natively on Windows (verified 2026-06-30 via official status commands; no tokens read; PII redacted). Mandatory windows_* capabilities must reach verified_real_environment (real-host OS behavior) or verified_real_provider (real CLI runs) before the final operational 1.0; a CI fixture is not sufficient. Source probe: `pnpm triforge:doctor` on Windows 11 (build 26200), NTFS, 2026-06-30. Updated as each A10-W PR lands.",
+  "generatedNote": "Honest capability evidence registry. Statuses reflect VERIFIED reality, not aspiration. Under ADR 0056 the primary substrate is NATIVE WINDOWS (WSL2 reframed optional/future); the manual provider-login hard stop is already satisfied — Codex and Claude are installed AND authenticated natively on Windows (verified via official status commands; no tokens read; PII redacted). A10-W.6 (2026-06-30) upgraded Codex 0.101.0 → 0.142.4: 0.101.0 was a model/version dead-zone with the ChatGPT account (only gpt-5.5 offered, but 0.101.0 too old to run it; gpt-5/gpt-5-codex not offered on ChatGPT accounts). Claude stays 2.1.195. Mandatory windows_* capabilities must reach verified_real_environment (real-host OS behavior) or verified_real_provider (real CLI runs) before the final operational 1.0; a CI fixture is not sufficient. Source probe: `pnpm triforge:doctor` on Windows 11 (build 26200), NTFS, 2026-06-30. Updated as each A10-W PR lands.",
   "capabilities": [
     {
       "capability": "windows_native_substrate",
@@ -118,55 +118,78 @@
     },
     {
       "capability": "codex_windows_readonly",
-      "status": "unknown",
+      "status": "verified_real_provider",
       "mandatoryForFinal": true,
       "requiresRealProvider": true,
       "provider": "codex",
-      "providerVersion": "0.101.0",
+      "providerVersion": "0.142.4",
       "environment": "windows-native",
-      "evidence": ["windows-host probe 2026-06-30: codex-cli 0.101.0, `codex login status` = Logged in using ChatGPT"],
-      "verifiedAt": "",
-      "risks": ["spawn via node<cli>/.cmd, never the .ps1 shim (swallows stdout); version drift invalidates the snapshot"],
-      "notes": "A10-W.6: real read-only Codex run on Windows through the adapter (headless event stream, structured result). Auth already satisfied; pending the Windows adapter integration."
+      "evidence": [
+        "apps/api/src/test/realProvider.host.test.ts (codex read-only run: reply only, no file.changed, worktree clean) — green on Windows 11 26200, codex 0.142.4, 2026-06-30 (TRIFORGE_REAL_PROVIDER=1)",
+        "apps/api/src/providers/real/{codexAdapter,platformProcessRunner,windowsLauncher}.ts — node <codex.js> via the Job Object; OPENAI_API_KEY stripped → ChatGPT subscription",
+        "windows-host probe 2026-06-30: codex-cli 0.142.4, `codex login status` = Logged in using ChatGPT"
+      ],
+      "verifiedAt": "2026-06-30",
+      "risks": [
+        "codex upgraded 0.101.0 → 0.142.4 (0.101.0 could not run any model on the ChatGPT account); a future version drift re-invalidates the version-bound snapshot.",
+        "launched as `node <codex.js>` resolved under the npm bin dir — never the .ps1/.cmd shim (no stdout-swallow, no .cmd argument-injection)."
+      ],
+      "notes": "A10-W.6: real read-only Codex run on native Windows through the adapter (PlatformProcessRunner → Job Object); headless `exec --json` stream normalized; no file.changed under read-only; worktree untouched. Verified end-to-end against the live authenticated CLI."
     },
     {
       "capability": "codex_windows_writable",
-      "status": "unknown",
+      "status": "verified_real_provider",
       "mandatoryForFinal": true,
       "requiresRealProvider": true,
       "provider": "codex",
-      "providerVersion": "0.101.0",
+      "providerVersion": "0.142.4",
       "environment": "windows-native",
-      "evidence": [],
-      "verifiedAt": "",
-      "risks": ["writes confined to the Windows worktree; requires observed write=yes snapshot + A0.5 binding + worktree cwd"],
-      "notes": "A10-W.6: real writable Codex run (--sandbox workspace-write) inside a Windows worktree, gated by the capability-bound writable profile. Subsumes the prior WSL2 codex_writable_real_capability_snapshot."
+      "evidence": [
+        "apps/api/src/test/realProvider.host.test.ts (codex writable run: --sandbox workspace-write wrote the target file INSIDE the worktree — filesystem authority; file.changed/tool activity in the stream) — green on Windows 11 26200, codex 0.142.4, 2026-06-30",
+        "apps/api/src/providers/real/writableProfile.ts (authorized only by an OBSERVED write=yes snapshot + 6-field A0.5 binding + worktree cwd) + codexNormalizer.ts (file_change `changes[]` → file.changed)"
+      ],
+      "verifiedAt": "2026-06-30",
+      "risks": [
+        "writes confined to the Windows worktree; authorization requires an observed write=yes snapshot (real getCapabilities) + A0.5 binding + worktree cwd; a cwd outside the worktree is refused (verified).",
+        "codex may perform the edit via a file_change item OR a command_execution; the filesystem diff (mutation ledger) is the authority for the mutation, not the event shape."
+      ],
+      "notes": "A10-W.6: real writable Codex run (--sandbox workspace-write) inside a Windows worktree, gated by the capability-bound writable profile; the file was actually created on disk. Subsumes the prior WSL2 codex_writable_real_capability_snapshot."
     },
     {
       "capability": "claude_windows_readonly",
-      "status": "unknown",
+      "status": "verified_real_provider",
       "mandatoryForFinal": true,
       "requiresRealProvider": true,
       "provider": "claude",
       "providerVersion": "2.1.195",
       "environment": "windows-native",
-      "evidence": ["windows-host probe 2026-06-30: claude 2.1.195, `claude auth status` = loggedIn:true (claude.ai, max)"],
-      "verifiedAt": "",
-      "risks": ["spawn via node<cli>/.cmd, never .ps1; never --bare under subscription auth"],
-      "notes": "A10-W.6: real read-only Claude run on Windows through the adapter. Auth already satisfied; pending the Windows adapter integration."
+      "evidence": [
+        "apps/api/src/test/realProvider.host.test.ts (claude read-only run, --permission-mode plan: reply only, no file.changed, worktree clean) — green on Windows 11 26200, claude 2.1.195, 2026-06-30 (TRIFORGE_REAL_PROVIDER=1)",
+        "apps/api/src/providers/real/{claudeAdapter,platformProcessRunner}.ts — claude.exe directly via the Job Object; ANTHROPIC_API_KEY stripped → claude.ai OAuth (apiKeySource:none); never --bare",
+        "windows-host probe 2026-06-30: claude 2.1.195, `claude auth status` JSON loggedIn:true (claude.ai, max) — state only, PII not retained"
+      ],
+      "verifiedAt": "2026-06-30",
+      "risks": ["launched as the native claude.exe (resolved under the npm bin dir), never the .ps1/.cmd shim; never --bare (which would force an API key)."],
+      "notes": "A10-W.6: real read-only Claude run on native Windows through the adapter (PlatformProcessRunner → Job Object); stream-json normalized (system/assistant/result + rate_limit_event → quota.updated); no file.changed; worktree untouched."
     },
     {
       "capability": "claude_windows_writable",
-      "status": "unknown",
+      "status": "verified_real_provider",
       "mandatoryForFinal": true,
       "requiresRealProvider": true,
       "provider": "claude",
       "providerVersion": "2.1.195",
       "environment": "windows-native",
-      "evidence": [],
-      "verifiedAt": "",
-      "risks": ["the 2.1.195 fixture observes write=unknown; real writable closure requires an observed write=yes snapshot"],
-      "notes": "A10-W.6: real writable Claude run (--permission-mode acceptEdits, never --bare) inside a Windows worktree. Subsumes the prior WSL2 claude_writable_real_capability_snapshot."
+      "evidence": [
+        "apps/api/src/test/realProvider.host.test.ts (claude writable run, --permission-mode acceptEdits + Write tool, wrote the target file INSIDE the worktree — filesystem authority; tool activity in the stream) — green on Windows 11 26200, claude 2.1.195, 2026-06-30",
+        "apps/api/src/providers/real/writableProfile.ts (authorized only by an OBSERVED write=yes snapshot + A0.5 binding + worktree cwd); claudeAdapter builds acceptEdits, never --bare"
+      ],
+      "verifiedAt": "2026-06-30",
+      "risks": [
+        "the prior A3 fixture left write=unknown; the A10-W.6 real probe OBSERVES write=yes (the Write tool created the file). The version-bound snapshot is invalidated by a claude version change.",
+        "claude writes via the Write tool (no file_change event); the worktree diff (mutation ledger) is the authority for the mutation, not the event stream."
+      ],
+      "notes": "A10-W.6: real writable Claude run (--permission-mode acceptEdits, never --bare) inside a Windows worktree; the file was actually created on disk. Subsumes the prior WSL2 claude_writable_real_capability_snapshot."
     },
     {
       "capability": "codex_owner_claude_reviewer_e2e",
@@ -289,16 +312,19 @@
     },
     {
       "capability": "cancellation_real",
-      "status": "unknown",
+      "status": "verified_real_provider",
       "mandatoryForFinal": true,
       "requiresRealProvider": true,
       "provider": "both",
-      "providerVersion": "",
+      "providerVersion": "codex 0.142.4",
       "environment": "windows-native",
-      "evidence": ["mock cancellation verified (CANCELLATION_STOPS_EMISSION invariant)"],
-      "verifiedAt": "",
-      "risks": ["Windows cancellation must terminate the whole process tree via the Job Object"],
-      "notes": "A10-W.7/A10-W.8 cancellation of a REAL provider process tree on Windows (Job Object). Mock-verified today; real pending."
+      "evidence": [
+        "apps/api/src/test/realProvider.host.test.ts (codex cancellation: cancel mid-stream → exactly one terminal, no events after it) — green on Windows 11 26200, 2026-06-30",
+        "apps/api/src/test/windowsJobObject.host.test.ts (W.4 real-host chaos: kill-on-close reaps child + sleeping grandchild) — the provider-agnostic tree-reap mechanism"
+      ],
+      "verifiedAt": "2026-06-30",
+      "risks": ["the Job Object reap is provider-agnostic; verified end-to-end through a real codex run and via the W.4 grandchild-reap chaos test. Claude cancellation uses the identical mechanism."],
+      "notes": "A10-W.6 cancellation of a REAL provider process tree on Windows via the kill-on-close Job Object: a real codex run is cancelled mid-stream and terminates with a single cancelled terminal; the W.4 chaos test proves the whole tree (incl. a detached grandchild) is reaped."
     },
     {
       "capability": "real_quota_usage_signals",
@@ -319,7 +345,7 @@
       "mandatoryForFinal": true,
       "requiresRealProvider": false,
       "provider": "codex",
-      "providerVersion": "0.101.0",
+      "providerVersion": "0.142.4",
       "environment": "ci",
       "evidence": [
         "apps/api/src/providers/real/writableProfile.ts",
@@ -327,7 +353,7 @@
         "apps/api/src/test/writableAdapter.test.ts"
       ],
       "verifiedAt": "2026-06-30",
-      "risks": ["the fixture snapshot is not a real authenticated observation (codex_windows_writable is the real-provider closure)"],
+      "risks": ["the fixture snapshot exercises the MECHANISM; the real authenticated observation is codex_windows_writable (now verified_real_provider, codex 0.142.4)"],
       "notes": "A10.3 capability-gated writable profile. Refuses readOnly:false unless an observed write=yes snapshot (matching version + provider), a 6-field A0.5 binding, and a worktree cwd all hold; authorized run builds `--sandbox workspace-write` and passes the conformance harness. Read-only default unchanged."
     },
     {
@@ -344,7 +370,7 @@
         "apps/api/src/test/writableAdapter.test.ts"
       ],
       "verifiedAt": "2026-06-30",
-      "risks": ["the real claude 2.1.195 fixture observes write=unknown; claude_windows_writable is the real-provider closure"],
+      "risks": ["the version-bound snapshot now observes write=yes (A10-W.6 real probe); claude_windows_writable is the verified_real_provider closure"],
       "notes": "A10.3 capability-gated writable profile. Authorized run builds `--permission-mode acceptEdits` (never --bare); refuses honestly when write is not observed. Read-only default unchanged."
     },
     {
@@ -353,7 +379,7 @@
       "mandatoryForFinal": true,
       "requiresRealProvider": false,
       "provider": "both",
-      "providerVersion": "codex 0.101.0 / claude 2.1.195",
+      "providerVersion": "codex 0.142.4 / claude 2.1.195",
       "environment": "ci",
       "evidence": ["apps/api/src/test/writableConformance.test.ts", "apps/api/src/test/writableAdapter.test.ts"],
       "verifiedAt": "2026-06-30",

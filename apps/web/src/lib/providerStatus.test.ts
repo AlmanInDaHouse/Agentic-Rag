@@ -5,7 +5,7 @@ function snap(over: Partial<ProviderStatusSnapshot> = {}): ProviderStatusSnapsho
   return {
     provider: "codex",
     availability: "available",
-    version: "0.101.0",
+    version: "0.142.4",
     auth: "authenticated",
     capabilities: ["read", "write_local"],
     quotaStatus: "available",
@@ -21,7 +21,7 @@ describe("deriveProviderStatusView — honest states, never invented", () => {
   it("maps a fully-known snapshot", () => {
     const v = deriveProviderStatusView(snap());
     expect(v.installed).toBe("installed");
-    expect(v.version).toBe("0.101.0");
+    expect(v.version).toBe("0.142.4");
     expect(v.authLabel).toBe("authenticated");
     expect(v.capabilities).toEqual({ value: ["read", "write_local"], known: true });
     expect(v.quota).toBe("known");

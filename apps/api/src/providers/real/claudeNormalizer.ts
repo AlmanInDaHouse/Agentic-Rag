@@ -15,7 +15,10 @@
  *   user { message.content[] }           -> tool_result -> tool.completed
  *   result { subtype, is_error, usage,   -> usage.updated (+ quota.updated on limit)
  *            total_cost_usd, result }       then completion or a terminal error
+ *   rate_limit_event { rate_limit_info } -> quota.updated (real_quota_usage_signals,
+ *                                            A10-W.6: status/window/utilization/resetsAt)
  *
+ * Verified against installed claude 2.1.195 (A10-W.6 real-host probe, 2026-06-30).
  * Any other `type` is reported as an unknown kind (a warning, never a crash) and
  * malformed JSON as a parse error — never fabricated, never thrown.
  */
@@ -172,6 +175,92 @@ function mapResult(record: Record<string, unknown>): MappedLine {
   return { events, completed: { summary: str(record.result) ?? null } };
 }
 
+/** Clamp a provider-reported ratio into the canonical 0–1 utilization range. */
+function clamp01(n: number): number {
+  return Math.max(0, Math.min(1, n));
+}
+
+/** Convert epoch SECONDS to an ISO datetime, or null when not a usable timestamp. */
+function epochSecondsToIso(epochSeconds: number): string | null {
+  if (!Number.isFinite(epochSeconds) || epochSeconds <= 0) {
+    return null;
+  }
+  const date = new Date(epochSeconds * 1000);
+  const ms = date.getTime();
+  return Number.isFinite(ms) ? date.toISOString() : null;
+}
+
+/** Map a Claude `rate_limit_info.status` onto the normalized quota status. */
+function mapRateLimitStatus(status: string | undefined): string {
+  if (status === undefined) {
+    return "unknown";
+  }
+  const s = status.toLowerCase();
+  if (s.includes("warning")) {
+    return "warning";
+  }
+  if (s === "allowed" || s === "ok") {
+    return "available";
+  }
+  if (s.includes("exhaust")) {
+    return "exhausted";
+  }
+  if (s.includes("reject") || s.includes("blocked") || s.includes("limit")) {
+    return "rate_limited";
+  }
+  return "unknown";
+}
+
+/** Map a Claude `rate_limit_info.rateLimitType` onto the normalized quota window. */
+function mapRateLimitWindow(window: string | undefined): string {
+  switch (window) {
+    case "seven_day":
+      return "seven_day";
+    case "five_hour":
+      return "five_hour";
+    case "model_specific":
+      return "model_specific";
+    case "credits":
+      return "credits";
+    default:
+      return "unknown";
+  }
+}
+
+/**
+ * Map a Claude `rate_limit_event` onto a normalized `quota.updated` signal (A10-W.6:
+ * the real_quota_usage_signals capability). Never authoritative billing
+ * (`isBillingAuthoritative:false`); fields the CLI does not report stay absent.
+ */
+function mapRateLimit(record: Record<string, unknown>): MappedLine {
+  const info = asRecord(record.rate_limit_info);
+  if (info === null) {
+    return { unknownKind: "rate_limit_event:no-info" };
+  }
+  const rawWindow = str(info.rateLimitType);
+  const utilization = typeof info.utilization === "number" ? clamp01(info.utilization) : undefined;
+  const resetsAt = typeof info.resetsAt === "number" ? epochSecondsToIso(info.resetsAt) : null;
+  return {
+    events: [
+      {
+        type: "quota.updated",
+        payload: {
+          quota: {
+            provider: "claude",
+            status: mapRateLimitStatus(str(info.status)),
+            window: mapRateLimitWindow(rawWindow),
+            ...(utilization !== undefined ? { utilization } : {}),
+            ...(resetsAt !== null ? { resetsAt } : {}),
+            ...(rawWindow !== undefined ? { rawProviderType: rawWindow } : {}),
+            source: "provider_event",
+            isBillingAuthoritative: false
+          }
+        }
+      }
+    ]
+  };
+}
+
 /** The Claude line mapper. Pure; never throws. */
 export const claudeLineMapper: ProviderLineMapper = {
   provider: "claude",
@@ -206,6 +295,8 @@ export const claudeLineMapper: ProviderLineMapper = {
       }
       case "result":
         return mapResult(record);
+      case "rate_limit_event":
+        return mapRateLimit(record);
       default:
         return { unknownKind: type ?? "missing-type" };
     }

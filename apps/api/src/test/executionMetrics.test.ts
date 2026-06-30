@@ -11,7 +11,7 @@ function metric(over: Partial<RunMetric> = {}): RunMetric {
     taskType: "feature",
     owner: "codex" as ProviderId,
     reviewer: "claude" as ProviderId,
-    providerVersions: { codex: "0.101.0" },
+    providerVersions: { codex: "0.142.4" },
     mode: "specialist",
     firstPassSuccess: true,
     repairRounds: 0,

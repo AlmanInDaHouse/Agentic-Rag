@@ -37,7 +37,10 @@ import {
   authAuthenticatedScript,
   authExpiredScript,
   authRequiredScript,
+  claudeAuthJsonLoggedOutScript,
+  claudeAuthJsonScript,
   claudeParseErrorScript,
+  claudeRateLimitEventScript,
   claudeRateLimitedScript,
   claudeSuccessScript,
   claudeTimeoutScript,
@@ -52,6 +55,7 @@ import {
   codexUnknownKindScript,
   codexVersionDriftScript,
   codexVersionScript,
+  codexWritableChangesScript,
   codexWritableFileChangeScript,
   makeFixtureRunner,
   notInstalledScript,
@@ -120,7 +124,7 @@ const CASES: AdapterCase[] = [
     parseError: codexParseErrorScript,
     rateLimited: codexRateLimitedScript,
     timeout: codexTimeoutScript,
-    knownVersion: "0.101.0"
+    knownVersion: "0.142.4"
   },
   {
     provider: "claude",
@@ -247,28 +251,44 @@ describe("real adapters — authentication probe (non-secret)", () => {
       expect(expired.state).toBe("expired");
     });
   }
+
+  it("claude: maps the real JSON `auth status` (loggedIn) to authenticated / required", async () => {
+    const authed = await claudeAdapter({ version: claudeVersionScript, auth: claudeAuthJsonScript }).checkAuthentication();
+    expect(authed.state).toBe("authenticated");
+    const loggedOut = await claudeAdapter({ version: claudeVersionScript, auth: claudeAuthJsonLoggedOutScript }).checkAuthentication();
+    expect(loggedOut.state).toBe("required");
+    // The adapter returns only the state — no PII (email/orgId) is ever surfaced.
+    expect(authed.detail).toBeNull();
+  });
 });
 
 describe("real adapters — version-bound capability snapshot", () => {
-  it("codex: known version yields the recorded read-only fixture", async () => {
+  it("codex: known version yields the observed real capability snapshot", async () => {
     const caps = await codexAdapter({ version: codexVersionScript }).getCapabilities();
     expect(CapabilitySnapshotSchema.safeParse(caps).success).toBe(true);
-    expect(caps.cliVersion).toBe("0.101.0");
+    expect(caps.cliVersion).toBe("0.142.4");
     expect(caps.headlessSupport).toBe("yes");
     expect(caps.eventStream).toBe("yes");
     expect(caps.readOnly).toBe("yes");
-    // Unobservable signals stay "unknown" (never fabricated to "yes").
-    expect(caps.usageObservable).toBe("unknown");
+    expect(caps.write).toBe("yes");
+    // Observed on the real Windows host (A10-W.6): usage + non-secret auth state.
+    expect(caps.usageObservable).toBe("yes");
+    expect(caps.authProbe).toBe("yes");
+    // codex emits no quota/rate-limit signal → stays "unknown" (never fabricated).
     expect(caps.quotaObservable).toBe("unknown");
-    expect(caps.authProbe).toBe("unknown");
   });
 
-  it("claude: known version keeps the read-only preset unknown (unverified §20)", async () => {
+  it("claude: known version yields the observed real capability snapshot", async () => {
     const caps = await claudeAdapter({ version: claudeVersionScript }).getCapabilities();
     expect(caps.cliVersion).toBe("2.1.195");
     expect(caps.headlessSupport).toBe("yes");
     expect(caps.eventStream).toBe("yes");
-    expect(caps.readOnly).toBe("unknown");
+    // Observed on the real host (A10-W.6): plan = read-only, acceptEdits = write,
+    // result.usage + rate_limit_event are observable.
+    expect(caps.readOnly).toBe("yes");
+    expect(caps.write).toBe("yes");
+    expect(caps.usageObservable).toBe("yes");
+    expect(caps.quotaObservable).toBe("yes");
   });
 
   it("a drifted version invalidates the snapshot (all tri-state caps unknown)", async () => {
@@ -277,6 +297,81 @@ describe("real adapters — version-bound capability snapshot", () => {
     expect(caps.headlessSupport).toBe("unknown");
     expect(caps.eventStream).toBe("unknown");
     expect(caps.readOnly).toBe("unknown");
+  });
+});
+
+describe("codex 0.142.4 — file_change `changes[]` normalization (real-host shape)", () => {
+  it("emits one file.changed per change with mapped kinds, ignores item.started, completes on clean exit", async () => {
+    const events = await collect(
+      codexAdapter({ version: codexVersionScript, exec: codexWritableChangesScript }).execute(
+        makeRequest("changes-codex", "codex", { readOnly: true })
+      )
+    );
+    const changed = events
+      .filter((e) => e.type === "file.changed")
+      .map((e) => e.payload as { path: string; changeType: string });
+    expect(changed.map((c) => [c.path, c.changeType])).toEqual([
+      ["src/added.ts", "created"],
+      ["src/old.ts", "deleted"]
+    ]);
+    // item.started / turn.started are lifecycle-only: no unknown-kind warnings.
+    expect(events.filter((e) => e.type === "warning.raised")).toHaveLength(0);
+    // No thread.completed in the real 0.142.4 stream → terminal synthesized from clean exit.
+    expect(events[events.length - 1].type).toBe("run.completed");
+  });
+});
+
+describe("claude 2.1.195 — rate_limit_event normalization (real_quota_usage_signals)", () => {
+  it("maps rate_limit_event → schema-valid quota.updated (window/utilization/status), never billing-authoritative", async () => {
+    const report = await runConformanceCheck(
+      claudeAdapter({ version: claudeVersionScript, exec: claudeRateLimitEventScript }),
+      makeRequest("ratelimit-claude", "claude", { readOnly: true }),
+      { livenessTimeoutMs: LIVENESS_MS }
+    );
+    // The harness validates every emitted event against the provider-event schema, so
+    // a passing report proves the quota.updated payload is schema-valid.
+    expect(report.ok, failed(report).join(" | ")).toBe(true);
+    const quota = report.events.find((e) => e.type === "quota.updated")?.payload as
+      | { quota: { provider: string; window: string; status: string; utilization?: number; resetsAt?: string; isBillingAuthoritative: boolean } }
+      | undefined;
+    expect(quota?.quota).toMatchObject({
+      provider: "claude",
+      window: "seven_day",
+      status: "warning",
+      isBillingAuthoritative: false
+    });
+    expect(quota?.quota.utilization).toBeCloseTo(0.79);
+    expect(typeof quota?.quota.resetsAt).toBe("string");
+    expect(report.events.filter((e) => e.type === "warning.raised")).toHaveLength(0);
+  });
+});
+
+describe("A10-W.6 — orchestrator-selected model is a separated argv value (no injection)", () => {
+  it("codex: includes `-m <model>` before the end-of-options marker when set", async () => {
+    const runner = makeFixtureRunner({ version: codexVersionScript, exec: codexSuccessScript });
+    await collect(new CodexAdapter(runner).execute(makeRequest("m-codex", "codex", { readOnly: true, model: "gpt-5.5" })));
+    const exec = runner.calls.find((s) => s.args.includes("exec"));
+    const idx = exec?.args.indexOf("-m") ?? -1;
+    expect(idx).toBeGreaterThanOrEqual(0);
+    expect(exec?.args[idx + 1]).toBe("gpt-5.5");
+    expect(idx).toBeLessThan(exec?.args.indexOf("--") ?? Infinity);
+  });
+
+  it("claude: includes `--model <model>` when set", async () => {
+    const runner = makeFixtureRunner({ version: claudeVersionScript, exec: claudeSuccessScript });
+    await collect(new ClaudeAdapter(runner).execute(makeRequest("m-claude", "claude", { model: "sonnet" })));
+    const exec = runner.calls.find((s) => s.args.includes("-p"));
+    const idx = exec?.args.indexOf("--model") ?? -1;
+    expect(idx).toBeGreaterThanOrEqual(0);
+    expect(exec?.args[idx + 1]).toBe("sonnet");
+  });
+
+  it("ignores a flag-shaped model value (defense in depth — never a second flag)", async () => {
+    const runner = makeFixtureRunner({ version: codexVersionScript, exec: codexSuccessScript });
+    await collect(new CodexAdapter(runner).execute(makeRequest("m-bad", "codex", { model: "--dangerously-bypass" })));
+    const exec = runner.calls.find((s) => s.args.includes("exec"));
+    expect(exec?.args).not.toContain("-m");
+    expect(exec?.args.join(" ")).not.toContain("dangerously-bypass");
   });
 });
 

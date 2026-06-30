@@ -50,6 +50,15 @@ export {
 export { CodexAdapter, CODEX_ADAPTER_CONFIG } from "./codexAdapter.js";
 export { ClaudeAdapter, CLAUDE_ADAPTER_CONFIG } from "./claudeAdapter.js";
 
+// A10-W.6 — native Windows real-launch wiring (Job Object + safe exe resolution).
+export { PlatformProcessRunner } from "./platformProcessRunner.js";
+export {
+  resolveProviderLauncher,
+  type ResolvedLauncher,
+  type LauncherResolverDeps
+} from "./windowsLauncher.js";
+export { createRealAdapter, type RealAdapterFactoryOptions } from "./realAdapterFactory.js";
+
 export {
   authorizeWritable,
   type WritableProfile,

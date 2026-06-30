@@ -75,7 +75,7 @@ const BINDING: CapabilityBinding = {
 function snapshot(provider: ProviderId, overrides: Partial<CapabilitySnapshot> = {}): CapabilitySnapshot {
   return {
     provider,
-    cliVersion: provider === "codex" ? "0.101.0" : "2.1.195",
+    cliVersion: provider === "codex" ? "0.142.4" : "2.1.195",
     verifiedAt: "2026-06-30T00:00:00.000Z",
     headlessSupport: "yes",
     structuredOutput: "yes",

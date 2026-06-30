@@ -37,7 +37,12 @@ Observed native-Windows environment, 2026-06-30 (non-destructive probe via
 - Windows PowerShell 5.1; Node v24.12.0; pnpm 11.5.0; corepack 0.34.5; Git
   2.52.0.windows.1.
 - **Codex CLI 0.101.0** installed and **authenticated** natively (`codex login status`
-  → "Logged in using ChatGPT").
+  → "Logged in using ChatGPT"). *(A10-W.6 update, 2026-06-30: upgraded to **0.142.4**.
+  0.101.0 was a model/version dead-zone with this ChatGPT account — the account only
+  offers `gpt-5.5` to Codex, but 0.101.0 is too old to run it, and `gpt-5`/`gpt-5-codex`
+  are "not supported when using Codex with a ChatGPT account". 0.142.4 runs gpt-5.5
+  read-only AND writable; the version-bound capability snapshot was regenerated and the
+  owner approved the upgrade.)*
 - **Claude Code 2.1.195** installed and **authenticated** natively (`claude auth status`
   → `loggedIn:true`, claude.ai, Max).
 - PostgreSQL 18 native Windows service running, `localhost:5432` reachable.

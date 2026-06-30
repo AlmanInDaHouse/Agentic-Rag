@@ -63,7 +63,12 @@ export const AgentExecutionRequestSchema = z
     timeoutMs: z.number().int().positive(),
     readOnly: z.boolean().default(true),
     environmentAllowlist: z.array(z.string()).default([]),
-    maxOutputBytes: z.number().int().positive().nullable().default(null)
+    maxOutputBytes: z.number().int().positive().nullable().default(null),
+    // Optional orchestrator-selected model (e.g. an economical model for fixtures, or
+    // a model the installed CLI/account supports). Passed as a separated argv value
+    // by the adapter; a value that is not a safe model token is ignored. Never agent
+    // free-text. Default null = the CLI's configured default model.
+    model: z.string().nullable().default(null)
   })
   .strict();
 

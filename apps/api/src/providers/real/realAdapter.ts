@@ -367,3 +367,44 @@ function unionAllowlist(base: string[], extra: string[]): string[] {
 function startsWithHyphen(value: string): boolean {
   return value.startsWith("-");
 }
+
+/**
+ * A10-W.6 — base environment a provider CLI needs to LOCATE its config/auth and run
+ * natively on Windows (the home/config-path + system vars). None of these are secrets
+ * — the provider reads its OWN auth file (e.g. `%USERPROFILE%\.codex\auth.json`); we
+ * never read it. Credential-shaped names (`*_API_KEY`, `*TOKEN`, …) are still ALWAYS
+ * dropped by `createRestrictedEnvironment`/`curateEnv`, so a child runs on its
+ * subscription OAuth, never a leaked API key. Harmless on POSIX (absent names are
+ * simply not forwarded).
+ */
+export const WINDOWS_BASE_ENV_ALLOWLIST: readonly string[] = [
+  "PATH",
+  "PATHEXT",
+  "SystemRoot",
+  "windir",
+  "TEMP",
+  "TMP",
+  "ComSpec",
+  "USERPROFILE",
+  "APPDATA",
+  "LOCALAPPDATA",
+  "HOME",
+  "HOMEDRIVE",
+  "HOMEPATH",
+  "NUMBER_OF_PROCESSORS",
+  "PROCESSOR_ARCHITECTURE"
+];
+
+/**
+ * Validate an orchestrator-selected model name before it is passed as a SEPARATED
+ * argv value (`-m <model>` / `--model <model>`). Must start with an alphanumeric and
+ * contain only `[A-Za-z0-9._-]` — so it can never be a leading-hyphen flag and (being
+ * one argv element) cannot inject a second flag. Returns null to fall back to the
+ * CLI's configured default.
+ */
+export function safeModel(model: string | null | undefined): string | null {
+  if (typeof model !== "string") {
+    return null;
+  }
+  return /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(model) ? model : null;
+}
