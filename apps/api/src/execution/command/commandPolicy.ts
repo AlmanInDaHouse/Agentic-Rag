@@ -77,9 +77,35 @@ export const DEFAULT_ALLOWED_CATEGORIES: readonly CommandCategory[] = [
 // --- classification tables -------------------------------------------------
 // Conservative; unknown binaries fall through to `blocked` (deny by default).
 
-const PRIVILEGED = new Set(["sudo", "su", "doas", "pkexec", "mount", "umount", "systemctl", "service", "chown", "chgrp", "setcap", "visudo"]);
-const DESTRUCTIVE = new Set(["rm", "rmdir", "dd", "mkfs", "shred", "truncate", "fdisk", "parted", "wipefs", "chmod"]);
-const NETWORK = new Set(["curl", "wget", "nc", "ncat", "netcat", "ssh", "scp", "sftp", "rsync", "telnet", "ftp", "ping", "nmap", "socat"]);
+const PRIVILEGED = new Set([
+  "sudo", "su", "doas", "pkexec", "mount", "umount", "systemctl", "service", "chown", "chgrp", "setcap", "visudo",
+  // A10-W.5 — Windows privileged / system-mutating tools (registry, service,
+  // scheduled tasks, firewall/network config, ACL, Defender, disk, recovery).
+  "reg", "regedit", "sc", "schtasks", "netsh", "bcdedit", "diskpart", "takeown", "icacls", "cacls",
+  "net", "net1", "wmic", "runas", "regsvr32", "rundll32", "wevtutil", "vssadmin", "cipher", "dism",
+  "powercfg", "fsutil", "auditpol", "secedit", "gpupdate", "reagentc", "shutdown", "control"
+]);
+const DESTRUCTIVE = new Set([
+  "rm", "rmdir", "dd", "mkfs", "shred", "truncate", "fdisk", "parted", "wipefs", "chmod",
+  // A10-W.5 — Windows destructive (delete/format). cmd builtins (del/erase/rd) only
+  // reach here if invoked as a bin; via `cmd /c` they are blocked at the shell gate.
+  "del", "erase", "format", "rd"
+]);
+const NETWORK = new Set([
+  "curl", "wget", "nc", "ncat", "netcat", "ssh", "scp", "sftp", "rsync", "telnet", "ftp", "ping", "nmap", "socat",
+  // A10-W.5 — Windows network / download tools.
+  "bitsadmin", "certutil", "tftp"
+]);
+/**
+ * A10-W.5 — shells, script hosts and the provider CLIs themselves. Blocked by
+ * default: `cmd /c`, PowerShell script blocks / encoded commands, WSH and HTA all
+ * defeat the no-shell, structural-classification guarantee; an owner agent
+ * re-invoking codex/claude is also denied.
+ */
+const SHELLS_AND_HOSTS = new Set([
+  "cmd", "powershell", "pwsh", "wscript", "cscript", "mshta", "bash", "sh", "zsh",
+  "codex", "claude"
+]);
 const READ_ONLY = new Set(["cat", "ls", "pwd", "echo", "grep", "egrep", "fgrep", "rg", "find", "head", "tail", "wc", "stat", "file", "which", "true", "false", "test", "diff", "sort", "uniq", "cut", "tr", "basename", "dirname", "realpath", "readlink", "date", "printf", "tree", "cmp", "sha256sum", "md5sum"]);
 const TEST = new Set(["vitest", "jest", "mocha", "pytest", "phpunit", "rspec", "ctest"]);
 const BUILD = new Set(["tsc", "tsx", "esbuild", "rollup", "webpack", "vite", "make", "cmake", "gradle", "mvn", "cargo", "go", "rustc", "gcc", "g++", "clang", "javac"]);
@@ -168,6 +194,12 @@ export function classifyCommand(command: CommandSpec): CommandClassification {
   }
   if (NETWORK.has(name)) {
     return { category: "network", reason: `${name} performs network I/O` };
+  }
+  // A10-W.5 — a shell / script host / provider CLI is blocked by default: it would
+  // defeat the no-shell structural-classification guarantee (encoded commands,
+  // `cmd /c`, PowerShell script blocks, WSH/HTA), or recursively invoke a provider.
+  if (SHELLS_AND_HOSTS.has(name)) {
+    return { category: "blocked", reason: `${name} is a shell/script-host/provider (denied by default)` };
   }
   // Dual binaries refined by argv.
   if (name === "git") {

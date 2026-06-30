@@ -10,7 +10,6 @@
 import { describe, expect, it } from "vitest";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { PlatformMethodNotImplementedError } from "@triforge/shared";
 import {
   detectExecutionPlatform,
   PosixExecutionPlatform,
@@ -91,14 +90,35 @@ describe("validateContainedPath is implemented (A10-W.2)", () => {
   });
 });
 
-describe("deferred methods reject with the typed, PR-naming error (phased rollout)", () => {
+describe("createRestrictedEnvironment (A10-W.5) — env allowlist + credential strip", () => {
   const platform = new WindowsExecutionPlatform();
 
-  it("createRestrictedEnvironment → A10-W.5", async () => {
-    await platform.createRestrictedEnvironment({ allowNames: [] }).catch((err: PlatformMethodNotImplementedError) => {
-      expect(err.plannedPr).toContain("A10-W.5");
+  it("passes only allowlisted names and ALWAYS drops credential-shaped ones", async () => {
+    process.env.TF_TEST_ALLOWED = "ok";
+    process.env.TF_TEST_API_KEY = "secret-should-not-pass";
+    try {
+      const r = await platform.createRestrictedEnvironment({
+        allowNames: ["TF_TEST_ALLOWED", "TF_TEST_API_KEY", "TF_TEST_MISSING"]
+      });
+      expect(r.env.TF_TEST_ALLOWED).toBe("ok");
+      expect(r.env.TF_TEST_API_KEY).toBeUndefined();
+      expect(r.env.TF_TEST_MISSING).toBeUndefined();
+      expect(r.droppedCredentialNames).toContain("TF_TEST_API_KEY");
+    } finally {
+      delete process.env.TF_TEST_ALLOWED;
+      delete process.env.TF_TEST_API_KEY;
+    }
+  });
+
+  it("drops credential-shaped names from set{} too", async () => {
+    const r = await platform.createRestrictedEnvironment({
+      allowNames: [],
+      set: { SAFE_VALUE: "1", MY_SECRET: "x", AUTH_TOKEN: "y", DB_PASSWORD: "z" }
     });
-    await expect(platform.createRestrictedEnvironment({ allowNames: [] }))
-      .rejects.toBeInstanceOf(PlatformMethodNotImplementedError);
+    expect(r.env.SAFE_VALUE).toBe("1");
+    expect(r.env.MY_SECRET).toBeUndefined();
+    expect(r.env.AUTH_TOKEN).toBeUndefined();
+    expect(r.env.DB_PASSWORD).toBeUndefined();
+    expect(r.droppedCredentialNames).toEqual(expect.arrayContaining(["MY_SECRET", "AUTH_TOKEN", "DB_PASSWORD"]));
   });
 });
