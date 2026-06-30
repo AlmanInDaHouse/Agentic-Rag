@@ -4,20 +4,21 @@
 and GitHub at the start of every loop; this file records the conclusion, not the
 history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.1).
 
-**Last updated:** 2026-06-30 (Loop 48 — **A10-W.5 Windows isolation boundary + safe command policy**: Windows command policy (reg/sc/schtasks/netsh/Defender/... privileged; cmd/powershell/pwsh/codex/claude blocked shells); `createRestrictedEnvironment` (env allowlist + credential strip — all platform methods now implemented); `windows_isolation_boundary`=`verified_real_environment` (in-process composition; ACL/token/firewall = honest OS-confinement residual); on branch `feat/a10w-5-windows-isolation-boundary`)
+**Last updated:** 2026-06-30 (Loop 51 — **A10-W.6 + A10-W.7 + A10-W.8a real-provider integration merged**. W.6: real Codex/Claude Windows adapters wired through the Job Object (`PlatformProcessRunner` + safe `node <codex.js>`/`claude.exe` resolution), normalizers for the real shapes, **Codex upgraded 0.101.0→0.142.4** (owner-approved; 0.101.0 was a ChatGPT-account model dead-zone). W.7: real cross-vendor pilots (`realPilot.ts` + `trustedCommandRunner.ts`) — both directions reach a governed merge on a fixture repo. W.8a: real collaboration modes (Specialist/Pair/Full Debate) + real quota/usage signals, via per-provider model threading. All real verification is in gated `*.host.test.ts` (win32 && `TRIFORGE_REAL_PROVIDER=1`); CI stays Linux-green.)
 
 ## Snapshot
 
 | Field | Value |
 |---|---|
-| Last closed milestone | A10-W.4 (`568d1b4`, PR #84) → Windows Job Object process supervisor merged |
-| Active milestone | **A10-W — Native Windows Operational Closure** (ADR 0056). A10-W.1–W.4 merged; A10-W.5 in flight; A10-W.6–W.9 queued. The native-Windows SUBSTRATE (platform abstraction, path security, worktree, process supervisor, isolation+command policy) is complete; W.6+ is real-provider integration. |
-| `main` SHA | `568d1b4` |
-| Last `main` CI | `Validate` ✅ success (`568d1b4`) |
-| Open PRs | A10-W.5 (this branch). |
-| Blockers | none internal; **no external blocker** — both providers are installed AND authenticated natively on Windows (the prior WSL2 manual-login hard stop is satisfied). Native-Windows verification is engineering (A10-W.2–W.9). |
+| Last closed milestone | A10-W.8a (`e445d75`, PR #88) → real collaboration modes + quota/usage signals merged |
+| Active milestone | **A10-W — Native Windows Operational Closure** (ADR 0056). Substrate (W.1–W.5) = `verified_real_environment`; real adapters (W.6), cross-vendor pilots (W.7), collaboration modes + quota signals (W.8a) = `verified_real_provider`. **Remaining: the integrated product E2E (W.8b) + packaging/security/release (W.9).** |
+| `main` SHA | `e445d75` (before this docs checkpoint) |
+| Last `main` CI | `Validate` ✅ success |
+| Open PRs | none (this docs checkpoint branch aside) |
+| Evidence | **11 `verified_real_provider` + 5 `verified_real_environment` mandatory caps.** Only **3 mandatory caps remain `unknown`**: `windows_integrated_product_e2e`, `windows_restart_recovery`, `windows_clean_install`. (`competitive_mode_real` is non-mandatory.) |
+| Blockers | none internal. The remaining 3 caps need the **wired product runtime** (the server is still mock-only) + a browser-driven UI run + more real-provider quota. The **Claude 7-day window is at ~0.85 (≈15% headroom)** — an effective platform limit (mandate §9) for the integrated UI-driven real runs. |
 | Pending decisions | none |
-| Next loop | **A10-W is the active roadmap.** A1–A9 is a release candidate; the FINAL operational 1.0 is gated on native-Windows verification (`docs/evidence/TRIFORGE_CAPABILITY_EVIDENCE.json`, `finalReleaseGate.test.ts`). Mandatory `windows_*` capabilities must reach `verified_real_environment` / `verified_real_provider`. No `v1.0.0` tag until the final gate reports ready. Substrate verified on the real host via `pnpm triforge:doctor` (18 checks, 0 blockers). |
+| Next loop (exact) | **W.8b — integrated product E2E.** (1) Build `triforge:setup/dev/start/stop/status/clean` PowerShell-runnable scripts (only `triforge:doctor` exists); `triforge:start` = db:migrate + backend + frontend up. (2) Wire `createRealAdapter` into the backend run path (the API/orchestrator currently drives mock adapters) so a run executes a REAL provider end-to-end. (3) Drive a real run through the browser UI (Chrome MCP): timeline/commands/mutations/findings/repair/quota/governance/diff/merge/cancel/cleanup → flip `windows_integrated_product_e2e`. (4) Restart-recovery on the real host (persist → restart backend → reconstruct timeline → single terminal → no duplicate merge) → flip `windows_restart_recovery`. **W.9**: clean-install from a fresh NTFS checkout → flip `windows_clean_install`; 34-vector Windows security review; release notes/vision/risk-register/compat-matrix; **tag `v1.0.0`** + GitHub Release ONLY when `finalReleaseGate` is green (all mandatory caps verified). **`v1.0.0` is NOT tagged; DoD is NOT yet met.** |
 
 ## Follow-ups / tech debt
 
