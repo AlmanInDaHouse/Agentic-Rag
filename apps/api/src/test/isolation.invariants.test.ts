@@ -98,14 +98,21 @@ describe("A10.2 — filesystem containment (invariants 1,2,4,5)", () => {
   });
 
   it("2/credential-path: denies reading a credential store outside the worktree", () => {
-    const { ws } = makeWorktree();
+    const { ws, stateRoot } = makeWorktree();
     const e = engine(ws);
-    // Absolute path into the real $HOME credential store.
+    // Absolute path into the real $HOME credential store (denied by containment,
+    // independent of whether it exists on this host).
     expect(e.checkRead(path.join(homedir(), ".ssh", "id_rsa")).allowed).toBe(false);
     expect(e.checkRead(path.join(homedir(), ".aws", "credentials")).allowed).toBe(false);
-    // A symlink inside the worktree pointing at $HOME must not launder the escape.
+    // A symlink inside the worktree pointing at a REAL out-of-workspace credential
+    // store must not launder the escape. The target must exist so realpath resolves
+    // it outside the root (a broken link would ENOENT at open — no leak — but is not
+    // the symlink-escape case we assert here).
+    const credStore = path.join(stateRoot, "fake-home", ".ssh");
+    mkdirSync(credStore, { recursive: true });
+    writeFileSync(path.join(credStore, "id_rsa"), "-----BEGIN PRIVATE KEY-----\n");
     const link = path.join(ws, "src", "leak");
-    if (trySymlink(path.join(homedir(), ".ssh"), link)) {
+    if (trySymlink(credStore, link)) {
       const d = e.checkRead("src/leak/id_rsa");
       expect(d.allowed).toBe(false);
       expect(d.reason).toBe("symlink_escape");
