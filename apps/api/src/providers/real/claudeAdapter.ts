@@ -89,6 +89,23 @@ export const CLAUDE_ADAPTER_CONFIG: RealAdapterConfig = {
       request.objective
     ];
   },
+  buildWritableExecArgs(request: AgentExecutionRequest): string[] {
+    // A10.3 controlled writable path — reached ONLY after authorizeWritable() passes.
+    // Uses the documented `--permission-mode acceptEdits` (§20); NEVER `--bare` (would
+    // force an API key — §20 / ADR 0029). Same `--` marker + upstream hyphen-guard.
+    // REQUIRES_VERIFICATION against the installed CLI (real snapshot, not the fixture).
+    return [
+      "-p",
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "--permission-mode",
+      "acceptEdits",
+      "--",
+      ...request.sanitizedArguments,
+      request.objective
+    ];
+  },
   parseVersion(output: string): string | null {
     const match = SEMVER.exec(output);
     return match ? match[1] : null;

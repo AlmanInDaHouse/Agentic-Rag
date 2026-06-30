@@ -86,6 +86,22 @@ export const CODEX_ADAPTER_CONFIG: RealAdapterConfig = {
       request.objective
     ];
   },
+  buildWritableExecArgs(request: AgentExecutionRequest): string[] {
+    // A10.3 controlled writable path — reached ONLY after authorizeWritable() passes
+    // (observed write capability + binding + version + worktree cwd). Uses the
+    // documented `--sandbox workspace-write` (§20). Same `--` end-of-options marker +
+    // upstream hyphen-guard so a flag-shaped objective cannot widen the sandbox.
+    // REQUIRES_VERIFICATION against the installed CLI (real snapshot, not the fixture).
+    return [
+      "exec",
+      "--json",
+      "--sandbox",
+      "workspace-write",
+      "--",
+      ...request.sanitizedArguments,
+      request.objective
+    ];
+  },
   parseVersion(output: string): string | null {
     const match = SEMVER.exec(output);
     return match ? match[1] : null;

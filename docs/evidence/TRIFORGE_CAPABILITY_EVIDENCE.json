@@ -57,29 +57,37 @@
     },
     {
       "capability": "codex_writable_adapter",
-      "status": "unknown",
+      "status": "verified_fixture",
       "mandatoryForFinal": true,
       "requiresRealProvider": false,
       "provider": "codex",
-      "providerVersion": "",
+      "providerVersion": "0.101.0",
       "environment": "ci",
-      "evidence": [],
-      "verifiedAt": "",
-      "risks": [],
-      "notes": "Capability-gated writable execution profile for the Codex adapter. Implemented + unit/fixture verified in A10-3 (pending); refuses writes unless an observed real capability snapshot authorizes them."
+      "evidence": [
+        "apps/api/src/providers/real/writableProfile.ts",
+        "apps/api/src/providers/real/codexAdapter.ts",
+        "apps/api/src/test/writableAdapter.test.ts"
+      ],
+      "verifiedAt": "2026-06-30",
+      "risks": ["the fixture snapshot is not a real authenticated observation (codex_writable_real_capability_snapshot remains blocked_external)"],
+      "notes": "A10.3 capability-gated writable profile. Refuses readOnly:false unless an observed write=yes snapshot (matching version + provider), a 6-field A0.5 binding, and a worktree cwd all hold; authorized run builds `--sandbox workspace-write` and passes the conformance harness. Read-only default unchanged."
     },
     {
       "capability": "claude_writable_adapter",
-      "status": "unknown",
+      "status": "verified_unit",
       "mandatoryForFinal": true,
       "requiresRealProvider": false,
       "provider": "claude",
-      "providerVersion": "",
+      "providerVersion": "2.1.195",
       "environment": "ci",
-      "evidence": [],
-      "verifiedAt": "",
-      "risks": [],
-      "notes": "Capability-gated writable execution profile for the Claude adapter. Implemented + unit/fixture verified in A10-3 (pending)."
+      "evidence": [
+        "apps/api/src/providers/real/writableProfile.ts",
+        "apps/api/src/providers/real/claudeAdapter.ts",
+        "apps/api/src/test/writableAdapter.test.ts"
+      ],
+      "verifiedAt": "2026-06-30",
+      "risks": ["the real claude 2.1.195 fixture observes write=unknown, so the authorized path is unit-tested with a constructed snapshot; the real writable capability (claude_writable_real_capability_snapshot) is blocked_external"],
+      "notes": "A10.3 capability-gated writable profile. Authorized run builds `--permission-mode acceptEdits` (never --bare); refuses honestly when write is not observed (the real 2.1.195 fixture observes write=unknown). Read-only default unchanged."
     },
     {
       "capability": "writable_adapter_conformance_harness",

@@ -49,3 +49,10 @@ export {
 } from "./realAdapter.js";
 export { CodexAdapter, CODEX_ADAPTER_CONFIG } from "./codexAdapter.js";
 export { ClaudeAdapter, CLAUDE_ADAPTER_CONFIG } from "./claudeAdapter.js";
+
+export {
+  authorizeWritable,
+  type WritableProfile,
+  type WritableAuthorization,
+  type WritableContext
+} from "./writableProfile.js";

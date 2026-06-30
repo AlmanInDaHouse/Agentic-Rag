@@ -84,7 +84,7 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 - **A10 — Real Provider Operational Closure — ACTIVE** (spec `REAL_PROVIDER_OPERATIONAL_CLOSURE_SPEC.md`; ADR 0054):
   - A10-1 Evidence model + honest evidence-based release gate — **this PR** (`TRIFORGE_CAPABILITY_EVIDENCE.json`, `evidence.ts`, `releaseGate.test.ts`, `finalReleaseGate.test.ts`, REQUIRES_VERIFICATION register, owner runbook)
   - A10-2 Real isolation boundary + 13-invariant matrix + ADR 0055 — **this PR** (`execution/isolation/`, `isolation.invariants.test.ts`; closes T-FS-05 .gitattributes filters; `os_isolation_boundary_verified`=verified_fixture)
-  - A10-3 Writable provider adapters (capability-gated) — pending
+  - A10-3 Writable provider adapters (capability-gated) — **this PR** (`writableProfile.ts`; codex `workspace-write` / claude `acceptEdits` profiles refuse unless observed write=yes + binding + version + worktree cwd; `writableAdapter.test.ts`; read-only default unchanged)
   - A10-4 Writable adapter conformance harness — pending
   - A10.5–A10.8 Real pilots / modes / quota / integrated E2E — **`blocked_external`** on owner WSL2 install + auth
   - A10-10 Resolve PR #26 — pending

@@ -47,6 +47,7 @@ import {
   type ProcessRunSpec,
   type RunningProcess
 } from "./processRunner.js";
+import { authorizeWritable, type WritableProfile } from "./writableProfile.js";
 
 /** The version-bound capability fields (everything on the snapshot except metadata). */
 export type CapabilityFields = Omit<CapabilitySnapshot, "provider" | "cliVersion" | "verifiedAt">;
@@ -83,6 +84,12 @@ export interface RealAdapterConfig {
   mapper: ProviderLineMapper;
   /** Build the read-only headless execute argv from a request. */
   buildExecArgs(request: AgentExecutionRequest): string[];
+  /**
+   * Build the CONTROLLED writable execute argv (A10.3). Optional: an adapter without
+   * this builder has no writable profile and always refuses `readOnly:false`. When
+   * present, it is used ONLY after {@link authorizeWritable} has authorized the run.
+   */
+  buildWritableExecArgs?(request: AgentExecutionRequest): string[];
   /** Extract a version string from `--version` output, or null. */
   parseVersion(output: string): string | null;
   /** Map probe output + exit onto a non-secret auth state. */
@@ -98,6 +105,15 @@ export interface RealAdapterOptions {
    * per-run replay). When provided, the single clock is shared (caller-owned time).
    */
   clock?: Clock;
+  /**
+   * Controlled writable execution profile (A10.3). When absent, the adapter is
+   * read-only and refuses `readOnly:false` (A3 behaviour). When present, a
+   * `readOnly:false` request is authorized ONLY if the observed real capability
+   * snapshot, binding, version and worktree cwd all check out (see
+   * {@link authorizeWritable}). The orchestrator constructs this from a REAL
+   * `getCapabilities()` observation after the owner authenticates the CLI.
+   */
+  writableProfile?: WritableProfile;
 }
 
 /** Drain a probe process into combined stdout/stderr text + the terminal exit. */
@@ -124,6 +140,7 @@ export abstract class RealAdapter implements ProviderAdapter {
   private readonly options: RealAdapterOptions;
   private readonly probeClock: Clock;
   private readonly running = new Map<string, RunningProcess>();
+  private readonly writableProfile?: WritableProfile;
 
   constructor(runner: ProcessRunner, config: RealAdapterConfig, options: RealAdapterOptions = {}) {
     this.runner = runner;
@@ -131,6 +148,7 @@ export abstract class RealAdapter implements ProviderAdapter {
     this.options = options;
     this.provider = config.provider;
     this.probeClock = options.clock ?? new ManualClock();
+    this.writableProfile = options.writableProfile;
   }
 
   async checkAvailability(): Promise<AvailabilityResult> {
@@ -194,9 +212,15 @@ export abstract class RealAdapter implements ProviderAdapter {
     if (refusal !== null) {
       return this.refusedStream(request, refusal.code, refusal.message);
     }
+    // A writable run is only reachable here once refusalReason() authorized it, so the
+    // writable argv builder is guaranteed present. Read-only stays the default path.
+    const buildArgs =
+      request.readOnly === false && this.config.buildWritableExecArgs !== undefined
+        ? this.config.buildWritableExecArgs.bind(this.config)
+        : this.config.buildExecArgs.bind(this.config);
     const spec: ProcessRunSpec = {
       bin: this.config.bin,
-      args: this.config.buildExecArgs(request),
+      args: buildArgs(request),
       cwd: request.cwd ?? ".",
       envAllowlist: unionAllowlist(this.config.defaultEnvAllowlist, request.environmentAllowlist),
       timeoutMs: request.timeoutMs,
@@ -232,11 +256,22 @@ export abstract class RealAdapter implements ProviderAdapter {
     request: AgentExecutionRequest
   ): { code: ProviderError["code"]; message: string } | null {
     if (request.readOnly === false) {
-      return {
-        code: "request_rejected",
-        message:
-          "writable provider execution is not authorized until A5; requires the A0.5 capability binding"
-      };
+      // A10.3: writable is refused UNLESS an observed real capability snapshot,
+      // binding, matching version and worktree cwd authorize it. Without a writable
+      // profile this always refuses (A3 behaviour preserved). No writable argv is ever
+      // built for a refused request.
+      const auth = authorizeWritable(
+        this.writableProfile,
+        {
+          provider: this.provider,
+          knownVersion: this.config.knownVersion,
+          supportsWritable: this.config.buildWritableExecArgs !== undefined
+        },
+        request
+      );
+      if (!auth.authorized) {
+        return { code: "request_rejected", message: auth.message };
+      }
     }
     if (startsWithHyphen(request.objective)) {
       return {
