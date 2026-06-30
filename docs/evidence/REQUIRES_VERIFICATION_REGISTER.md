@@ -20,7 +20,7 @@ the durable register; live capability statuses are in
 | 10 | Claude permission/sandbox behaviour (real) | `blocked_external` | Read-only flag documented; writable observed under A10.3/A10.5. |
 | 11 | Branch-protection enabled-state + required-check name | `verified` | Required check `Validate`; `Validate` = success on `main` 13ae669 (GitHub check-runs, 2026-06-30). |
 | 12 | pnpm 11 dependency build-script policy | `verified` | Repo builds CI-green from a clean `pnpm install --frozen-lockfile`; build-scripts not auto-run for untrusted deps. Tracked R-SEC-10. |
-| 13 | OS isolation mechanism (untrusted code) | `unknown→verified_fixture` (A10-2) | A10.2 boundary + invariant matrix; recorded in the isolation ADR. |
+| 13 | OS isolation mechanism (untrusted code) | `verified_fixture` | A10.2 boundary + 13-invariant matrix (`isolation.invariants.test.ts`); ADR 0055. RR-4 (no OS namespace) is a documented post-1.0 residual. |
 | 14 | Writable capability (real) | `blocked_external` | A10.3 adapter is capability-gated; real snapshot pending auth. |
 | 15 | Cancellation (real) | `blocked_external` | Mock-verified; real pending auth. |
 | 16 | Cleanup (real) | `blocked_external` | Mock/fixture-verified; real pending auth. |

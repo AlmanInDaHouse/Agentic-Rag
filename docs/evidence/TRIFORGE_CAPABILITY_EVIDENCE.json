@@ -213,16 +213,23 @@
     },
     {
       "capability": "os_isolation_boundary_verified",
-      "status": "unknown",
+      "status": "verified_fixture",
       "mandatoryForFinal": true,
       "requiresRealProvider": false,
       "provider": "",
       "providerVersion": "",
-      "environment": "wsl2-ubuntu",
-      "evidence": [],
-      "verifiedAt": "",
-      "risks": ["WSL2 is not a sufficient sandbox by itself (DoD §6 invariant 13)"],
-      "notes": "A10.2 real isolation boundary: /mnt/c escape, $HOME escape, credential-path denial, env allowlist, network deny, .gitattributes neutralization, process-group kill, resource limits. Partial primitives exist (pathPolicy/commandPolicy/processRunner); the A10.2 invariant matrix is delivered in A10-2 (pending)."
+      "environment": "ci",
+      "evidence": [
+        "apps/api/src/execution/isolation/isolationBoundary.ts",
+        "apps/api/src/test/isolation.invariants.test.ts",
+        "docs/adr/0055-isolation-mechanism.md"
+      ],
+      "verifiedAt": "2026-06-30",
+      "risks": [
+        "WSL2 is not a sufficient sandbox by itself (DoD §6 invariant 13)",
+        "no OS-level syscall/network namespace confinement in 1.0 (RR-4 residual; future hardening)"
+      ],
+      "notes": "A10.2 real isolation boundary verified by a 13-invariant fixture matrix: traversal, symlink/hardlink escape, /mnt/c escape, $HOME escape, credential-path denial, env credential-leak denial, .gitattributes filter neutralization (T-FS-05), network/destructive/privileged deny-by-default, .git protection, declared limits. In-process policy composition is the mechanism (ADR 0055); WSL2 is not trusted as the boundary."
     },
     {
       "capability": "allowed_paths_verified",
