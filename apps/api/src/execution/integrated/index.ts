@@ -9,6 +9,7 @@ export {
   type IntegratedRunDeps
 } from "./integratedRunService.js";
 export { InMemoryIntegratedRunStore } from "./inMemoryStore.js";
+export { PgIntegratedRunStore } from "./pgStore.js";
 export { buildRunPlan, INTEGRATED_BINDING, type RunControls, type StageSink, type RunPlan } from "./runCallbacks.js";
 export {
   TERMINAL_RUN_STATUSES,

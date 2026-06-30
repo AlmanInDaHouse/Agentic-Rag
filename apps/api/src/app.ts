@@ -1,5 +1,9 @@
 import cors from "@fastify/cors";
 import Fastify from "fastify";
+import { randomUUID } from "node:crypto";
+import { fileURLToPath } from "node:url";
+import path from "node:path";
+import os from "node:os";
 import { pool } from "./db/pool.js";
 import { PgAgentRuntimeTransactionManager } from "./db/runtimeTransactionManager.js";
 import { PgDebateRepository } from "./repositories/debateRepository.js";
@@ -31,6 +35,13 @@ import { createMockAgents } from "./services/mockAgents.js";
 import { HighestConfidenceJudge } from "./services/mockJudge.js";
 import { PgTimelineEventsRepository } from "./repositories/timelineEventsRepository.js";
 import { env } from "./config/env.js";
+import { ManualClock } from "./providers/clock.js";
+import { WINDOWS_BASE_ENV_ALLOWLIST } from "./providers/real/index.js";
+import { NodeGitRunner } from "./execution/worktree/index.js";
+import { TrustedCommandRunner } from "./execution/command/trustedCommandRunner.js";
+import { IntegratedRunService } from "./execution/integrated/index.js";
+import { PgIntegratedRunStore } from "./execution/integrated/pgStore.js";
+import { registerIntegratedRoutes } from "./http/integratedRoutes.js";
 
 export async function buildApp() {
   const app = Fastify({
@@ -139,5 +150,33 @@ export async function buildApp() {
     contextEmbeddingService,
     ragStatusService
   );
+
+  // A10-W.8b — integrated runtime (provider-mode-selected real/mock writable pipeline).
+  const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
+  const stateRoot =
+    process.platform === "win32"
+      ? path.join(
+          process.env.LOCALAPPDATA && process.env.LOCALAPPDATA.trim() !== ""
+            ? process.env.LOCALAPPDATA
+            : path.join(os.homedir(), "AppData", "Local"),
+          "TriForge"
+        )
+      : path.join(os.homedir(), ".triforge");
+  const integratedRunService = new IntegratedRunService({
+    store: new PgIntegratedRunStore(pool),
+    gitRunner: new NodeGitRunner(),
+    processRunner: new TrustedCommandRunner(),
+    clock: new ManualClock(),
+    stateRoot: path.join(stateRoot, "integrated"),
+    now: () => new Date().toISOString(),
+    newId: () => randomUUID(),
+    envAllowlist: [...WINDOWS_BASE_ENV_ALLOWLIST],
+    commandConfig: { allowedCategories: ["read_only", "test", "build", "write_local"] }
+  });
+  registerIntegratedRoutes(app, integratedRunService, {
+    repoRoot,
+    defaultProviderMode: env.TRIFORGE_PROVIDER_MODE
+  });
+
   return app;
 }
