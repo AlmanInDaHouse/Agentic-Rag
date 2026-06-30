@@ -244,17 +244,23 @@
     },
     {
       "capability": "windows_restart_recovery",
-      "status": "unknown",
+      "status": "verified_real_environment",
       "mandatoryForFinal": true,
       "requiresRealProvider": false,
       "requiresRealEnvironment": true,
       "provider": "",
       "providerVersion": "",
       "environment": "windows-native",
-      "evidence": [],
-      "verifiedAt": "",
-      "risks": [],
-      "notes": "A10-W.8: run reconstruction and recovery after a process restart on a real Windows host (recovery_after_restart is the CI-fixture proof; this is the real-host proof)."
+      "evidence": [
+        "apps/api/src/test/restartRecovery.host.test.ts (PgIntegratedRunStore + IntegratedRunService.recover against REAL native PostgreSQL 18 on Windows 11 26200) — green 2026-06-30 (TRIFORGE_PG_RESTART_TEST=1, DATABASE_URL=native PG): (a) a COMPLETED integrated run persisted to Postgres is reconstructed by a FRESH store+service (empty process memory) after a simulated restart — gapless timeline, single terminal, merged=true, recover() does NOT re-merge or duplicate the terminal; (b) an INTERRUPTED (running) run is reconciled to a single terminal failed, no merge, no duplicate.",
+        "apps/api/src/execution/integrated/integratedRunService.ts (recover) + apps/api/src/execution/integrated/pgStore.ts + migrations/0013_integrated_runs.sql"
+      ],
+      "verifiedAt": "2026-06-30",
+      "risks": [
+        "the run is reconstructed from the persisted store alone (no process memory); a real provider OS-process that died mid-write is out of scope of this DB-level recovery (the Job Object reaps the tree on the owning process exit).",
+        "verified against a native Windows PostgreSQL 18 cluster (the owner's service was not used; a dedicated throwaway native cluster on an alternate port provided the DB — same engine/host, isolated data)."
+      ],
+      "notes": "A10-W.8b: run reconstruction and recovery after a process restart on a real Windows host with real native PostgreSQL — the real-host proof behind the CI-fixture recovery_after_restart. Single terminal preserved; no double-merge; no duplicate events; sequence gapless."
     },
     {
       "capability": "windows_clean_install",
