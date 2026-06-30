@@ -72,17 +72,26 @@
     },
     {
       "capability": "windows_job_object_supervision",
-      "status": "unknown",
+      "status": "verified_real_environment",
       "mandatoryForFinal": true,
       "requiresRealProvider": false,
       "requiresRealEnvironment": true,
       "provider": "",
       "providerVersion": "",
       "environment": "windows-native",
-      "evidence": [],
-      "verifiedAt": "",
-      "risks": ["process breakaway; orphan; PID reuse; Job Object lifecycle"],
-      "notes": "A10-W.4: native process-tree supervision via Windows Job Objects (kill-on-job-close), replacing POSIX process groups. ExecutionPlatform.createManagedProcess/terminateProcessTree declared (throws until A10-W.4). taskkill /T /F is a documented fallback only."
+      "evidence": [
+        "apps/api/src/platform/windowsJobObject.ts (PowerShell + in-box C# Add-Type P/Invoke: CreateJobObject + JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE + AssignProcessToJobObject + TerminateJobObject; no install, auditable source)",
+        "apps/api/src/platform/nodeExecutionPlatform.ts (WindowsExecutionPlatform.createManagedProcess / terminateProcessTree)",
+        "apps/api/src/test/windowsJobObject.host.test.ts — real-host chaos: child+grandchild reaped on cancel (kill-on-close), output capture + exit code, timeout reaping, idempotent double-cancel — green on Windows 11 26200"
+      ],
+      "verifiedAt": "2026-06-30",
+      "risks": [
+        "the Job Object mechanism is delivered + verified via createManagedProcess; the real provider-adapter spawn path (NodeProcessRunner.killTree) still uses taskkill /T /F and is wired to the job in A10-W.6.",
+        "assignment race: a grandchild spawned in the brief window BEFORE the holder assigns the child is not in the job; mitigated by the layered taskkill /T /F fallback in reap() (the chaos test delays the grandchild past assignment to prove kill-on-close).",
+        "output-flood and explicit breakaway-attempt are not yet dedicated chaos cases (breakaway is denied by default — no JOB_OBJECT_LIMIT_BREAKAWAY_OK set); CREATE_SUSPENDED race-free launch is a future hardening over the assign-after-spawn approach.",
+        "memory/CPU Job Object limits are not yet applied (structure supports them; not set)."
+      ],
+      "notes": "A10-W.4: native Windows process-tree supervision via a Job Object with JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE — replacing the POSIX process-group dependency. A PowerShell job holder with embedded in-box C# (Add-Type P/Invoke; NO install, NO opaque binary) creates the job and assigns the spawned child; reaping the holder (or writing 'kill') closes the last job handle and the OS terminates the whole tree (children, grandchildren, detached). Empirically verified on a real Windows host: a sleeping grandchild is reaped on cancel — exactly the case taskkill /T can miss. taskkill /T /F is a documented FALLBACK only (layered). Single terminal event; separate stdout/stderr; output cap; timeout; idempotent cancel; PID-reuse-safe (reap via the job handle, not the PID)."
     },
     {
       "capability": "windows_isolation_boundary",

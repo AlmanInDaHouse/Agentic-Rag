@@ -94,13 +94,6 @@ describe("validateContainedPath is implemented (A10-W.2)", () => {
 describe("deferred methods reject with the typed, PR-naming error (phased rollout)", () => {
   const platform = new WindowsExecutionPlatform();
 
-  it("createManagedProcess and terminateProcessTree → A10-W.4", async () => {
-    await expect(platform.createManagedProcess({ executable: "node", args: [], cwd: repoRoot, env: {} }))
-      .rejects.toBeInstanceOf(PlatformMethodNotImplementedError);
-    await expect(platform.terminateProcessTree("1", "cancelled"))
-      .rejects.toBeInstanceOf(PlatformMethodNotImplementedError);
-  });
-
   it("createRestrictedEnvironment → A10-W.5", async () => {
     await platform.createRestrictedEnvironment({ allowNames: [] }).catch((err: PlatformMethodNotImplementedError) => {
       expect(err.plannedPr).toContain("A10-W.5");
