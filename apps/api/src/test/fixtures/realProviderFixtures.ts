@@ -32,7 +32,7 @@ const j = (value: unknown): string => JSON.stringify(value);
 
 // --- version probe scripts -----------------------------------------------
 
-export const codexVersionScript: FakeProcessScript = { lines: [out("codex-cli 0.101.0")], exit: EXIT_OK };
+export const codexVersionScript: FakeProcessScript = { lines: [out("codex-cli 0.142.4")], exit: EXIT_OK };
 export const claudeVersionScript: FakeProcessScript = {
   lines: [out("2.1.195 (Claude Code)")],
   exit: EXIT_OK
@@ -50,6 +50,15 @@ export const notInstalledScript: FakeProcessScript = { lines: [], exit: EXIT_SPA
 export const authAuthenticatedScript: FakeProcessScript = { lines: [out("Logged in.")], exit: EXIT_OK };
 export const authRequiredScript: FakeProcessScript = { lines: [out("Not logged in.")], exit: EXIT_OK };
 export const authExpiredScript: FakeProcessScript = { lines: [out("Session expired.")], exit: EXIT_OK };
+/** claude 2.1.195 `auth status` JSON shape (A10-W.6 real-host observation; PII omitted). */
+export const claudeAuthJsonScript: FakeProcessScript = {
+  lines: [out(j({ loggedIn: true, authMethod: "claude.ai", apiProvider: "firstParty", subscriptionType: "max" }))],
+  exit: EXIT_OK
+};
+export const claudeAuthJsonLoggedOutScript: FakeProcessScript = {
+  lines: [out(j({ loggedIn: false }))],
+  exit: EXIT_OK
+};
 
 // --- Codex execute scripts ------------------------------------------------
 
@@ -108,6 +117,42 @@ export const codexWritableFileChangeScript: FakeProcessScript = {
       })
     ),
     out(j({ type: "thread.completed" }))
+  ],
+  exit: EXIT_OK
+};
+
+/**
+ * codex 0.142.4 writable shape (A10-W.6 real-host observation): an `item.started`
+ * (lifecycle, ignored) then an `item.completed` carrying `changes: [{ path, kind }]`
+ * — one item, possibly many files. No `thread.completed` (clean exit → run.completed
+ * synthesized). Exercises the real shape, not only the legacy single-path form.
+ */
+export const codexWritableChangesScript: FakeProcessScript = {
+  lines: [
+    out(j({ type: "thread.started", thread_id: "t1" })),
+    out(j({ type: "turn.started" })),
+    out(
+      j({
+        type: "item.started",
+        item: { id: "i1", type: "file_change", changes: [{ path: "src/added.ts", kind: "add" }], status: "in_progress" }
+      })
+    ),
+    out(
+      j({
+        type: "item.completed",
+        item: {
+          id: "i1",
+          type: "file_change",
+          changes: [
+            { path: "src/added.ts", kind: "add" },
+            { path: "src/old.ts", kind: "delete" }
+          ],
+          status: "completed"
+        }
+      })
+    ),
+    out(j({ type: "item.completed", item: { id: "i2", type: "agent_message", text: "Done." } })),
+    out(j({ type: "turn.completed", usage: { input_tokens: 100, output_tokens: 20 } }))
   ],
   exit: EXIT_OK
 };
@@ -245,6 +290,47 @@ export const claudeParseErrorScript: FakeProcessScript = {
       })
     ),
     out(j({ type: "result", subtype: "success", is_error: false, result: "Done." }))
+  ],
+  exit: EXIT_OK
+};
+
+/**
+ * claude 2.1.195 stream including a `rate_limit_event` (A10-W.6 real-host observation):
+ * normalized to a quota.updated signal (status/window/utilization/resetsAt). Not an
+ * error stream — the run still completes successfully.
+ */
+export const claudeRateLimitEventScript: FakeProcessScript = {
+  lines: [
+    out(j({ type: "system", subtype: "init", session_id: "s1", model: "claude", tools: ["Read"] })),
+    out(
+      j({
+        type: "rate_limit_event",
+        rate_limit_info: {
+          status: "allowed_warning",
+          resetsAt: 1782993600,
+          rateLimitType: "seven_day",
+          utilization: 0.79,
+          isUsingOverage: false
+        }
+      })
+    ),
+    out(
+      j({
+        type: "assistant",
+        message: { id: "m1", role: "assistant", content: [{ type: "text", text: "Working." }] }
+      })
+    ),
+    out(
+      j({
+        type: "result",
+        subtype: "success",
+        is_error: false,
+        result: "Done.",
+        usage: { input_tokens: 10, output_tokens: 5 },
+        total_cost_usd: 0.001,
+        num_turns: 1
+      })
+    )
   ],
   exit: EXIT_OK
 };

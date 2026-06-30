@@ -6,16 +6,17 @@
  * ordering, terminal synthesis, parse-error/unknown-kind handling and usage/quota
  * plumbing live in normalizerCore.ts.
  *
- * Assumed line format (REQUIRES_VERIFICATION against installed codex 0.101.0 —
- * OFFICIAL_CLI_PROVIDER_INTEGRATION_SPEC §20): stdout carries one JSON object per
- * line (JSONL); stderr carries human diagnostic logs (retained as evidence, not
- * mapped to events). Recognized stdout `type`s:
+ * Line format VERIFIED against installed codex 0.142.4 (A10-W.6 real-host probe,
+ * 2026-06-30; OFFICIAL_CLI_PROVIDER_INTEGRATION_SPEC §20): stdout carries one JSON
+ * object per line (JSONL); stderr carries human diagnostic logs (retained as
+ * evidence, not mapped to events). Recognized stdout `type`s:
  *
- *   thread.started | turn.started        -> lifecycle, ignored (core emits run.started)
+ *   thread.started | turn.started |
+ *     item.started | item.updated        -> lifecycle, ignored (core emits run.started)
  *   item.completed { item.type:
  *       agent_message }                  -> agent.message
  *       command_execution }              -> tool.started + tool.completed
- *       file_change | patch }            -> file.changed (only legitimate when writable)
+ *       file_change | patch }            -> file.changed per item.changes[] (writable only)
  *   turn.completed { usage }             -> usage.updated (isBillingAuthoritative:false)
  *   token_count { usage }                -> usage.updated
  *   error { subtype, message }           -> terminal error (mapped to A1 taxonomy)
@@ -88,6 +89,25 @@ function mapUsage(usage: Record<string, unknown>): NormalizedEvent {
   };
 }
 
+/** Map a codex file-change kind/change_type onto the A1 `file.changed` changeType. */
+function mapChangeKind(kind: string | undefined): "created" | "modified" | "deleted" | "renamed" {
+  switch (kind) {
+    case "add":
+    case "added":
+    case "created":
+      return "created";
+    case "delete":
+    case "deleted":
+    case "removed":
+      return "deleted";
+    case "rename":
+    case "renamed":
+      return "renamed";
+    default:
+      return "modified";
+  }
+}
+
 function mapItem(item: Record<string, unknown>): MappedLine {
   const itemType = str(item.type);
   const id = str(item.id) ?? "codex-item";
@@ -118,14 +138,30 @@ function mapItem(item: Record<string, unknown>): MappedLine {
     }
     case "file_change":
     case "patch": {
+      // codex 0.142.4 emits `item.changes: [{ path, kind }]` (one item, many files);
+      // older shapes carried a single `item.path` + `item.change_type`. Support both,
+      // emitting one file.changed per change.
+      const changes = Array.isArray(item.changes) ? item.changes : null;
+      if (changes !== null) {
+        const events: NormalizedEvent[] = [];
+        for (const raw of changes) {
+          const change = asRecord(raw);
+          if (change === null) {
+            continue;
+          }
+          const changedPath = str(change.path) ?? str(change.file) ?? "unknown";
+          events.push({
+            type: "file.changed",
+            payload: { path: changedPath, changeType: mapChangeKind(str(change.kind)), diffHash: null }
+          });
+        }
+        return events.length > 0 ? { events } : { unknownKind: "item.completed:file_change:no-changes" };
+      }
       const path = str(item.path) ?? str(item.file) ?? "unknown";
-      const rawChange = str(item.change_type);
-      const changeType =
-        rawChange === "created" || rawChange === "deleted" || rawChange === "renamed"
-          ? rawChange
-          : "modified";
       return {
-        events: [{ type: "file.changed", payload: { path, changeType, diffHash: null } }]
+        events: [
+          { type: "file.changed", payload: { path, changeType: mapChangeKind(str(item.change_type)), diffHash: null } }
+        ]
       };
     }
     default:
@@ -159,6 +195,10 @@ export const codexLineMapper: ProviderLineMapper = {
       case "thread.started":
       case "session.created":
       case "turn.started":
+      case "item.started":
+      case "item.updated":
+        // Lifecycle / streaming-progress only; the matching item.completed carries the
+        // authoritative final state (core emits run.started).
         return {};
       case "item.completed": {
         const item = asRecord(record.item);
