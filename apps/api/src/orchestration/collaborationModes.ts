@@ -104,6 +104,8 @@ export interface CollaborationContext {
   uncertainty?: number;
   /** Force a mode (human opt-in). Bypasses risk/uncertainty selection. */
   forcedMode?: CollaborationMode;
+  /** Optional per-provider model (e.g. an economical model for real-provider runs). */
+  models?: Partial<Record<ProviderId, string>>;
 }
 
 export interface ModeSelection {
@@ -384,6 +386,7 @@ interface RuntimeContext {
   planConfidence: Partial<Record<ProviderId, number>>;
   uncertainty?: number;
   forcedMode?: CollaborationMode;
+  models: Partial<Record<ProviderId, string>>;
 }
 
 function normalizeContext(context: CollaborationContext): RuntimeContext {
@@ -399,7 +402,8 @@ function normalizeContext(context: CollaborationContext): RuntimeContext {
     authorityEvidence: context.authorityEvidence ?? {},
     planConfidence: context.planConfidence ?? {},
     uncertainty: context.uncertainty,
-    forcedMode: context.forcedMode
+    forcedMode: context.forcedMode,
+    models: context.models ?? {}
   };
 }
 
@@ -671,7 +675,8 @@ function makeStepRunner(ctx: RuntimeContext): (args: StepArgs) => Promise<Provid
       amount: args.amount,
       phase: args.phase,
       objective: ctx.objective,
-      executionId
+      executionId,
+      ...(ctx.models[args.provider] ? { model: ctx.models[args.provider] } : {})
     });
   };
 }
