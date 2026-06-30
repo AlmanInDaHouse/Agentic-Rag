@@ -13,6 +13,11 @@ export * from "./provider/artifacts.js";
 // docs/evidence/TRIFORGE_CAPABILITY_EVIDENCE.json and ADR 0054.
 export * from "./provider/evidence.js";
 
+// Execution platform boundary (A10-W) — the single OS-portability seam that
+// funnels all platform-specific path/process/isolation behavior behind one
+// interface. See docs/specs/NATIVE_WINDOWS_OPERATIONAL_CLOSURE_SPEC.md and ADR 0056.
+export * from "./platform/executionPlatform.js";
+
 export const agentIdSchema = z.enum([
   "codex_architect",
   "claude_critic",

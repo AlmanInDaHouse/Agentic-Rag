@@ -4,20 +4,20 @@
 and GitHub at the start of every loop; this file records the conclusion, not the
 history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.1).
 
-**Last updated:** 2026-06-30 (Loop 43 — A10 kickoff: A10-1 evidence model + honest release gate, on branch `feat/a10-1-evidence-model-honest-gate`)
+**Last updated:** 2026-06-30 (Loop 44 — **A10-W native Windows pivot** (ADR 0056): A10-W.1 governance + `ExecutionPlatform` boundary + evidence-model extension + 14 native-Windows-final capabilities (12 `windows_*` + 2 re-homed e2e) + `pnpm triforge:doctor`, on branch `feat/a10w-1-native-windows-foundation`)
 
 ## Snapshot
 
 | Field | Value |
 |---|---|
-| Last closed milestone | A9.9 — Release gate (`13ae669`, PR #75; ADR 0053) → **A1–A9 roadmap DoD MET (RC)** |
-| Active milestone | **A10 — Real Provider Operational Closure** (A10-1: evidence model + evidence-based release gate; spec `REAL_PROVIDER_OPERATIONAL_CLOSURE_SPEC.md`; ADR 0054) |
-| `main` SHA | `13ae669` |
-| Last `main` CI | `Validate` ✅ success (`13ae669`) |
-| Open PRs | A10-10 (this branch). Legacy PR #26 — **resolved (closed, superseded; history preserved)** 2026-06-30 (`docs/repo/PR_26_RESOLUTION.md`). |
-| Blockers | none internal. Real-provider verification (A10.5–A10.8) is `blocked_external` on the owner's manual WSL2 install + auth (`docs/runbooks/REAL_PROVIDER_SETUP_WSL2.md`). |
+| Last closed milestone | A10 substrate (`619f02c`, PR #80) → autonomous substrate complete |
+| Active milestone | **A10-W — Native Windows Operational Closure** (ADR 0056 supersedes the WSL2-first mandate; spec `NATIVE_WINDOWS_OPERATIONAL_CLOSURE_SPEC.md`). A10-W.1 in flight; A10-W.2–W.9 queued. |
+| `main` SHA | `619f02c` |
+| Last `main` CI | `Validate` ✅ success (`619f02c`) |
+| Open PRs | A10-W.1 (this branch). |
+| Blockers | none internal; **no external blocker** — both providers are installed AND authenticated natively on Windows (the prior WSL2 manual-login hard stop is satisfied). Native-Windows verification is engineering (A10-W.2–W.9). |
 | Pending decisions | none |
-| Next loop | **A10 is the active roadmap.** A1–A9 is a release candidate; the FINAL operational 1.0 is gated on real-provider verification (`docs/evidence/TRIFORGE_CAPABILITY_EVIDENCE.json`, `finalReleaseGate.test.ts`). Auth-independent substrate (A10-1…A10-4, A10-10, A10-11) ships autonomously and CI-green; auth-dependent verification resumes after the owner runbook. No `v1.0.0` tag until the final gate reports ready. |
+| Next loop | **A10-W is the active roadmap.** A1–A9 is a release candidate; the FINAL operational 1.0 is gated on native-Windows verification (`docs/evidence/TRIFORGE_CAPABILITY_EVIDENCE.json`, `finalReleaseGate.test.ts`). Mandatory `windows_*` capabilities must reach `verified_real_environment` / `verified_real_provider`. No `v1.0.0` tag until the final gate reports ready. Substrate verified on the real host via `pnpm triforge:doctor` (18 checks, 0 blockers). |
 
 ## Follow-ups / tech debt
 
@@ -81,24 +81,30 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 - A7 Competitive mode — **A7.1 merged** (`0610c54`; PR #58; ADR 0051)
 - **A8 — COMPLETE** (`d99b850`; 8 panels A8.1–A8.8: provider status, task composer, run timeline, artifact explorer, diff/review, governance, budget/quota, recovery; ADR 0052; 46 web tests)
 - **A9 — COMPLETE** (`13ae669`; PR #75; ADR 0053; chaos/SAT/drift/recovery/observability/packaging/docs/RC/release-gate) → **A1–A9 roadmap Definition of Done MET (release candidate)**
-- **A10 — Real Provider Operational Closure — ACTIVE** (spec `REAL_PROVIDER_OPERATIONAL_CLOSURE_SPEC.md`; ADR 0054):
+- **A10 — Real Provider Operational Closure (WSL2-framed) — SUBSTRATE COMPLETE; superseded by A10-W (ADR 0056)** (spec `REAL_PROVIDER_OPERATIONAL_CLOSURE_SPEC.md`; ADR 0054):
   - A10-1 Evidence model + honest evidence-based release gate — **this PR** (`TRIFORGE_CAPABILITY_EVIDENCE.json`, `evidence.ts`, `releaseGate.test.ts`, `finalReleaseGate.test.ts`, REQUIRES_VERIFICATION register, owner runbook)
   - A10-2 Real isolation boundary + 13-invariant matrix + ADR 0055 — **this PR** (`execution/isolation/`, `isolation.invariants.test.ts`; closes T-FS-05 .gitattributes filters; `os_isolation_boundary_verified`=verified_fixture)
   - A10-3 Writable provider adapters (capability-gated) — **this PR** (`writableProfile.ts`; codex `workspace-write` / claude `acceptEdits` profiles refuse unless observed write=yes + binding + version + worktree cwd; `writableAdapter.test.ts`; read-only default unchanged)
   - A10-4 Writable adapter conformance harness — **this PR** (`writableConformance.test.ts`: both real adapters through the harness under writable runs across the failure surface; `writable_adapter_conformance_harness`=verified_fixture)
-  - A10.5–A10.8 Real pilots / modes / quota / integrated E2E — **`blocked_external`** on owner WSL2 install + auth
-  - A10-10 Resolve PR #26 — **this PR** (superseded → closed, history preserved; `PR_26_RESOLUTION.md`; `pr_26_resolved`=verified; compatibility matrix; `requires_verification_closed`=verified)
+  - A10.5–A10.8 Real pilots / modes / quota / integrated E2E — **re-homed to native Windows under A10-W** (no longer WSL2 `blocked_external`)
+  - A10-10 Resolve PR #26 — **merged** (superseded → closed, history preserved; `PR_26_RESOLUTION.md`; `pr_26_resolved`=verified; compatibility matrix; `requires_verification_closed`=verified)
   - A10-11 Honest release gate — delivered in A10-1
-  - **A10 AUTONOMOUS SUBSTRATE COMPLETE** (A10-1…A10-4, A10-10, A10-11). No open PRs. The only remaining work is A10.5–A10.8 real-provider verification + the `v1.0.0` tag, **`blocked_external`** on the owner's manual WSL2 install + auth (`docs/runbooks/REAL_PROVIDER_SETUP_WSL2.md`).
-  - **Final operational 1.0 / `v1.0.0`: PENDING real-provider verification**
+  - **A10 AUTONOMOUS SUBSTRATE COMPLETE** (A10-1…A10-4, A10-10, A10-11; `619f02c`, PRs #76–#80).
+- **A10-W — Native Windows Operational Closure — ACTIVE** (ADR 0056 supersedes the WSL2-first mandate; spec `NATIVE_WINDOWS_OPERATIONAL_CLOSURE_SPEC.md`):
+  - A10-W.1 Governance + `ExecutionPlatform` boundary + evidence-model extension (`verified_real_environment`/`requiresRealEnvironment`) + 14 native-Windows-final capabilities + `pnpm triforge:doctor` — **this PR**
+  - A10-W.2–W.9 Windows path policy / NTFS worktree / Job Object supervisor / isolation + safe command policy / real adapters / real pilots / integrated E2E / packaging + security review + release — **queued**
+  - **No external blocker:** Codex 0.101.0 and Claude 2.1.195 are installed AND authenticated **natively on Windows** (`pnpm triforge:doctor`, 2026-06-30); the prior WSL2 manual-login hard stop is satisfied. Remaining work is engineering.
+  - **Final operational 1.0 / `v1.0.0`: PENDING native-Windows verification** (`verified_real_environment` / `verified_real_provider` for the mandatory `windows_*` set)
 
 ## UNKNOWN
 
-- Whether Codex CLI / Claude Code are **authenticated** inside WSL2 (a hard stop; owner
-  action — `docs/runbooks/REAL_PROVIDER_SETUP_WSL2.md`). Node/pnpm absent in WSL2; git
-  2.43.0 present; repo currently on `/mnt/c`.
-- The concrete OS-isolation mechanism for untrusted provider/repo code on WSL2 — selected
-  and verified by A10-2 (was deferred; threat-model §14, RR-4).
+- **Resolved (ADR 0056):** Codex CLI and Claude Code are **authenticated natively on
+  Windows** (`codex login status` / `claude auth status`, 2026-06-30 via
+  `pnpm triforge:doctor`) — the prior "authenticated inside WSL2" hard stop no longer
+  applies. The repo runs on NTFS (no `/mnt/c` requirement).
+- The native-Windows OS-isolation effectiveness (ACL / restricted token / Job Object) is
+  honest-residual-risk, verified on a real Windows host across A10-W.2–W.5 (not inferred
+  from the Linux CI).
 
 > **A10.9 register:** the structured closure of every REQUIRES_VERIFICATION item
 > (verified / blocked_external / unsupported / unknown) is

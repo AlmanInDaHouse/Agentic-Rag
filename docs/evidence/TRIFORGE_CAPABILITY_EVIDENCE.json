@@ -1,59 +1,278 @@
 {
-  "schemaVersion": "1.0.0",
-  "milestone": "A10 — Real Provider Operational Closure",
-  "generatedNote": "Honest capability evidence registry. Statuses reflect VERIFIED reality as of A10-1, not aspiration. Real-provider writable closure is blocked on owner-only manual prerequisites (install + authenticate Codex/Claude inside WSL2); those entries are blocked_external and MUST become verified_real_provider before the final operational 1.0. Updated as each A10 PR lands. Source probes: git/CI/WSL2 reconstruction 2026-06-30 (no credentials read).",
+  "schemaVersion": "1.1.0",
+  "milestone": "A10-W — Native Windows Operational Closure",
+  "generatedNote": "Honest capability evidence registry. Statuses reflect VERIFIED reality, not aspiration. Under ADR 0056 the primary substrate is NATIVE WINDOWS (WSL2 reframed optional/future); the manual provider-login hard stop is already satisfied — Codex 0.101.0 and Claude 2.1.195 are installed AND authenticated natively on Windows (verified 2026-06-30 via official status commands; no tokens read; PII redacted). Mandatory windows_* capabilities must reach verified_real_environment (real-host OS behavior) or verified_real_provider (real CLI runs) before the final operational 1.0; a CI fixture is not sufficient. Source probe: `pnpm triforge:doctor` on Windows 11 (build 26200), NTFS, 2026-06-30. Updated as each A10-W PR lands.",
   "capabilities": [
     {
-      "capability": "wsl2_operational_substrate",
-      "status": "blocked_external",
+      "capability": "windows_native_substrate",
+      "status": "verified_real_environment",
       "mandatoryForFinal": true,
       "requiresRealProvider": false,
+      "requiresRealEnvironment": true,
       "provider": "",
       "providerVersion": "",
-      "environment": "wsl2-ubuntu",
-      "evidence": ["wsl.exe -l -v: Ubuntu v2 present; git 2.43.0 present"],
-      "verifiedAt": "",
-      "risks": ["node/pnpm/psql absent in WSL2", "Ubuntu distro Stopped"],
-      "notes": "WSL2 Ubuntu (v2) exists but lacks the Node/pnpm/PostgreSQL toolchain; the substrate is not operational. Owner runs docs/runbooks/REAL_PROVIDER_SETUP_WSL2.md to provision it."
+      "environment": "windows-native",
+      "evidence": [
+        "tooling/triforge-cli/doctor.mjs",
+        "pnpm triforge:doctor on Windows 11 (10.0.26200, x64): 18 checks, 0 blockers, 1 long-path warning",
+        "Node v24.12.0 / pnpm 11.5.0 / corepack 0.34.5 / Git 2.52.0.windows.1; PostgreSQL 18 service Running, localhost:5432 reachable; repo on C: NTFS"
+      ],
+      "verifiedAt": "2026-06-30",
+      "risks": ["LongPathsEnabled=0 (admin to flip); mitigate git ops with core.longpaths=true"],
+      "notes": "A10-W.1: the native Windows toolchain (Node/pnpm/corepack/Git/PostgreSQL) is present and both providers are authenticated, verified by `pnpm triforge:doctor` on a real Windows 11 host. Scope: substrate/toolchain readiness only — the full product run is windows_integrated_product_e2e."
     },
     {
-      "capability": "repo_on_linux_filesystem",
-      "status": "blocked_external",
+      "capability": "windows_path_policy",
+      "status": "unknown",
       "mandatoryForFinal": true,
       "requiresRealProvider": false,
+      "requiresRealEnvironment": true,
       "provider": "",
       "providerVersion": "",
-      "environment": "wsl2-ubuntu",
-      "evidence": ["repo currently at C:\\Users\\manul\\Agentic-Rag = /mnt/c (Windows fs)"],
+      "environment": "windows-native",
+      "evidence": [],
       "verifiedAt": "",
-      "risks": ["/mnt/c lacks Linux fs semantics (symlinks, perms, inotify)"],
-      "notes": "DoD §17 requires the repo to reside on the Linux filesystem (not /mnt/c) for real-provider operation. Owner action."
+      "risks": ["junction/symlink/reparse escapes; ADS; UNC; device paths; reserved names; case-insensitivity; trailing dot/space"],
+      "notes": "A10-W.2: canonical-identity containment (volume + realpath, never startsWith) for Windows. ExecutionPlatform.validateContainedPath is declared and currently throws PlatformMethodNotImplementedError; implemented + real-host fixture matrix in A10-W.2."
     },
     {
-      "capability": "codex_installed_authenticated_wsl2",
-      "status": "blocked_external",
+      "capability": "windows_worktree_manager",
+      "status": "unknown",
+      "mandatoryForFinal": true,
+      "requiresRealProvider": false,
+      "requiresRealEnvironment": true,
+      "provider": "",
+      "providerVersion": "",
+      "environment": "windows-native",
+      "evidence": [],
+      "verifiedAt": "",
+      "risks": ["MAX_PATH truncation; junction protection; locks/stale/crash recovery on NTFS"],
+      "notes": "A10-W.3: NTFS worktree manager rooted at %LOCALAPPDATA%\\TriForge; one branch per run, never on main; tested against real Git for Windows."
+    },
+    {
+      "capability": "windows_job_object_supervision",
+      "status": "unknown",
+      "mandatoryForFinal": true,
+      "requiresRealProvider": false,
+      "requiresRealEnvironment": true,
+      "provider": "",
+      "providerVersion": "",
+      "environment": "windows-native",
+      "evidence": [],
+      "verifiedAt": "",
+      "risks": ["process breakaway; orphan; PID reuse; Job Object lifecycle"],
+      "notes": "A10-W.4: native process-tree supervision via Windows Job Objects (kill-on-job-close), replacing POSIX process groups. ExecutionPlatform.createManagedProcess/terminateProcessTree declared (throws until A10-W.4). taskkill /T /F is a documented fallback only."
+    },
+    {
+      "capability": "windows_isolation_boundary",
+      "status": "unknown",
+      "mandatoryForFinal": true,
+      "requiresRealProvider": false,
+      "requiresRealEnvironment": true,
+      "provider": "",
+      "providerVersion": "",
+      "environment": "windows-native",
+      "evidence": [],
+      "verifiedAt": "",
+      "risks": ["ACL/restricted-token are not a perfect sandbox (honest residual risk); no setrlimit on Windows"],
+      "notes": "A10-W.5: layered Windows defense (worktree + path policy + ACL + restricted token + Job Object + env allowlist + safe command policy + audit). Extends the 13-invariant matrix (ADR 0055) to Windows; residual risk registered."
+    },
+    {
+      "capability": "codex_windows_readonly",
+      "status": "unknown",
       "mandatoryForFinal": true,
       "requiresRealProvider": true,
       "provider": "codex",
-      "providerVersion": "0.101.0 (windows-host only)",
-      "environment": "wsl2-ubuntu",
-      "evidence": ["windows-host probe: codex-cli 0.101.0 present; auth UNKNOWN (not probed)"],
+      "providerVersion": "0.101.0",
+      "environment": "windows-native",
+      "evidence": ["windows-host probe 2026-06-30: codex-cli 0.101.0, `codex login status` = Logged in using ChatGPT"],
       "verifiedAt": "",
-      "risks": ["auth is a hard stop (manual login/MFA); forbidden to automate"],
-      "notes": "Codex CLI not installed in WSL2; authentication must be performed manually by the owner via the official CLI."
+      "risks": ["spawn via node<cli>/.cmd, never the .ps1 shim (swallows stdout); version drift invalidates the snapshot"],
+      "notes": "A10-W.6: real read-only Codex run on Windows through the adapter (headless event stream, structured result). Auth already satisfied; pending the Windows adapter integration."
     },
     {
-      "capability": "claude_installed_authenticated_wsl2",
-      "status": "blocked_external",
+      "capability": "codex_windows_writable",
+      "status": "unknown",
+      "mandatoryForFinal": true,
+      "requiresRealProvider": true,
+      "provider": "codex",
+      "providerVersion": "0.101.0",
+      "environment": "windows-native",
+      "evidence": [],
+      "verifiedAt": "",
+      "risks": ["writes confined to the Windows worktree; requires observed write=yes snapshot + A0.5 binding + worktree cwd"],
+      "notes": "A10-W.6: real writable Codex run (--sandbox workspace-write) inside a Windows worktree, gated by the capability-bound writable profile. Subsumes the prior WSL2 codex_writable_real_capability_snapshot."
+    },
+    {
+      "capability": "claude_windows_readonly",
+      "status": "unknown",
       "mandatoryForFinal": true,
       "requiresRealProvider": true,
       "provider": "claude",
-      "providerVersion": "2.1.195 (windows-host only)",
-      "environment": "wsl2-ubuntu",
-      "evidence": ["windows-host probe: claude 2.1.195 (Claude Code) present; auth UNKNOWN (not probed)"],
+      "providerVersion": "2.1.195",
+      "environment": "windows-native",
+      "evidence": ["windows-host probe 2026-06-30: claude 2.1.195, `claude auth status` = loggedIn:true (claude.ai, max)"],
       "verifiedAt": "",
-      "risks": ["auth is a hard stop (manual login/MFA); forbidden to automate"],
-      "notes": "Claude Code not installed in WSL2; authentication must be performed manually by the owner via the official CLI."
+      "risks": ["spawn via node<cli>/.cmd, never .ps1; never --bare under subscription auth"],
+      "notes": "A10-W.6: real read-only Claude run on Windows through the adapter. Auth already satisfied; pending the Windows adapter integration."
+    },
+    {
+      "capability": "claude_windows_writable",
+      "status": "unknown",
+      "mandatoryForFinal": true,
+      "requiresRealProvider": true,
+      "provider": "claude",
+      "providerVersion": "2.1.195",
+      "environment": "windows-native",
+      "evidence": [],
+      "verifiedAt": "",
+      "risks": ["the 2.1.195 fixture observes write=unknown; real writable closure requires an observed write=yes snapshot"],
+      "notes": "A10-W.6: real writable Claude run (--permission-mode acceptEdits, never --bare) inside a Windows worktree. Subsumes the prior WSL2 claude_writable_real_capability_snapshot."
+    },
+    {
+      "capability": "codex_owner_claude_reviewer_e2e",
+      "status": "unknown",
+      "mandatoryForFinal": true,
+      "requiresRealProvider": true,
+      "provider": "both",
+      "providerVersion": "",
+      "environment": "windows-native",
+      "evidence": [],
+      "verifiedAt": "",
+      "risks": [],
+      "notes": "A10-W.7 Pilot A: Codex Implementation Owner + Claude Cross-Vendor Reviewer on a fixture repo, native Windows worktree. No longer blocked_external — provider auth is satisfied; pending the real pilot run."
+    },
+    {
+      "capability": "claude_owner_codex_reviewer_e2e",
+      "status": "unknown",
+      "mandatoryForFinal": true,
+      "requiresRealProvider": true,
+      "provider": "both",
+      "providerVersion": "",
+      "environment": "windows-native",
+      "evidence": [],
+      "verifiedAt": "",
+      "risks": [],
+      "notes": "A10-W.7 Pilot B: Claude Implementation Owner + Codex Cross-Vendor Reviewer on a fixture repo, native Windows worktree. Pending the real pilot run."
+    },
+    {
+      "capability": "windows_integrated_product_e2e",
+      "status": "unknown",
+      "mandatoryForFinal": true,
+      "requiresRealProvider": true,
+      "provider": "both",
+      "providerVersion": "",
+      "environment": "windows-native",
+      "evidence": [],
+      "verifiedAt": "",
+      "risks": [],
+      "notes": "A10-W.8: from a PowerShell IDE terminal, `pnpm triforge:start` brings up backend + frontend + native PostgreSQL and the UI completes a REAL provider run (timeline/commands/mutations/quota/review/repair/diff/governance/merge/cancel/cleanup). Subsumes the prior WSL2 ui_backend_real_run_e2e."
+    },
+    {
+      "capability": "windows_restart_recovery",
+      "status": "unknown",
+      "mandatoryForFinal": true,
+      "requiresRealProvider": false,
+      "requiresRealEnvironment": true,
+      "provider": "",
+      "providerVersion": "",
+      "environment": "windows-native",
+      "evidence": [],
+      "verifiedAt": "",
+      "risks": [],
+      "notes": "A10-W.8: run reconstruction and recovery after a process restart on a real Windows host (recovery_after_restart is the CI-fixture proof; this is the real-host proof)."
+    },
+    {
+      "capability": "windows_clean_install",
+      "status": "unknown",
+      "mandatoryForFinal": true,
+      "requiresRealProvider": false,
+      "requiresRealEnvironment": true,
+      "provider": "",
+      "providerVersion": "",
+      "environment": "windows-native",
+      "evidence": [],
+      "verifiedAt": "",
+      "risks": [],
+      "notes": "A10-W.9: clean install/build/test from a fresh checkout on a real Windows host via the documented PowerShell quick start (corepack enable; pnpm install --frozen-lockfile; pnpm triforge:doctor/setup/start)."
+    },
+    {
+      "capability": "specialist_mode_real",
+      "status": "unknown",
+      "mandatoryForFinal": true,
+      "requiresRealProvider": true,
+      "provider": "both",
+      "providerVersion": "",
+      "environment": "windows-native",
+      "evidence": ["mock-verified today (collaborationModes)"],
+      "verifiedAt": "",
+      "risks": [],
+      "notes": "A10-W.8 Specialist mode with real providers (Codex owner; Claude owner) on Windows. Mock-verified today; real pending."
+    },
+    {
+      "capability": "pair_mode_real",
+      "status": "unknown",
+      "mandatoryForFinal": true,
+      "requiresRealProvider": true,
+      "provider": "both",
+      "providerVersion": "",
+      "environment": "windows-native",
+      "evidence": ["mock-verified today"],
+      "verifiedAt": "",
+      "risks": [],
+      "notes": "A10-W.8 Pair mode with a real owner + real second-provider critique on Windows. Real pending."
+    },
+    {
+      "capability": "full_debate_mode_real",
+      "status": "unknown",
+      "mandatoryForFinal": true,
+      "requiresRealProvider": true,
+      "provider": "both",
+      "providerVersion": "",
+      "environment": "windows-native",
+      "evidence": ["mock-verified today"],
+      "verifiedAt": "",
+      "risks": [],
+      "notes": "A10-W.8 Full Debate (two independent plans, cross-review, evidence-based resolution, no simultaneous writes) on Windows. Real pending."
+    },
+    {
+      "capability": "competitive_mode_real",
+      "status": "unknown",
+      "mandatoryForFinal": false,
+      "requiresRealProvider": true,
+      "provider": "both",
+      "providerVersion": "",
+      "environment": "windows-native",
+      "evidence": [],
+      "verifiedAt": "",
+      "risks": ["may be blocked_by_quota at real-run time"],
+      "notes": "A10-W.8 Competitive mode with real providers on Windows. Per DoD it may be formally excluded from 1.0 by ADR if blocked by real quota; therefore not mandatoryForFinal. Must never be reported verified_real_provider unless actually run."
+    },
+    {
+      "capability": "cancellation_real",
+      "status": "unknown",
+      "mandatoryForFinal": true,
+      "requiresRealProvider": true,
+      "provider": "both",
+      "providerVersion": "",
+      "environment": "windows-native",
+      "evidence": ["mock cancellation verified (CANCELLATION_STOPS_EMISSION invariant)"],
+      "verifiedAt": "",
+      "risks": ["Windows cancellation must terminate the whole process tree via the Job Object"],
+      "notes": "A10-W.7/A10-W.8 cancellation of a REAL provider process tree on Windows (Job Object). Mock-verified today; real pending."
+    },
+    {
+      "capability": "real_quota_usage_signals",
+      "status": "unknown",
+      "mandatoryForFinal": true,
+      "requiresRealProvider": true,
+      "provider": "both",
+      "providerVersion": "",
+      "environment": "windows-native",
+      "evidence": [],
+      "verifiedAt": "",
+      "risks": ["do not infer official balance; unknown stays unknown"],
+      "notes": "A10-W.8 real usage/quota/rate-limit/reset signals from the installed Windows CLIs. Real pending."
     },
     {
       "capability": "codex_writable_adapter",
@@ -69,7 +288,7 @@
         "apps/api/src/test/writableAdapter.test.ts"
       ],
       "verifiedAt": "2026-06-30",
-      "risks": ["the fixture snapshot is not a real authenticated observation (codex_writable_real_capability_snapshot remains blocked_external)"],
+      "risks": ["the fixture snapshot is not a real authenticated observation (codex_windows_writable is the real-provider closure)"],
       "notes": "A10.3 capability-gated writable profile. Refuses readOnly:false unless an observed write=yes snapshot (matching version + provider), a 6-field A0.5 binding, and a worktree cwd all hold; authorized run builds `--sandbox workspace-write` and passes the conformance harness. Read-only default unchanged."
     },
     {
@@ -86,8 +305,8 @@
         "apps/api/src/test/writableAdapter.test.ts"
       ],
       "verifiedAt": "2026-06-30",
-      "risks": ["the real claude 2.1.195 fixture observes write=unknown, so the authorized path is unit-tested with a constructed snapshot; the real writable capability (claude_writable_real_capability_snapshot) is blocked_external"],
-      "notes": "A10.3 capability-gated writable profile. Authorized run builds `--permission-mode acceptEdits` (never --bare); refuses honestly when write is not observed (the real 2.1.195 fixture observes write=unknown). Read-only default unchanged."
+      "risks": ["the real claude 2.1.195 fixture observes write=unknown; claude_windows_writable is the real-provider closure"],
+      "notes": "A10.3 capability-gated writable profile. Authorized run builds `--permission-mode acceptEdits` (never --bare); refuses honestly when write is not observed. Read-only default unchanged."
     },
     {
       "capability": "writable_adapter_conformance_harness",
@@ -99,112 +318,8 @@
       "environment": "ci",
       "evidence": ["apps/api/src/test/writableConformance.test.ts", "apps/api/src/test/writableAdapter.test.ts"],
       "verifiedAt": "2026-06-30",
-      "risks": ["fixture-driven; the real provider streams are REQUIRES_VERIFICATION (blocked_external)"],
-      "notes": "A10.4 writable conformance: both real adapters driven (with fixture writable profiles) through the conformance harness under authorized writable runs across the failure surface (malformed/unknown/rate-limit/timeout/cancellation/crash) — single terminal, errors normalized, no events after terminal, no secret leakage; plus conformant refusal streams for capability invalidation and worktree-cwd denial."
-    },
-    {
-      "capability": "codex_writable_real_capability_snapshot",
-      "status": "blocked_external",
-      "mandatoryForFinal": true,
-      "requiresRealProvider": true,
-      "provider": "codex",
-      "providerVersion": "",
-      "environment": "wsl2-ubuntu",
-      "evidence": [],
-      "verifiedAt": "",
-      "risks": ["a version change invalidates the snapshot"],
-      "notes": "Observed writable capability snapshot from the authenticated Codex CLI. Requires the owner auth step; cannot be fabricated from a fixture."
-    },
-    {
-      "capability": "claude_writable_real_capability_snapshot",
-      "status": "blocked_external",
-      "mandatoryForFinal": true,
-      "requiresRealProvider": true,
-      "provider": "claude",
-      "providerVersion": "",
-      "environment": "wsl2-ubuntu",
-      "evidence": [],
-      "verifiedAt": "",
-      "risks": ["a version change invalidates the snapshot"],
-      "notes": "Observed writable capability snapshot from the authenticated Claude CLI. Requires the owner auth step."
-    },
-    {
-      "capability": "codex_owner_claude_reviewer_e2e",
-      "status": "blocked_external",
-      "mandatoryForFinal": true,
-      "requiresRealProvider": true,
-      "provider": "both",
-      "providerVersion": "",
-      "environment": "wsl2-ubuntu",
-      "evidence": [],
-      "verifiedAt": "",
-      "risks": [],
-      "notes": "A10.5 Pilot 1: Codex Implementation Owner + Claude Cross-Vendor Reviewer on a fixture repo. Requires authenticated providers."
-    },
-    {
-      "capability": "claude_owner_codex_reviewer_e2e",
-      "status": "blocked_external",
-      "mandatoryForFinal": true,
-      "requiresRealProvider": true,
-      "provider": "both",
-      "providerVersion": "",
-      "environment": "wsl2-ubuntu",
-      "evidence": [],
-      "verifiedAt": "",
-      "risks": [],
-      "notes": "A10.5 Pilot 2: Claude Implementation Owner + Codex Cross-Vendor Reviewer on a fixture repo. Requires authenticated providers."
-    },
-    {
-      "capability": "specialist_mode_real",
-      "status": "blocked_external",
-      "mandatoryForFinal": true,
-      "requiresRealProvider": true,
-      "provider": "both",
-      "providerVersion": "",
-      "environment": "wsl2-ubuntu",
-      "evidence": [],
-      "verifiedAt": "",
-      "risks": [],
-      "notes": "A10.6 Specialist mode with real providers (Codex owner; Claude owner). Mock-verified today (collaborationModes); real pending."
-    },
-    {
-      "capability": "pair_mode_real",
-      "status": "blocked_external",
-      "mandatoryForFinal": true,
-      "requiresRealProvider": true,
-      "provider": "both",
-      "providerVersion": "",
-      "environment": "wsl2-ubuntu",
-      "evidence": [],
-      "verifiedAt": "",
-      "risks": [],
-      "notes": "A10.6 Pair mode with real owner + real second-provider critique. Mock-verified today; real pending."
-    },
-    {
-      "capability": "full_debate_mode_real",
-      "status": "blocked_external",
-      "mandatoryForFinal": true,
-      "requiresRealProvider": true,
-      "provider": "both",
-      "providerVersion": "",
-      "environment": "wsl2-ubuntu",
-      "evidence": [],
-      "verifiedAt": "",
-      "risks": [],
-      "notes": "A10.6 Full Debate (two independent plans, cross-review, evidence-based resolution, no simultaneous writes). Mock-verified today; real pending."
-    },
-    {
-      "capability": "competitive_mode_real",
-      "status": "blocked_external",
-      "mandatoryForFinal": false,
-      "requiresRealProvider": true,
-      "provider": "both",
-      "providerVersion": "",
-      "environment": "wsl2-ubuntu",
-      "evidence": [],
-      "verifiedAt": "",
-      "risks": ["may be blocked_by_quota at real-run time"],
-      "notes": "A10.6 Competitive mode with real providers. Per DoD §17 it may be formally excluded from 1.0 by ADR if blocked by real quota; therefore not mandatoryForFinal. Must never be reported verified_real_provider unless actually run."
+      "risks": ["fixture-driven; the real provider streams are the real-provider closure (codex_windows_*/claude_windows_*)"],
+      "notes": "A10.4 writable conformance: both real adapters driven (with fixture writable profiles) through the conformance harness across the failure surface (malformed/unknown/rate-limit/timeout/cancellation/crash) — single terminal, errors normalized, no events after terminal, no secret leakage; plus conformant refusal streams for capability invalidation and worktree-cwd denial."
     },
     {
       "capability": "worktree_isolation_verified",
@@ -217,7 +332,7 @@
       "evidence": ["apps/api/src/test/worktreeManager.test.ts"],
       "verifiedAt": "2026-06-30",
       "risks": ["shared .git/objects store across worktrees (RR; path policy blocks .git)"],
-      "notes": "Isolated git linked-worktrees outside the base repo; protected-branch refusal; symlink-escape and git-hook neutralization verified against real fixtures."
+      "notes": "Isolated git linked-worktrees outside the base repo; protected-branch refusal; symlink-escape and git-hook neutralization verified against real fixtures. The Windows/NTFS real-host proof is windows_worktree_manager (A10-W.3)."
     },
     {
       "capability": "os_isolation_boundary_verified",
@@ -234,10 +349,9 @@
       ],
       "verifiedAt": "2026-06-30",
       "risks": [
-        "WSL2 is not a sufficient sandbox by itself (DoD §6 invariant 13)",
         "no OS-level syscall/network namespace confinement in 1.0 (RR-4 residual; future hardening)"
       ],
-      "notes": "A10.2 real isolation boundary verified by a 13-invariant fixture matrix: traversal, symlink/hardlink escape, /mnt/c escape, $HOME escape, credential-path denial, env credential-leak denial, .gitattributes filter neutralization (T-FS-05), network/destructive/privileged deny-by-default, .git protection, declared limits. In-process policy composition is the mechanism (ADR 0055); WSL2 is not trusted as the boundary."
+      "notes": "A10.2 real isolation boundary verified by a 13-invariant fixture matrix (in-process policy composition is the mechanism; ADR 0055). The Windows real-host extension is windows_isolation_boundary (A10-W.5)."
     },
     {
       "capability": "allowed_paths_verified",
@@ -250,7 +364,7 @@
       "evidence": ["apps/api/src/test/pathPolicy.test.ts"],
       "verifiedAt": "2026-06-30",
       "risks": [],
-      "notes": "Allowlist containment: traversal, symlink-escape, hardlink-clobber, absolute-path, cross-worktree, .git all denied; maxFiles budget enforced."
+      "notes": "Allowlist containment: traversal, symlink-escape, hardlink-clobber, absolute-path, cross-worktree, .git all denied; maxFiles budget enforced. The Windows-specific policy is windows_path_policy (A10-W.2)."
     },
     {
       "capability": "safe_commands_verified",
@@ -263,7 +377,7 @@
       "evidence": ["apps/api/src/test/commandPolicy.test.ts"],
       "verifiedAt": "2026-06-30",
       "risks": [],
-      "notes": "Deny-by-default command classification; shell disabled (metacharacters inert); destructive/privileged/network denied by default; denied command never spawns."
+      "notes": "Deny-by-default command classification; shell disabled (metacharacters inert); destructive/privileged/network denied by default; denied command never spawns. Windows shells (powershell/pwsh/cmd) + .cmd/PATHEXT/DLL-search hardening are part of windows_isolation_boundary (A10-W.5)."
     },
     {
       "capability": "process_supervision_verified",
@@ -276,20 +390,7 @@
       "evidence": ["apps/api/src/test/commandPolicy.test.ts", "apps/api/src/providers/real/processRunner.ts"],
       "verifiedAt": "2026-06-30",
       "risks": [],
-      "notes": "Timeout, output byte cap, and process-group cancellation (SIGTERM→SIGKILL on POSIX; taskkill /T on Windows)."
-    },
-    {
-      "capability": "cancellation_real",
-      "status": "blocked_external",
-      "mandatoryForFinal": true,
-      "requiresRealProvider": true,
-      "provider": "both",
-      "providerVersion": "",
-      "environment": "wsl2-ubuntu",
-      "evidence": ["mock cancellation verified (CANCELLATION_STOPS_EMISSION invariant)"],
-      "verifiedAt": "",
-      "risks": [],
-      "notes": "Cancellation of a REAL provider process group. Mock-verified today; real pending the auth step."
+      "notes": "Timeout, output byte cap, and process-group cancellation (SIGTERM->SIGKILL on POSIX; taskkill /T on Windows today). The native Job Object replacement is windows_job_object_supervision (A10-W.4)."
     },
     {
       "capability": "mutation_ledger_verified",
@@ -302,7 +403,7 @@
       "evidence": ["apps/api/src/execution/ledger/mutationLedger.ts", "apps/api/src/execution/ledger/reconcile.ts"],
       "verifiedAt": "2026-06-30",
       "risks": [],
-      "notes": "Hash-chained, tamper-evident, secret-redacted file-mutation ledger; reconciliation detects out-of-band changes."
+      "notes": "Hash-chained, tamper-evident, secret-redacted file-mutation ledger; reconciliation detects out-of-band changes. OS-independent."
     },
     {
       "capability": "quality_gates_verified",
@@ -315,7 +416,7 @@
       "evidence": ["apps/api/src/execution/gates/qualityGateRunner.ts"],
       "verifiedAt": "2026-06-30",
       "risks": [],
-      "notes": "Structured gate results from real exit codes, bound to the tested diff hash."
+      "notes": "Structured gate results from real exit codes, bound to the tested diff hash. OS-independent."
     },
     {
       "capability": "repair_loop_verified",
@@ -328,7 +429,7 @@
       "evidence": ["apps/api/src/execution/repair/repairLoop.ts"],
       "verifiedAt": "2026-06-30",
       "risks": [],
-      "notes": "Bounded repair loop (rounds/wall-time/commands/files/quota) with terminal states; mock-driven verification."
+      "notes": "Bounded repair loop (rounds/wall-time/commands/files/quota) with terminal states; mock-driven verification. OS-independent."
     },
     {
       "capability": "governance_decision_bound_to_diff",
@@ -341,7 +442,7 @@
       "evidence": ["apps/api/src/execution/governance/governanceGate.ts"],
       "verifiedAt": "2026-06-30",
       "risks": [],
-      "notes": "Re-derived verdict; decision binding to diff/ledger/gate hashes prevents replay and post-decision modification."
+      "notes": "Re-derived verdict; decision binding to diff/ledger/gate hashes prevents replay and post-decision modification. OS-independent."
     },
     {
       "capability": "quota_usage_honest_representation",
@@ -354,20 +455,7 @@
       "evidence": ["apps/api/src/providers/quota/quotaManager.ts"],
       "verifiedAt": "2026-06-30",
       "risks": [],
-      "notes": "Capacity never fabricated (unknown stays null); reserves protect critical phases; hard stop works without a balance signal; isBillingAuthoritative always false."
-    },
-    {
-      "capability": "real_quota_usage_signals",
-      "status": "blocked_external",
-      "mandatoryForFinal": true,
-      "requiresRealProvider": true,
-      "provider": "both",
-      "providerVersion": "",
-      "environment": "wsl2-ubuntu",
-      "evidence": [],
-      "verifiedAt": "",
-      "risks": ["do not infer official balance; unknown stays unknown"],
-      "notes": "A10.7 real usage/quota/rate-limit/reset signals from the installed CLIs. Requires authenticated providers."
+      "notes": "Capacity never fabricated (unknown stays null); reserves protect critical phases; hard stop works without a balance signal; isBillingAuthoritative always false. OS-independent."
     },
     {
       "capability": "ui_e2e_view_models",
@@ -380,20 +468,7 @@
       "evidence": ["apps/web (46 web view-model tests)"],
       "verifiedAt": "2026-06-30",
       "risks": ["view-model level only; not a full browser E2E"],
-      "notes": "8-panel product UI view-models; honest states, no invented backend state, untrusted content sanitized."
-    },
-    {
-      "capability": "ui_backend_real_run_e2e",
-      "status": "blocked_external",
-      "mandatoryForFinal": true,
-      "requiresRealProvider": true,
-      "provider": "both",
-      "providerVersion": "",
-      "environment": "wsl2-ubuntu",
-      "evidence": [],
-      "verifiedAt": "",
-      "risks": [],
-      "notes": "A10.8 integrated product E2E: UI (from Windows via localhost) + backend completing a REAL provider run. Requires authenticated providers + WSL2 substrate."
+      "notes": "8-panel product UI view-models; honest states, no invented backend state, untrusted content sanitized. The real integrated browser+backend run is windows_integrated_product_e2e (A10-W.8)."
     },
     {
       "capability": "recovery_after_restart",
@@ -406,20 +481,7 @@
       "evidence": ["apps/api/src/test/recovery.restart.test.ts"],
       "verifiedAt": "2026-06-30",
       "risks": [],
-      "notes": "Run reconstruction and recovery after a process restart."
-    },
-    {
-      "capability": "clean_install_wsl2",
-      "status": "blocked_external",
-      "mandatoryForFinal": true,
-      "requiresRealProvider": false,
-      "provider": "",
-      "providerVersion": "",
-      "environment": "wsl2-ubuntu",
-      "evidence": ["clean install verified on windows-host/CI: packaging.test.ts + CI Validate"],
-      "verifiedAt": "",
-      "risks": [],
-      "notes": "Clean install/build/test from a fresh checkout inside WSL2. Verified today on the Windows host and CI; the WSL2 substrate run requires the provisioning step."
+      "notes": "Run reconstruction and recovery after a process restart (CI fixture). The real-host proof is windows_restart_recovery (A10-W.8)."
     },
     {
       "capability": "pr_26_resolved",
@@ -432,7 +494,7 @@
       "evidence": ["docs/repo/PR_26_RESOLUTION.md", "PR #26 closed 2026-06-30 with an explanation comment; branch preserved"],
       "verifiedAt": "2026-06-30",
       "risks": [],
-      "notes": "A10.10: PR #26 classified superseded (pre-reorientation 1.x RAG ingestion, out of the 1.0 scope) and closed with an explanation; history preserved (branch not deleted); reversible. No open roadmap PR remains."
+      "notes": "A10.10: PR #26 classified superseded and closed with an explanation; history preserved; reversible. No open roadmap PR remains."
     },
     {
       "capability": "requires_verification_closed",
@@ -445,7 +507,7 @@
       "evidence": ["docs/evidence/REQUIRES_VERIFICATION_REGISTER.md"],
       "verifiedAt": "2026-06-30",
       "risks": [],
-      "notes": "A10.9: every REQUIRES_VERIFICATION item is closed as verified / blocked_external / unsupported. No 1.0-mandatory item remains unknown (item 8 localhost-interop is verified during the integrated E2E and is not mandatory in isolation). The real-provider items are blocked_external on the owner auth runbook."
+      "notes": "A10.9: every REQUIRES_VERIFICATION item is closed as verified / unknown-scheduled / unsupported. The cited REQUIRES_VERIFICATION_REGISTER.md is WSL2-framed and is SUPERSEDED by ADR 0056: the real-provider items are now tracked by the native-Windows windows_* real-provider capabilities in THIS registry (the authoritative live status). The WSL2 register is retained as the historical record."
     },
     {
       "capability": "evidence_based_release_gate",
@@ -455,10 +517,10 @@
       "provider": "",
       "providerVersion": "",
       "environment": "ci",
-      "evidence": ["apps/api/src/test/releaseGate.test.ts", "apps/api/src/test/finalReleaseGate.test.ts"],
+      "evidence": ["apps/api/src/test/releaseGate.test.ts", "apps/api/src/test/finalReleaseGate.test.ts", "apps/api/src/test/evidenceGate.windows.test.ts"],
       "verifiedAt": "2026-06-30",
       "risks": [],
-      "notes": "A10.11: the release gate evaluates this machine-readable registry; final-operational readiness requires verified_real_provider for mandatory writable capabilities. Delivered in A10-1."
+      "notes": "A10.11 + A10-W.1: the release gate evaluates this machine-readable registry; final-operational readiness requires verified_real_provider for real-provider capabilities and verified_real_environment for real-host capabilities (requiresRealEnvironment). No false green."
     },
     {
       "capability": "no_blockers_no_criticals",
@@ -471,7 +533,7 @@
       "evidence": ["governance gate; review findings; risk register"],
       "verifiedAt": "2026-06-30",
       "risks": [],
-      "notes": "No open blocker/critical findings. Tracked in docs/context/TRIFORGE_RISK_REGISTER.md."
+      "notes": "No open blocker/critical findings. Tracked in docs/context/TRIFORGE_RISK_REGISTER.md. The Windows adversarial review (34 vectors) lands in A10-W.5/A10-W.9."
     },
     {
       "capability": "ci_green_main",
@@ -481,10 +543,114 @@
       "provider": "",
       "providerVersion": "",
       "environment": "ci",
-      "evidence": ["GitHub check-run 'Validate' = success on main 13ae669"],
+      "evidence": ["GitHub check-run 'Validate' = success on main"],
+      "verifiedAt": "2026-06-30",
+      "risks": ["CI runs on Linux; a native-Windows CI lane is a follow-up"],
+      "notes": "CI required check 'Validate' green on main; main clean."
+    },
+    {
+      "capability": "wsl2_operational_substrate",
+      "status": "not_applicable",
+      "mandatoryForFinal": false,
+      "requiresRealProvider": false,
+      "provider": "",
+      "providerVersion": "",
+      "environment": "n/a",
+      "evidence": ["docs/adr/0056-native-windows-primary-execution-substrate.md"],
       "verifiedAt": "2026-06-30",
       "risks": [],
-      "notes": "CI required check 'Validate' green on main; main clean."
+      "notes": "Reframed not_applicable by ADR 0056: WSL2 is optional/future, no longer the required substrate. Native equivalent: windows_native_substrate."
+    },
+    {
+      "capability": "repo_on_linux_filesystem",
+      "status": "not_applicable",
+      "mandatoryForFinal": false,
+      "requiresRealProvider": false,
+      "provider": "",
+      "providerVersion": "",
+      "environment": "n/a",
+      "evidence": ["docs/adr/0056-native-windows-primary-execution-substrate.md"],
+      "verifiedAt": "2026-06-30",
+      "risks": [],
+      "notes": "Reframed not_applicable by ADR 0056: the repo runs on NTFS; the Linux-filesystem requirement is retired."
+    },
+    {
+      "capability": "codex_installed_authenticated_wsl2",
+      "status": "not_applicable",
+      "mandatoryForFinal": false,
+      "requiresRealProvider": false,
+      "provider": "codex",
+      "providerVersion": "",
+      "environment": "n/a",
+      "evidence": ["docs/adr/0056-native-windows-primary-execution-substrate.md"],
+      "verifiedAt": "2026-06-30",
+      "risks": [],
+      "notes": "Reframed not_applicable by ADR 0056. Codex is installed AND authenticated NATIVELY on Windows; the native closure is codex_windows_readonly/writable."
+    },
+    {
+      "capability": "claude_installed_authenticated_wsl2",
+      "status": "not_applicable",
+      "mandatoryForFinal": false,
+      "requiresRealProvider": false,
+      "provider": "claude",
+      "providerVersion": "",
+      "environment": "n/a",
+      "evidence": ["docs/adr/0056-native-windows-primary-execution-substrate.md"],
+      "verifiedAt": "2026-06-30",
+      "risks": [],
+      "notes": "Reframed not_applicable by ADR 0056. Claude is installed AND authenticated NATIVELY on Windows; the native closure is claude_windows_readonly/writable."
+    },
+    {
+      "capability": "codex_writable_real_capability_snapshot",
+      "status": "not_applicable",
+      "mandatoryForFinal": false,
+      "requiresRealProvider": false,
+      "provider": "codex",
+      "providerVersion": "",
+      "environment": "n/a",
+      "evidence": ["docs/adr/0056-native-windows-primary-execution-substrate.md"],
+      "verifiedAt": "2026-06-30",
+      "risks": [],
+      "notes": "Subsumed by codex_windows_writable under ADR 0056 (the observed write=yes snapshot is part of the native writable closure)."
+    },
+    {
+      "capability": "claude_writable_real_capability_snapshot",
+      "status": "not_applicable",
+      "mandatoryForFinal": false,
+      "requiresRealProvider": false,
+      "provider": "claude",
+      "providerVersion": "",
+      "environment": "n/a",
+      "evidence": ["docs/adr/0056-native-windows-primary-execution-substrate.md"],
+      "verifiedAt": "2026-06-30",
+      "risks": [],
+      "notes": "Subsumed by claude_windows_writable under ADR 0056."
+    },
+    {
+      "capability": "ui_backend_real_run_e2e",
+      "status": "not_applicable",
+      "mandatoryForFinal": false,
+      "requiresRealProvider": false,
+      "provider": "both",
+      "providerVersion": "",
+      "environment": "n/a",
+      "evidence": ["docs/adr/0056-native-windows-primary-execution-substrate.md"],
+      "verifiedAt": "2026-06-30",
+      "risks": [],
+      "notes": "Subsumed by windows_integrated_product_e2e under ADR 0056 (the integrated UI + backend real run is now the native-Windows IDE-terminal E2E)."
+    },
+    {
+      "capability": "clean_install_wsl2",
+      "status": "not_applicable",
+      "mandatoryForFinal": false,
+      "requiresRealProvider": false,
+      "provider": "",
+      "providerVersion": "",
+      "environment": "n/a",
+      "evidence": ["docs/adr/0056-native-windows-primary-execution-substrate.md"],
+      "verifiedAt": "2026-06-30",
+      "risks": [],
+      "notes": "Subsumed by windows_clean_install under ADR 0056 (clean install on a real Windows host)."
     }
   ]
 }

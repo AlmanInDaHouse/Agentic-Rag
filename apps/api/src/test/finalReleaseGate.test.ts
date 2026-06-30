@@ -19,6 +19,7 @@ import { fileURLToPath } from "node:url";
 import {
   capabilityEvidenceRegistrySchema,
   evaluateFinalReleaseReadiness,
+  SATISFYING_REAL_ENVIRONMENT_STATUSES,
   type CapabilityEvidenceRegistry
 } from "@triforge/shared";
 
@@ -82,18 +83,26 @@ describe("A10.11 final-operational release gate", () => {
     }
   });
 
-  it("records a real-provider-bound reason when not ready (no silent pass)", () => {
+  it("records a real-provider- or real-environment-bound reason when not ready (no silent pass)", () => {
     const registry = loadRegistry();
     const r = evaluateFinalReleaseReadiness(registry);
     if (!r.ready) {
-      const realBlocked = registry.capabilities.filter(
+      const realProviderBlocked = registry.capabilities.filter(
+        (c) => c.mandatoryForFinal && c.requiresRealProvider && c.status !== "verified_real_provider"
+      );
+      const realEnvBlocked = registry.capabilities.filter(
         (c) =>
           c.mandatoryForFinal &&
-          c.requiresRealProvider &&
-          c.status !== "verified_real_provider"
+          !c.requiresRealProvider &&
+          c.requiresRealEnvironment &&
+          !(SATISFYING_REAL_ENVIRONMENT_STATUSES as readonly string[]).includes(c.status)
       );
-      // Today the gate is blocked primarily on real-provider verification.
-      expect(realBlocked.length, "final gate not-ready must be backed by a real-provider reason").toBeGreaterThan(0);
+      // No silent pass: not-ready must be backed by a real-host verification gap —
+      // a real provider run OR real-environment OS behavior (A10-W).
+      expect(
+        realProviderBlocked.length + realEnvBlocked.length,
+        "final gate not-ready must be backed by a real-provider or real-environment reason"
+      ).toBeGreaterThan(0);
     }
   });
 });

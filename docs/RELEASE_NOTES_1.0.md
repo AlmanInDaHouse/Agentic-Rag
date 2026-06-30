@@ -1,13 +1,21 @@
 # TriForge 1.0 — Release Notes & Definition of Done
 
-**Status:** Release candidate. The **A1–A9 roadmap Definition of Done: MET** with
-**executable evidence** (green gates + specs/ADRs), not a narrative. The **Final
-operational Definition of Done (A10): PENDING** — writable operation with the *real*
-Codex / Claude CLIs is not yet verified. The providers must be installed and
-**manually authenticated by the owner** inside WSL2 (see §A10 and
-`docs/runbooks/REAL_PROVIDER_SETUP_WSL2.md`). The single machine-readable source of
-truth for what is mock-verified vs real-verified is
-`docs/evidence/TRIFORGE_CAPABILITY_EVIDENCE.json`.
+**Status:** Release candidate. **A1–A9 roadmap complete.** **Windows-native operational
+closure in progress (A10-W).** **Final 1.0 release pending real-provider Windows
+verification.**
+
+The **A1–A9 roadmap Definition of Done: MET** with **executable evidence** (green gates
++ specs/ADRs), not a narrative. The **Final operational Definition of Done (A10):
+PENDING** — the real Codex / Claude CLIs are now run on a **native Windows 11**
+substrate (ADR 0056; WSL2 is reframed optional/future), operated from a **PowerShell
+terminal in an integrated IDE**, with no WSL2 / Ubuntu / Linux-path requirement. Both
+providers are already installed and **authenticated natively on Windows** (the prior
+manual-login hard stop is satisfied), so the remaining work is engineering: the Windows
+path policy, worktree manager, Job Object process supervisor, isolation boundary,
+adapters, pilots, integrated E2E and packaging. The single machine-readable source of
+truth for what is fixture-verified vs real-verified is
+`docs/evidence/TRIFORGE_CAPABILITY_EVIDENCE.json`; run `pnpm triforge:doctor` to verify
+the native substrate.
 
 TriForge is a local multi-agent CLI-orchestration runtime (Codex + Claude Code, no API
 keys) that takes a task, routes it honestly to a provider, executes it with real
@@ -74,47 +82,60 @@ RC + the real-git E2E, and the 46 web view-model tests), the code-graph checks, 
 dependency audit — **all green**. `main` is always green. There are no open
 blockers/criticals.
 
-## A10 — Real Provider Operational Closure (the path to the final operational release)
+## A10 / A10-W — Real Provider Operational Closure on native Windows
 
-A1–A9 proved the writable runtime with **mock** providers. The final operational 1.0
-requires verifying it with the **real** Codex CLI and Claude Code. A10 adds the
-evidence model, the capability-gated writable adapters, the real isolation boundary,
-the conformance harness, the pilots, and an **evidence-based release gate** that
-distinguishes "roadmap complete (RC)" from "real-provider operational (final)".
+A1–A9 proved the writable runtime with **mock** providers. A10 added the evidence
+model, the capability-gated writable adapters, the real isolation boundary, the
+conformance harness, and an **evidence-based release gate** that distinguishes "roadmap
+complete (RC)" from "real-provider operational (final)".
 
-The auth-independent substrate (A10.1–A10.4, A10.10, A10.11) ships autonomously and
-CI-green. The auth-dependent verification (A10.5–A10.8: real pilots, real collaboration
-modes, real quota, integrated real E2E) is **blocked on one owner-only manual action**:
-install + authenticate the provider CLIs in WSL2 per
-`docs/runbooks/REAL_PROVIDER_SETUP_WSL2.md`. Until then those capabilities are
-`blocked_external` in `TRIFORGE_CAPABILITY_EVIDENCE.json`, the final gate reports
-not-ready, and no `v1.0.0` final tag is created. See
-`docs/specs/REAL_PROVIDER_OPERATIONAL_CLOSURE_SPEC.md` and ADR 0054.
+**A10-W (native Windows pivot, ADR 0056)** retargets the final operational closure from
+a mandatory WSL2 substrate to **native Windows 11**, operated from a PowerShell IDE
+terminal. The prior blocker — *install + authenticate the CLIs in WSL2* — is removed:
+both providers are already installed and authenticated natively on Windows. The
+remaining work is the Windows substrate engineering, split into reviewable PRs A10-W.1…
+A10-W.9 (see `docs/specs/NATIVE_WINDOWS_OPERATIONAL_CLOSURE_SPEC.md`):
 
-## Compatibility matrix (observed 2026-06-30)
+- **A10-W.1 (landed)** — governance (ADR 0056), the `ExecutionPlatform` boundary, the
+  evidence-model extension (`verified_real_environment` + `requiresRealEnvironment`),
+  the 14 mandatory native-Windows-final capabilities (12 `windows_*` substrate +
+  2 cross-vendor pilot e2e caps re-homed to windows-native), and `pnpm triforge:doctor`.
+- **A10-W.2…W.9** — Windows path policy, NTFS worktree manager, Job Object process
+  supervisor, isolation boundary + safe command policy, real adapters, real pilots,
+  integrated IDE-terminal + UI E2E, and packaging/security-review/release.
+
+Until every mandatory `windows_*` capability reaches its bar
+(`verified_real_environment` for real-host OS behavior, `verified_real_provider` for
+real CLI runs) in `TRIFORGE_CAPABILITY_EVIDENCE.json`, the final gate reports not-ready
+and no `v1.0.0` final tag is created. See ADR 0054, ADR 0056, and
+`docs/specs/REAL_PROVIDER_OPERATIONAL_CLOSURE_SPEC.md`.
+
+## Compatibility matrix (observed 2026-06-30 via `pnpm triforge:doctor`)
 
 | Component | Version / target | Status |
 |---|---|---|
-| OS host | Windows 11 (build 26200) | verified |
-| Substrate | WSL2 Ubuntu (v2) | present; Node/pnpm/PostgreSQL toolchain `blocked_external` (runbook) |
-| Repo location (real run) | Linux filesystem (not `/mnt/c`) | `blocked_external` (owner moves the repo) |
+| OS host | Windows 11 Home (build 26200), x64 | `verified_real_environment` |
+| Substrate | **Native Windows on NTFS** (ADR 0056; WSL2 optional/future) | `windows_native_substrate` = `verified_real_environment` |
+| Shell | Windows PowerShell 5.1 (pwsh 7 optional) | verified |
 | Node | 22 (CI) / 24.12 (dev host) | verified |
-| pnpm | 11.5.0 | verified |
-| PostgreSQL | 16 (CI service) | verified |
-| Codex CLI | 0.101.0 (Windows host; auth unknown) | read-only `verified_fixture`; writable real `blocked_external` |
-| Claude Code | 2.1.195 (Windows host; auth unknown) | read-only `verified_fixture`; writable real `blocked_external` |
-| Required CI check | `Validate` | verified green on `main` |
+| pnpm | 11.5.0 (corepack 0.34.5) | verified |
+| PostgreSQL | 18 (native Windows service) / 16 (CI) | running; `localhost:5432` reachable |
+| Codex CLI | 0.101.0 (native Windows, **authenticated**) | read-only `verified_fixture`; Windows real run `unknown` (A10-W.6) |
+| Claude Code | 2.1.195 (native Windows, **authenticated**: claude.ai, Max) | read-only `verified_fixture`; Windows real run `unknown` (A10-W.6) |
+| Long paths | `LongPathsEnabled=0` | warning — `git config core.longpaths true` (no admin) |
+| Required CI check | `Validate` (Linux) | verified green on `main` |
 
 The single machine-readable source of truth is
-`docs/evidence/TRIFORGE_CAPABILITY_EVIDENCE.json`. "writable real `blocked_external`"
-means the writable *adapter* + conformance are verified against fixtures, but the
-end-to-end writable run with the **authenticated** CLI awaits the owner runbook.
+`docs/evidence/TRIFORGE_CAPABILITY_EVIDENCE.json`. The Windows real-provider runs are
+`unknown` (scheduled A10-W.6–W.8), no longer `blocked_external`: the providers are
+authenticated, so the closure is engineering, not a manual owner action.
 
 ## Known non-blocking open items (registered)
 
-- **A5.10 / A10 real provider verification** — gated on the owner's manual WSL2
-  install + authentication; tracked in `TRIFORGE_CAPABILITY_EVIDENCE.json` and the
-  REQUIRES_VERIFICATION register (A10.9). The MVP stands via mocks.
+- **A10-W real provider verification** — native-Windows engineering across A10-W.2–W.9
+  (path policy, worktree, Job Object supervisor, isolation, adapters, pilots, E2E,
+  packaging). Tracked in `TRIFORGE_CAPABILITY_EVIDENCE.json`. No longer gated on a manual
+  WSL2 install/auth: both providers are authenticated natively. The MVP stands via mocks.
 - **PR #26** — legacy 1.x Code Graph ingestion, out of the A1–A9 roadmap; resolved by
   A10.10.
 - **R-SEC-2** — the owner's external PAT rotation (Git auth via the credential manager is
@@ -130,8 +151,10 @@ isolated worktrees; every writable capability carries a
 **A1–A9 roadmap Definition of Done: MET** (release candidate) — backed by the green
 release gate and the evidence mapped above.
 
-**Final operational Definition of Done (A10): PENDING** — gated on real-provider
+**Final operational Definition of Done (A10): PENDING** — gated on native-Windows
 verification, evaluated from `docs/evidence/TRIFORGE_CAPABILITY_EVIDENCE.json` by
 `apps/api/src/test/finalReleaseGate.test.ts`. The final-operational declaration and the
-`v1.0.0` tag are set only when that gate reports ready (every mandatory writable
-real-provider capability at `verified_real_provider`).
+`v1.0.0` tag are set only when that gate reports ready — every mandatory `windows_*`
+capability at its bar (`verified_real_environment` for real-host OS behavior,
+`verified_real_provider` for real CLI runs). See ADR 0056 and
+`docs/specs/NATIVE_WINDOWS_OPERATIONAL_CLOSURE_SPEC.md`.

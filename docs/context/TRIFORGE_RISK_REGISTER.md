@@ -4,7 +4,7 @@
 impact, qualitative probability, mitigation, status, owner, responsible milestone,
 evidence. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.2).
 
-**Last updated:** 2026-06-30 (Loop 43 — A10 kickoff: A1–A9 roadmap DoD MET = **release candidate**; FINAL operational 1.0 PENDING real-provider verification — `blocked_external` on owner WSL2 install + auth. Release gate green; no open blockers/criticals; remaining items tracked in `docs/evidence/TRIFORGE_CAPABILITY_EVIDENCE.json`)
+**Last updated:** 2026-06-30 (Loop 44 — **A10-W native Windows pivot** (ADR 0056): FINAL operational 1.0 PENDING native-Windows verification (engineering, not a manual owner action — both providers authenticated natively). Adds Windows-specific risks R-WIN-1…R-WIN-6. Release gate honest; no open blockers/criticals; remaining items tracked in `docs/evidence/TRIFORGE_CAPABILITY_EVIDENCE.json`)
 
 Owner is `AlmanInDaHouse` for accept/override decisions; Claude Code owns
 mitigation execution unless noted. Probability/impact are qualitative
@@ -41,14 +41,25 @@ a security incident (Execution State); **PAT rotation by the owner is required**
 
 | ID | Description | Impact | Prob | Mitigation | Status | Milestone | Evidence |
 |---|---|---|---|---|---|---|---|
-| R-SUB-1 | Repo on `/mnt/c` causes severe perf/fidelity penalty | Med | Med | Substrate check refuses/warns; repo on Linux fs | Open | A0.4→A5 | ADR 0030, spec §8.2 |
-| R-SUB-2 | Kill of lead PID only orphans the process tree on POSIX | High | High (current harness) | Future process-group ownership (setsid + negative PGID) | Open | A2 | A0.4 spec §8.5 |
+| R-SUB-1 | Repo on `/mnt/c` causes severe perf/fidelity penalty | Med | Med | n/a under ADR 0056 (native Windows on NTFS; no `/mnt/c`) | **Closed (not_applicable — ADR 0056)** | A0.4→A10-W | ADR 0056 |
+| R-SUB-2 | Kill of lead PID only orphans the process tree (POSIX) / on Windows | High | High | POSIX: process-group ownership; **Windows: Job Object kill-on-job-close** (R-WIN-2) | **Open (Windows path → A10-W.4)** | A2/A10-W.4 | A0.4 spec §8.5; ADR 0056 |
 | R-SUB-3 | EOL drift (no `.gitattributes`, `core.autocrlf`) between Windows/WSL checkouts | Low | Med | Normalization policy candidate follow-up | Open | A0.4 follow-up | A0.4 spec §15 |
 | R-PRV-1 | Provider CLI command/flag/output drift breaks adapters | High | Med | Capability snapshots invalidated by version; `unknown` when unverified | Open | A1–A3 | Vision §12/§25 |
 | R-PRV-2 | Opaque/partial quota signals; expired auth mid-run | Med | Med | `unknown` state, hard stop on exhaustion, manual resume, no paid fallback | **Open (reinforced — A6.3)**: the quota-aware router never presents unknown quota as available (≤0.5), hard-stops when all providers are exhausted, and auth-gates an unauthenticated provider (ineligible, never a degradation target); ADR 0047 | A2/A6 | Quota spec, ADR 0027/0047 |
 | R-PRV-3 | Provider event schemas not contractually guaranteed | Med | Med | Normalize + preserve raw evidence; reverify per version | Open | A1/A3 | Vision §12 |
-| R-PRV-4 | Mock evidence mistaken for real-provider evidence (false "operational" claim) | High | Med | Machine-readable evidence registry; final gate requires `verified_real_provider` for mandatory writable real caps; RC/final claims cross-checked vs registry; real entries require provider version + `wsl2-ubuntu` environment + evidence ref | **Open (controlled — A10-1)**: `evaluateFinalReleaseReadiness` blocks the final claim; `finalReleaseGate.test.ts` is a no-false-green | A10 | ADR 0054; `TRIFORGE_CAPABILITY_EVIDENCE.json` |
-| R-PRV-5 | Real-provider verification blocked on owner manual auth (hard stop) | Med | High (current) | `blocked_external` in the registry; exact owner runbook; auth-independent substrate ships first; no login automation / no credential read | **Open (external, non-blocking the substrate)** | A10 | `docs/runbooks/REAL_PROVIDER_SETUP_WSL2.md`; mandate §18–§19 |
+| R-PRV-4 | Mock/fixture evidence mistaken for real evidence (false "operational" claim) | High | Med | Machine-readable evidence registry; final gate requires `verified_real_provider` for real-provider caps and `verified_real_environment` for real-host caps (`requiresRealEnvironment`); RC/final claims cross-checked vs registry; real entries carry provider version + `windows-native` environment + evidence ref | **Open (controlled — A10-1/A10-W.1)**: `evaluateFinalReleaseReadiness` blocks the final claim; `finalReleaseGate.test.ts` + `evidenceGate.windows.test.ts` are no-false-green | A10-W | ADR 0054/0056; `TRIFORGE_CAPABILITY_EVIDENCE.json` |
+| R-PRV-5 | Real-provider verification blocked on owner manual auth (hard stop) | Med | Low | Was `blocked_external` on a WSL2 install+auth; under ADR 0056 both CLIs are **already authenticated natively on Windows** (`codex login status` / `claude auth status`, 2026-06-30) → the manual-login hard stop is satisfied | **Closed (satisfied — native auth done)** | A10→A10-W | `pnpm triforge:doctor`; ADR 0056 |
+
+## Native Windows substrate (A10-W / ADR 0056)
+
+| ID | Description | Impact | Prob | Mitigation | Status | Milestone | Evidence |
+|---|---|---|---|---|---|---|---|
+| R-WIN-1 | Windows path escape (junction/symlink/reparse/ADS/UNC/device/reserved-name/case-confusion/trailing-dot-space) bypasses containment | Critical | Med | Canonical-identity containment (volume + realpath, never `startsWith`); nearest-existing-ancestor canonicalization; deny-by-default; full negative matrix | Open | A10-W.2 | `windows_path_policy`; spec §5 |
+| R-WIN-2 | Windows process tree not reaped on cancel/timeout (`taskkill /T` race; breakaway; orphan; PID reuse) | High | Med | Native Job Object (kill-on-job-close) ownership; `taskkill` only a documented fallback; chaos tests (child/grandchild/breakaway) | Open | A10-W.4 | `windows_job_object_supervision` |
+| R-WIN-3 | `.cmd`/`.bat` argument injection (CVE-2024-27980), PATH/PATHEXT hijack, DLL search-order, `.ps1` shim swallowing stdout | High | Med | Deterministic executable resolution (prefer `.exe`, then `.cmd`); `cmd /d /c <resolved>` with `shell:false` (no concatenation); never the `.ps1` shim; scripts/network/privileged denied | **Open (pattern proven in `triforge:doctor`)** | A10-W.5 | doctor `run()`; spec §4/§5 |
+| R-WIN-4 | ACL / restricted-token presented as a perfect sandbox (it is not) | Med | Med | Honest residual-risk register; A0.5 still governs; layered defense, not a single boundary | Open | A10-W.5 | ADR 0056 §Consequences |
+| R-WIN-5 | `MAX_PATH` (260) truncation for deep worktree paths when `LongPathsEnabled=0` | Med | Med | `git config core.longpaths true` (no admin); long-path-aware APIs; state root short (`%LOCALAPPDATA%\TriForge`); doctor warns | **Open (warned by doctor)** | A10-W.3 | `pnpm triforge:doctor` long-path check |
+| R-WIN-6 | CI is Linux-only; native-Windows behavior inferred from Linux CI (false green) | Med | Med | `verified_real_environment` status requires real-host evidence (not a CI fixture); a native-Windows CI lane is a follow-up | Open | A10-W | evidence model (`requiresRealEnvironment`); ADR 0056 |
 
 ## Provider/repository threat model (A0.5)
 
