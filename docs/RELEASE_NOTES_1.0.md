@@ -1,12 +1,12 @@
 # TriForge 1.0 — Release Notes & Definition of Done
 
-**Status:** Release candidate. **A1–A9 roadmap complete.** **Windows-native operational
-closure in progress (A10-W).** **Final 1.0 release pending real-provider Windows
-verification.**
+**Status:** Final operational release — **`v1.0.0`, the Windows Native Operational
+Release.** **A1–A9 roadmap complete.** **Windows-native operational closure complete
+(A10-W).**
 
 The **A1–A9 roadmap Definition of Done: MET** with **executable evidence** (green gates
-+ specs/ADRs), not a narrative. The **Final operational Definition of Done (A10):
-PENDING** — the real Codex / Claude CLIs are now run on a **native Windows 11**
++ specs/ADRs), not a narrative. The **TriForge 1.0 operational Definition of Done: MET**
+— the real Codex / Claude CLIs are run on a **native Windows 11**
 substrate (ADR 0056; WSL2 is reframed optional/future), operated from a **PowerShell
 terminal in an integrated IDE**, with no WSL2 / Ubuntu / Linux-path requirement. Both
 providers are already installed and **authenticated natively on Windows** (the prior
@@ -148,13 +148,15 @@ force-push, no branch-protection disabling, no check bypass. Writable work is co
 isolated worktrees; every writable capability carries a
 {threat, control, milestone, verification, recovery, residual-risk} closure record.
 
-**A1–A9 roadmap Definition of Done: MET** (release candidate) — backed by the green
-release gate and the evidence mapped above.
+**A1–A9 roadmap Definition of Done: MET** — backed by the green release gate and the
+evidence mapped above.
 
-**Final operational Definition of Done (A10): PENDING** — gated on native-Windows
-verification, evaluated from `docs/evidence/TRIFORGE_CAPABILITY_EVIDENCE.json` by
-`apps/api/src/test/finalReleaseGate.test.ts`. The final-operational declaration and the
-`v1.0.0` tag are set only when that gate reports ready — every mandatory `windows_*`
-capability at its bar (`verified_real_environment` for real-host OS behavior,
-`verified_real_provider` for real CLI runs). See ADR 0056 and
-`docs/specs/NATIVE_WINDOWS_OPERATIONAL_CLOSURE_SPEC.md`.
+**TriForge 1.0 operational Definition of Done: MET** — the final evidence gate
+(`evaluateFinalReleaseReadiness` over `docs/evidence/TRIFORGE_CAPABILITY_EVIDENCE.json`,
+asserted by `apps/api/src/test/finalReleaseGate.test.ts` + `windowsFinalGate.test.ts`)
+reports **ready: true, 39/39** mandatory capabilities at their required bar on a real
+Windows 11 host: every `windows_*` substrate capability `verified_real_environment`, and
+every real-provider capability — including the **integrated product E2E** (a real Codex
+run completed end-to-end through the UI to a governed merge, 2026-06-30) — at
+`verified_real_provider`. `v1.0.0` is the Windows Native Operational Release. See ADR 0056
+and `docs/specs/NATIVE_WINDOWS_OPERATIONAL_CLOSURE_SPEC.md`.

@@ -147,13 +147,15 @@ describe("A10-W evidence gate — verified_real_environment / requiresRealEnviro
     expect(substrate?.status).toBe("verified_real_environment");
   });
 
-  it("the real registry keeps the final gate honestly NOT ready (Windows work pending), backed by a real-host gap", () => {
+  it("the real registry makes the final gate honestly READY (A10-W complete) — no remaining real gap", () => {
     const registry = capabilityEvidenceRegistrySchema.parse(
       JSON.parse(readFileSync(path.join(repoRoot, "docs/evidence/TRIFORGE_CAPABILITY_EVIDENCE.json"), "utf8"))
     );
     const r = evaluateFinalReleaseReadiness(registry);
-    expect(r.ready).toBe(false);
-    // No silent pass: a real-provider OR a real-environment verification gap.
+    expect(r.ready).toBe(true);
+    expect(r.reasons).toHaveLength(0);
+    // Every mandatory real-provider cap is verified_real_provider; every mandatory
+    // real-environment cap is at least verified_real_environment — no silent pass remains.
     const realProviderBlocked = registry.capabilities.filter(
       (c) => c.mandatoryForFinal && c.requiresRealProvider && c.status !== "verified_real_provider"
     );
@@ -164,6 +166,22 @@ describe("A10-W evidence gate — verified_real_environment / requiresRealEnviro
         c.requiresRealEnvironment &&
         !(SATISFYING_REAL_ENVIRONMENT_STATUSES as readonly string[]).includes(c.status)
     );
-    expect(realProviderBlocked.length + realEnvBlocked.length).toBeGreaterThan(0);
+    expect(realProviderBlocked).toHaveLength(0);
+    expect(realEnvBlocked).toHaveLength(0);
+  });
+
+  it("the gate stays honest: degrading any mandatory real-provider cap to a weaker status breaks readiness", () => {
+    const registry = capabilityEvidenceRegistrySchema.parse(
+      JSON.parse(readFileSync(path.join(repoRoot, "docs/evidence/TRIFORGE_CAPABILITY_EVIDENCE.json"), "utf8"))
+    );
+    const tampered = {
+      ...registry,
+      capabilities: registry.capabilities.map((c) =>
+        c.capability === "windows_integrated_product_e2e"
+          ? { ...c, status: "verified_real_environment" as const }
+          : c
+      )
+    };
+    expect(evaluateFinalReleaseReadiness(tampered).ready).toBe(false);
   });
 });

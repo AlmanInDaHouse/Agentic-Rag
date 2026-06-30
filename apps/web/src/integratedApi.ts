@@ -8,9 +8,13 @@ import type { IntegratedRunEventDTO, IntegratedRunRecordDTO } from "./lib/integr
 const apiUrl = import.meta.env.VITE_API_URL ?? "http://127.0.0.1:3001";
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
+  // Only declare a JSON content-type when we actually send a body — a bodyless POST
+  // (start/cancel/recover) with `content-type: application/json` is rejected by Fastify
+  // as an empty JSON body (A10-W.8b).
+  const hasBody = init?.body !== undefined && init?.body !== null;
   const res = await fetch(`${apiUrl}${path}`, {
     ...init,
-    headers: { "content-type": "application/json", ...init?.headers }
+    headers: { ...(hasBody ? { "content-type": "application/json" } : {}), ...init?.headers }
   });
   if (!res.ok) {
     const body = (await res.json().catch(() => null)) as { message?: string } | null;

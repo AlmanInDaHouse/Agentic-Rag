@@ -231,16 +231,24 @@
     },
     {
       "capability": "windows_integrated_product_e2e",
-      "status": "unknown",
+      "status": "verified_real_provider",
       "mandatoryForFinal": true,
       "requiresRealProvider": true,
-      "provider": "both",
-      "providerVersion": "",
+      "provider": "codex",
+      "providerVersion": "0.142.4",
       "environment": "windows-native",
-      "evidence": [],
-      "verifiedAt": "",
-      "risks": [],
-      "notes": "A10-W.8: from a PowerShell IDE terminal, `pnpm triforge:start` brings up backend + frontend + native PostgreSQL and the UI completes a REAL provider run (timeline/commands/mutations/quota/review/repair/diff/governance/merge/cancel/cleanup). Subsumes the prior WSL2 ui_backend_real_run_e2e."
+      "evidence": [
+        "BROWSER-DRIVEN real run on Windows 11 26200, 2026-06-30: `pnpm triforge:start` brought up backend (:3001) + frontend (:5173) + native PostgreSQL from a PowerShell terminal; the TriForge UI (IntegratedRunConsole) created+started a REAL provider run (providerMode=real, owner+reviewer=codex 0.142.4 to conserve Claude quota per §20) on a disposable fixture repo (C:\\tmp\\triforge-fixture-e2e). Persisted run cb8de8e0: 41 sequence-numbered events with real codex 0.142.4 provenance — run.started, provider.selected, worktree.created, real codex agent.message + tool.started/completed (powershell git status / rg --files / Get-Content), file.changed src/slugify.js, mutations.recorded, gates.completed status=passed, usage.updated, cross-vendor review.completed PASS, governance.decided verdict=merge, merge.completed (merged=true), diff.captured, cleanup.completed, single run.completed terminal.",
+        "filesystem authority: the fixture's main branch received the GOVERNED MERGE (git log: `Merge branch 'triforge/cb8de8e0.../t1'` + `triforge: Add a slugify helper…`); codex's real src/slugify.js implementation is on disk and `npm test` PASSES on the merged result.",
+        "apps/api/src/test/integratedRun.real.host.test.ts (the codified reproducer, gated win32 + TRIFORGE_REAL_PROVIDER=1; describe.skip on CI) + apps/api/src/execution/integrated/{integratedRunService,runCallbacks,pgStore}.ts + apps/api/src/http/integratedRoutes.ts + apps/web/src/components/IntegratedRunConsole.tsx"
+      ],
+      "verifiedAt": "2026-06-30",
+      "risks": [
+        "owner+reviewer were both Codex (same-vendor) to conserve Claude quota (§20); the CROSS-VENDOR direction is covered by codex_owner_claude_reviewer_e2e / claude_owner_codex_reviewer_e2e (W.7, both verified_real_provider).",
+        "the integrated /start endpoint initially rejected the browser's bodyless application/json POST (FST_ERR_CTP_EMPTY_JSON_BODY); fixed in this milestone (registerTolerantJsonParser + the client only sends a JSON content-type with a body) and regression-tested, then the real run was re-driven green.",
+        "cancellation of a real integrated run is covered by cancellation_real (W.6 Job Object kill-on-close, verified_real_provider); not separately re-run here to conserve quota."
+      ],
+      "notes": "A10-W.8b: from a PowerShell IDE terminal, `pnpm triforge:start` brings up backend + frontend + native PostgreSQL and the UI completes a REAL Codex provider run end-to-end (timeline/tool-calls/mutations/gates/usage/cross-vendor-review/governance/governed-merge/diff/cleanup, single terminal). Subsumes the prior WSL2 ui_backend_real_run_e2e."
     },
     {
       "capability": "windows_restart_recovery",
