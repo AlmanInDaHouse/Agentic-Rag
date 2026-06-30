@@ -91,6 +91,25 @@ install + authenticate the provider CLIs in WSL2 per
 not-ready, and no `v1.0.0` final tag is created. See
 `docs/specs/REAL_PROVIDER_OPERATIONAL_CLOSURE_SPEC.md` and ADR 0054.
 
+## Compatibility matrix (observed 2026-06-30)
+
+| Component | Version / target | Status |
+|---|---|---|
+| OS host | Windows 11 (build 26200) | verified |
+| Substrate | WSL2 Ubuntu (v2) | present; Node/pnpm/PostgreSQL toolchain `blocked_external` (runbook) |
+| Repo location (real run) | Linux filesystem (not `/mnt/c`) | `blocked_external` (owner moves the repo) |
+| Node | 22 (CI) / 24.12 (dev host) | verified |
+| pnpm | 11.5.0 | verified |
+| PostgreSQL | 16 (CI service) | verified |
+| Codex CLI | 0.101.0 (Windows host; auth unknown) | read-only `verified_fixture`; writable real `blocked_external` |
+| Claude Code | 2.1.195 (Windows host; auth unknown) | read-only `verified_fixture`; writable real `blocked_external` |
+| Required CI check | `Validate` | verified green on `main` |
+
+The single machine-readable source of truth is
+`docs/evidence/TRIFORGE_CAPABILITY_EVIDENCE.json`. "writable real `blocked_external`"
+means the writable *adapter* + conformance are verified against fixtures, but the
+end-to-end writable run with the **authenticated** CLI awaits the owner runbook.
+
 ## Known non-blocking open items (registered)
 
 - **A5.10 / A10 real provider verification** — gated on the owner's manual WSL2

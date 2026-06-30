@@ -14,7 +14,7 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
 | Active milestone | **A10 — Real Provider Operational Closure** (A10-1: evidence model + evidence-based release gate; spec `REAL_PROVIDER_OPERATIONAL_CLOSURE_SPEC.md`; ADR 0054) |
 | `main` SHA | `13ae669` |
 | Last `main` CI | `Validate` ✅ success (`13ae669`) |
-| Open PRs | A10-1 (this branch). Legacy PR #26 "ingest Code Graph context pack" — resolved by A10.10. |
+| Open PRs | A10-10 (this branch). Legacy PR #26 — **resolved (closed, superseded; history preserved)** 2026-06-30 (`docs/repo/PR_26_RESOLUTION.md`). |
 | Blockers | none internal. Real-provider verification (A10.5–A10.8) is `blocked_external` on the owner's manual WSL2 install + auth (`docs/runbooks/REAL_PROVIDER_SETUP_WSL2.md`). |
 | Pending decisions | none |
 | Next loop | **A10 is the active roadmap.** A1–A9 is a release candidate; the FINAL operational 1.0 is gated on real-provider verification (`docs/evidence/TRIFORGE_CAPABILITY_EVIDENCE.json`, `finalReleaseGate.test.ts`). Auth-independent substrate (A10-1…A10-4, A10-10, A10-11) ships autonomously and CI-green; auth-dependent verification resumes after the owner runbook. No `v1.0.0` tag until the final gate reports ready. |
@@ -87,8 +87,9 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
   - A10-3 Writable provider adapters (capability-gated) — **this PR** (`writableProfile.ts`; codex `workspace-write` / claude `acceptEdits` profiles refuse unless observed write=yes + binding + version + worktree cwd; `writableAdapter.test.ts`; read-only default unchanged)
   - A10-4 Writable adapter conformance harness — **this PR** (`writableConformance.test.ts`: both real adapters through the harness under writable runs across the failure surface; `writable_adapter_conformance_harness`=verified_fixture)
   - A10.5–A10.8 Real pilots / modes / quota / integrated E2E — **`blocked_external`** on owner WSL2 install + auth
-  - A10-10 Resolve PR #26 — pending
+  - A10-10 Resolve PR #26 — **this PR** (superseded → closed, history preserved; `PR_26_RESOLUTION.md`; `pr_26_resolved`=verified; compatibility matrix; `requires_verification_closed`=verified)
   - A10-11 Honest release gate — delivered in A10-1
+  - **A10 AUTONOMOUS SUBSTRATE COMPLETE** (A10-1…A10-4, A10-10, A10-11). No open PRs. The only remaining work is A10.5–A10.8 real-provider verification + the `v1.0.0` tag, **`blocked_external`** on the owner's manual WSL2 install + auth (`docs/runbooks/REAL_PROVIDER_SETUP_WSL2.md`).
   - **Final operational 1.0 / `v1.0.0`: PENDING real-provider verification**
 
 ## UNKNOWN
