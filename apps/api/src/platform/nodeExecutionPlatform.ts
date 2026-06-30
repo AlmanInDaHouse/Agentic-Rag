@@ -38,6 +38,8 @@ import {
   validateWindowsContainedPath,
   type WindowsPathCanonicalizer
 } from "./windowsPathPolicy.js";
+import { runManagedWindowsProcess } from "./windowsJobObject.js";
+import { spawn as spawnChild } from "node:child_process";
 
 abstract class BaseExecutionPlatform implements ExecutionPlatform {
   abstract readonly platformId: PlatformId;
@@ -202,6 +204,33 @@ export class WindowsExecutionPlatform extends BaseExecutionPlatform {
     return validateWindowsContainedPath(request, {
       canonicalize: this.canonicalizer,
       forbiddenRoots: defaultForbiddenRoots(request.containmentRoot)
+    });
+  }
+
+  /**
+   * A10-W.4 — supervise a process whose whole TREE is owned by a kill-on-close
+   * Job Object (primary). `cancel()` reaps children + grandchildren; `taskkill /T`
+   * is the documented fallback. No shell; explicit argv/cwd/env.
+   */
+  override async createManagedProcess(request: ManagedProcessRequest): Promise<ManagedProcess> {
+    return runManagedWindowsProcess(request);
+  }
+
+  /**
+   * A10-W.4 — terminate a process tree by id. The PRIMARY tree control is the Job
+   * Object owned by the ManagedProcess (use its `cancel()`); this by-id path is the
+   * documented `taskkill /T /F` fallback for a pid not held by a live job handle.
+   */
+  override terminateProcessTree(processId: string, reason: TerminationReason): Promise<TerminationResult> {
+    return new Promise<TerminationResult>((resolve) => {
+      const pid = Number(processId);
+      if (!Number.isInteger(pid) || pid <= 0) {
+        resolve({ reason, exitCode: null, treeReaped: false, detail: `invalid pid ${processId}` });
+        return;
+      }
+      const k = spawnChild("taskkill.exe", ["/PID", String(pid), "/T", "/F"], { stdio: "ignore", windowsHide: true });
+      k.on("error", () => resolve({ reason, exitCode: null, treeReaped: false, detail: "taskkill spawn failed" }));
+      k.on("close", (code) => resolve({ reason, exitCode: null, treeReaped: code === 0, detail: `taskkill exit ${code}` }));
     });
   }
 }
