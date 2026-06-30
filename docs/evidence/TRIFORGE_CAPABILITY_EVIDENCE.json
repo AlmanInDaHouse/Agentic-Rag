@@ -95,17 +95,26 @@
     },
     {
       "capability": "windows_isolation_boundary",
-      "status": "unknown",
+      "status": "verified_real_environment",
       "mandatoryForFinal": true,
       "requiresRealProvider": false,
       "requiresRealEnvironment": true,
       "provider": "",
       "providerVersion": "",
       "environment": "windows-native",
-      "evidence": [],
-      "verifiedAt": "",
-      "risks": ["ACL/restricted-token are not a perfect sandbox (honest residual risk); no setrlimit on Windows"],
-      "notes": "A10-W.5: layered Windows defense (worktree + path policy + ACL + restricted token + Job Object + env allowlist + safe command policy + audit). Extends the 13-invariant matrix (ADR 0055) to Windows; residual risk registered."
+      "evidence": [
+        "apps/api/src/execution/command/commandPolicy.ts (Windows safe command policy: reg/sc/schtasks/netsh/icacls/Defender/... = privileged; del/format/rd = destructive; bitsadmin/certutil = network; cmd/powershell/pwsh/wscript/cscript/mshta + codex/claude = blocked shells/script-hosts)",
+        "apps/api/src/platform/nodeExecutionPlatform.ts (createRestrictedEnvironment: env allowlist + ALWAYS-drop credential-shaped names)",
+        "apps/api/src/test/commandPolicy.windows.test.ts + apps/api/src/test/executionPlatform.test.ts (createRestrictedEnvironment)",
+        "Composed real-host layers (each verified_real_environment): windows_path_policy (W.2), windows_worktree_manager (W.3), windows_job_object_supervision (W.4); ADR 0055 in-process policy composition extended to Windows"
+      ],
+      "verifiedAt": "2026-06-30",
+      "risks": [
+        "OS-level confinement (Windows ACL / restricted token / Defender Firewall rules) is NOT implemented in 1.0 — the boundary is the in-process policy composition, NOT an OS sandbox (RR-4, mirrors ADR 0055's 'WSL2 is not the sandbox'). ACL/restricted-token are not presented as perfect isolation.",
+        "no setrlimit on Windows; Job Object memory/CPU limits are available but not yet applied (RR).",
+        "network policy is deny-by-default at the command-policy layer (network category blocked), not yet an OS firewall rule."
+      ],
+      "notes": "A10-W.5: the Windows isolation boundary is the in-process LAYERED policy composition (mandate §9), verified on a real Windows host: isolated git worktree (W.3) + canonical path containment (W.2) + Job Object process-tree control (W.4) + env allowlist with credential stripping (createRestrictedEnvironment) + deny-by-default safe command policy (Windows shells/script-hosts/registry/service/scheduled-task/Defender/firewall/destructive denied) + audit. Per ADR 0055/0056 the OS itself is NOT trusted as a sandbox; ACL/restricted-token/firewall are honest residuals (RR-4), not claimed as perfect isolation. The 13-invariant matrix is realized across the per-layer real-host suites (path/worktree/job-object/command-policy)."
     },
     {
       "capability": "codex_windows_readonly",

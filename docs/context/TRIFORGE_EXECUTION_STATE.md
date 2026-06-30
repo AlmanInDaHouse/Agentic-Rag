@@ -4,17 +4,17 @@
 and GitHub at the start of every loop; this file records the conclusion, not the
 history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.md` §6.1).
 
-**Last updated:** 2026-06-30 (Loop 47 — **A10-W.4 Windows Job Object process supervisor**: kill-on-job-close tree reaping via a PowerShell + in-box-C# Add-Type job holder (no install); `WindowsExecutionPlatform.createManagedProcess/terminateProcessTree`; real-host chaos tests (grandchild reaped on cancel, timeout, double-cancel); `windows_job_object_supervision`=`verified_real_environment`; on branch `feat/a10w-4-windows-job-object`)
+**Last updated:** 2026-06-30 (Loop 48 — **A10-W.5 Windows isolation boundary + safe command policy**: Windows command policy (reg/sc/schtasks/netsh/Defender/... privileged; cmd/powershell/pwsh/codex/claude blocked shells); `createRestrictedEnvironment` (env allowlist + credential strip — all platform methods now implemented); `windows_isolation_boundary`=`verified_real_environment` (in-process composition; ACL/token/firewall = honest OS-confinement residual); on branch `feat/a10w-5-windows-isolation-boundary`)
 
 ## Snapshot
 
 | Field | Value |
 |---|---|
-| Last closed milestone | A10-W.3 (`69078b2`, PR #83) → Windows Worktree Manager (NTFS) merged |
-| Active milestone | **A10-W — Native Windows Operational Closure** (ADR 0056). A10-W.1–W.3 merged; A10-W.4 in flight; A10-W.5–W.9 queued. |
-| `main` SHA | `69078b2` |
-| Last `main` CI | `Validate` ✅ success (`69078b2`) |
-| Open PRs | A10-W.4 (this branch). |
+| Last closed milestone | A10-W.4 (`568d1b4`, PR #84) → Windows Job Object process supervisor merged |
+| Active milestone | **A10-W — Native Windows Operational Closure** (ADR 0056). A10-W.1–W.4 merged; A10-W.5 in flight; A10-W.6–W.9 queued. The native-Windows SUBSTRATE (platform abstraction, path security, worktree, process supervisor, isolation+command policy) is complete; W.6+ is real-provider integration. |
+| `main` SHA | `568d1b4` |
+| Last `main` CI | `Validate` ✅ success (`568d1b4`) |
+| Open PRs | A10-W.5 (this branch). |
 | Blockers | none internal; **no external blocker** — both providers are installed AND authenticated natively on Windows (the prior WSL2 manual-login hard stop is satisfied). Native-Windows verification is engineering (A10-W.2–W.9). |
 | Pending decisions | none |
 | Next loop | **A10-W is the active roadmap.** A1–A9 is a release candidate; the FINAL operational 1.0 is gated on native-Windows verification (`docs/evidence/TRIFORGE_CAPABILITY_EVIDENCE.json`, `finalReleaseGate.test.ts`). Mandatory `windows_*` capabilities must reach `verified_real_environment` / `verified_real_provider`. No `v1.0.0` tag until the final gate reports ready. Substrate verified on the real host via `pnpm triforge:doctor` (18 checks, 0 blockers). |
@@ -94,8 +94,9 @@ history. See `TRIFORGE_AUTONOMOUS_LOOP_CHARTER.md` §6 (mandate `instrucciones.m
   - A10-W.1 Governance + `ExecutionPlatform` boundary + evidence-model extension (`verified_real_environment`/`requiresRealEnvironment`) + 14 native-Windows-final capabilities + `pnpm triforge:doctor` — **merged** (`fcfb1e7`, PR #81)
   - A10-W.2 Windows path security policy (`validateContainedPath` + `PathPolicyEngine` Windows hardening; canonical-identity containment, namespaces/ADS/reserved-names/trailing/junction-escape; real-NTFS host tests) → `windows_path_policy`=`verified_real_environment` — **merged** (`66e3faf`, PR #82)
   - A10-W.3 Windows Worktree Manager (NTFS state root `%LOCALAPPDATA%\TriForge`, case-insensitive junction-escape containment, `core.longpaths`, never-main, crash recovery; real Git for Windows + `mklink /J` host tests) → `windows_worktree_manager`=`verified_real_environment` — **merged** (`69078b2`, PR #83)
-  - A10-W.4 Windows Job Object process supervisor (kill-on-job-close tree reaping via in-box PowerShell+C# job holder; `createManagedProcess`/`terminateProcessTree`; real-host chaos: grandchild reaped on cancel) → `windows_job_object_supervision`=`verified_real_environment` — **this PR**
-  - A10-W.5–W.9 isolation + safe command policy / real adapters / real pilots / integrated E2E / packaging + security review + release — **queued**
+  - A10-W.4 Windows Job Object process supervisor (kill-on-job-close tree reaping via in-box PowerShell+C# job holder; `createManagedProcess`/`terminateProcessTree`; real-host chaos: grandchild reaped on cancel) → `windows_job_object_supervision`=`verified_real_environment` — **merged** (`568d1b4`, PR #84)
+  - A10-W.5 Windows isolation boundary + safe command policy (Windows dangerous-binary classification + blocked shells/script-hosts; `createRestrictedEnvironment` env-allowlist+credential-strip — all ExecutionPlatform methods now implemented; in-process layered composition) → `windows_isolation_boundary`=`verified_real_environment` (ACL/token/firewall = honest residual) — **this PR**
+  - A10-W.6–W.9 real Codex/Claude Windows adapters / real pilots / integrated E2E / packaging + security review + release — **queued (real-provider integration phase)**
   - **No external blocker:** Codex 0.101.0 and Claude 2.1.195 are installed AND authenticated **natively on Windows** (`pnpm triforge:doctor`, 2026-06-30); the prior WSL2 manual-login hard stop is satisfied. Remaining work is engineering.
   - **Final operational 1.0 / `v1.0.0`: PENDING native-Windows verification** (`verified_real_environment` / `verified_real_provider` for the mandatory `windows_*` set)
 

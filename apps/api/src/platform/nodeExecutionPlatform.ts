@@ -40,6 +40,7 @@ import {
 } from "./windowsPathPolicy.js";
 import { runManagedWindowsProcess } from "./windowsJobObject.js";
 import { spawn as spawnChild } from "node:child_process";
+import { isCredentialEnvName } from "../providers/real/processRunner.js";
 
 abstract class BaseExecutionPlatform implements ExecutionPlatform {
   abstract readonly platformId: PlatformId;
@@ -176,8 +177,31 @@ abstract class BaseExecutionPlatform implements ExecutionPlatform {
     throw new PlatformMethodNotImplementedError("terminateProcessTree", "A10-W.4 (Job Object process supervisor)");
   }
 
-  async createRestrictedEnvironment(_request: RestrictedEnvironmentRequest): Promise<RestrictedEnvironment> {
-    throw new PlatformMethodNotImplementedError("createRestrictedEnvironment", "A10-W.5 (Windows isolation boundary)");
+  /**
+   * A10-W.5 — build a restricted, allowlisted environment for a child process.
+   * Only names on `allowNames` pass through from the parent; `set` adds explicit
+   * values; credential-shaped names (`*_API_KEY`, `*TOKEN`, `*SECRET`, `*PASSWORD`,
+   * …) are ALWAYS dropped — even if requested — and reported. OS-agnostic.
+   */
+  async createRestrictedEnvironment(request: RestrictedEnvironmentRequest): Promise<RestrictedEnvironment> {
+    const env: Record<string, string> = {};
+    const droppedCredentialNames: string[] = [];
+    for (const name of request.allowNames) {
+      if (isCredentialEnvName(name)) {
+        droppedCredentialNames.push(name);
+        continue;
+      }
+      const value = process.env[name];
+      if (value !== undefined) env[name] = value;
+    }
+    for (const [name, value] of Object.entries(request.set ?? {})) {
+      if (isCredentialEnvName(name)) {
+        droppedCredentialNames.push(name);
+        continue;
+      }
+      env[name] = value;
+    }
+    return { env, droppedCredentialNames };
   }
 }
 
