@@ -91,16 +91,16 @@
     },
     {
       "capability": "writable_adapter_conformance_harness",
-      "status": "unknown",
+      "status": "verified_fixture",
       "mandatoryForFinal": true,
       "requiresRealProvider": false,
       "provider": "both",
-      "providerVersion": "",
+      "providerVersion": "codex 0.101.0 / claude 2.1.195",
       "environment": "ci",
-      "evidence": [],
-      "verifiedAt": "",
-      "risks": [],
-      "notes": "Extended conformance harness covering A10.4 writable cases (worktree cwd, path denial, reviewer write refusal, capability invalidation, cleanup). Delivered in A10-4 (pending)."
+      "evidence": ["apps/api/src/test/writableConformance.test.ts", "apps/api/src/test/writableAdapter.test.ts"],
+      "verifiedAt": "2026-06-30",
+      "risks": ["fixture-driven; the real provider streams are REQUIRES_VERIFICATION (blocked_external)"],
+      "notes": "A10.4 writable conformance: both real adapters driven (with fixture writable profiles) through the conformance harness under authorized writable runs across the failure surface (malformed/unknown/rate-limit/timeout/cancellation/crash) — single terminal, errors normalized, no events after terminal, no secret leakage; plus conformant refusal streams for capability invalidation and worktree-cwd denial."
     },
     {
       "capability": "codex_writable_real_capability_snapshot",
