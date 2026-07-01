@@ -1,0 +1,123 @@
+/*
+ * TriForge design tokens (A11 UI redesign).
+ *
+ * "Obsidian cockpit" — a refined dark operations console. Near-black blue-green base,
+ * elevation surfaces, triquetra-blue → cyan primary (from the brand mark), with
+ * turquoise / amber / purple / and semantic status accents. Character comes from a
+ * monospace-for-data treatment (run ids, versions, event types, metrics, diff), which
+ * is authentic to a developer-operations product and needs no fragile CDN webfonts.
+ *
+ * Every visible surface, border, shadow, radius and state color is a token here so the
+ * whole product stays cohesive and re-themeable from one place.
+ */
+
+:root {
+  color-scheme: dark;
+
+  /* ---- Fonts (local-first; offline-safe) ---- */
+  --tf-font-sans:
+    "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont,
+    "Helvetica Neue", Arial, sans-serif;
+  --tf-font-display:
+    "Segoe UI Variable Display", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --tf-font-mono:
+    "Cascadia Code", "Cascadia Mono", "JetBrains Mono", "SF Mono", "Consolas",
+    ui-monospace, monospace;
+
+  /* ---- Base surfaces (elevation ladder) ---- */
+  --tf-bg-void: #070a0e;          /* deepest page backdrop */
+  --tf-bg-base: #0a0f15;          /* app background */
+  --tf-surface-1: #0f1620;        /* sidebar / topbar */
+  --tf-surface-2: #131c27;        /* cards */
+  --tf-surface-3: #18232f;        /* nested / raised card, inputs */
+  --tf-surface-4: #1e2b39;        /* hover / active raised */
+  --tf-surface-inset: #0b1119;    /* wells, code, timeline track */
+
+  /* ---- Borders & lines ---- */
+  --tf-border: rgba(148, 178, 210, 0.10);
+  --tf-border-strong: rgba(148, 178, 210, 0.18);
+  --tf-border-faint: rgba(148, 178, 210, 0.06);
+
+  /* ---- Text ---- */
+  --tf-text: #e8eef6;
+  --tf-text-secondary: #a3b1c2;
+  --tf-text-muted: #6d7c8d;
+  --tf-text-faint: #4c5867;
+  --tf-text-on-accent: #04121b;
+
+  /* ---- Brand / primary (triquetra blue → cyan) ---- */
+  --tf-primary: #3a9dff;
+  --tf-primary-bright: #5cb2ff;
+  --tf-primary-dim: #2b7fd4;
+  --tf-cyan: #29d3ee;
+  --tf-cyan-dim: #1aa5bd;
+
+  /* ---- Accent family ---- */
+  --tf-turquoise: #2dd4bf;
+  --tf-purple: #a78bfa;
+  --tf-amber: #f5a524;
+  --tf-pink: #f472b6;
+
+  /* ---- Semantic status ---- */
+  --tf-success: #34d399;
+  --tf-success-bg: rgba(52, 211, 153, 0.12);
+  --tf-warning: #fbbf24;
+  --tf-warning-bg: rgba(251, 191, 36, 0.12);
+  --tf-danger: #f87171;
+  --tf-danger-bg: rgba(248, 113, 113, 0.12);
+  --tf-info: #38bdf8;
+  --tf-info-bg: rgba(56, 189, 248, 0.12);
+  --tf-running: #22d3ee;
+  --tf-running-bg: rgba(34, 211, 238, 0.12);
+  --tf-neutral: #7c8b9c;
+  --tf-neutral-bg: rgba(124, 139, 156, 0.12);
+
+  /* Per-agent identity accents (used across panels/badges) */
+  --tf-codex: #f5a524;   /* amber — Codex (owner default) */
+  --tf-codex-bg: rgba(245, 165, 36, 0.12);
+  --tf-claude: #a78bfa;  /* violet — Claude */
+  --tf-claude-bg: rgba(167, 139, 250, 0.12);
+
+  /* ---- Radii ---- */
+  --tf-radius-sm: 7px;
+  --tf-radius: 12px;
+  --tf-radius-lg: 16px;
+  --tf-radius-xl: 22px;
+  --tf-radius-pill: 999px;
+
+  /* ---- Shadows & glows ---- */
+  --tf-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --tf-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.4);
+  --tf-shadow-lg: 0 24px 60px -18px rgba(0, 0, 0, 0.7);
+  --tf-glow-primary: 0 0 0 1px rgba(58, 157, 255, 0.4), 0 8px 30px -8px rgba(58, 157, 255, 0.5);
+  --tf-glow-cyan: 0 0 24px -6px rgba(41, 211, 238, 0.55);
+
+  /* ---- Spacing scale ---- */
+  --tf-space-1: 4px;
+  --tf-space-2: 8px;
+  --tf-space-3: 12px;
+  --tf-space-4: 16px;
+  --tf-space-5: 20px;
+  --tf-space-6: 24px;
+  --tf-space-8: 32px;
+  --tf-space-10: 40px;
+  --tf-space-12: 48px;
+
+  /* ---- Layout ---- */
+  --tf-sidebar-w: 264px;
+  --tf-sidebar-w-collapsed: 76px;
+  --tf-topbar-h: 64px;
+  --tf-content-max: 1440px;
+
+  /* ---- Motion ---- */
+  --tf-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --tf-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --tf-dur-fast: 120ms;
+  --tf-dur: 220ms;
+  --tf-dur-slow: 420ms;
+
+  /* ---- z-index ---- */
+  --tf-z-sidebar: 30;
+  --tf-z-topbar: 40;
+  --tf-z-toast: 80;
+}

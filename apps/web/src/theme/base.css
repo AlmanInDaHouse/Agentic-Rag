@@ -1,0 +1,178 @@
+/*
+ * TriForge base layer — reset, page atmosphere, typography defaults, scrollbars,
+ * shared keyframes. Depends on tokens.css.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  min-width: 360px;
+  color: var(--tf-text);
+  font-family: var(--tf-font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  background-color: var(--tf-bg-void);
+  /* Layered atmosphere: two soft radial glows over the near-black base. */
+  background-image:
+    radial-gradient(1100px 620px at 82% -8%, rgba(41, 211, 238, 0.08), transparent 60%),
+    radial-gradient(920px 560px at 8% 6%, rgba(58, 157, 255, 0.09), transparent 55%),
+    radial-gradient(1200px 900px at 50% 120%, rgba(167, 139, 250, 0.06), transparent 60%);
+  background-attachment: fixed;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5 {
+  font-family: var(--tf-font-display);
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--tf-text);
+}
+
+a {
+  color: var(--tf-primary-bright);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+/* Data character: monospace utility for ids, versions, event types, metrics. */
+.tf-mono {
+  font-family: var(--tf-font-mono);
+  font-variant-ligatures: none;
+}
+
+.tf-eyebrow {
+  font-family: var(--tf-font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--tf-text-muted);
+}
+
+::selection {
+  background: rgba(58, 157, 255, 0.32);
+  color: #fff;
+}
+
+/* Scrollbars — thin, dark, on-brand. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 178, 210, 0.22) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(148, 178, 210, 0.18);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 178, 210, 0.34);
+  background-clip: padding-box;
+}
+
+:focus-visible {
+  outline: 2px solid var(--tf-primary);
+  outline-offset: 2px;
+  border-radius: var(--tf-radius-sm);
+}
+
+/* ---- Shared keyframes ---- */
+@keyframes tf-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes tf-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes tf-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes tf-pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 7px rgba(34, 211, 238, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 211, 238, 0);
+  }
+}
+
+@keyframes tf-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes tf-stripes {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 28px 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
